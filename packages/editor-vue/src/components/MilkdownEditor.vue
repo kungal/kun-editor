@@ -11,8 +11,10 @@
 // itself, which needs no host UI kit.
 import { Editor, defaultValueCtx, editorViewOptionsCtx, rootCtx } from '@milkdown/kit/core'
 import { listenerCtx } from '@milkdown/kit/plugin/listener'
+import { slashFactory } from '@milkdown/kit/plugin/slash'
 import { replaceAll } from '@milkdown/kit/utils'
 import { Milkdown, useEditor } from '@milkdown/vue'
+import { usePluginViewFactory } from '@prosemirror-adapter/vue'
 import { createKunEditorPlugins } from '@kungal/editor-core/preset'
 import type {
   KunEditorAdapters,
@@ -20,6 +22,7 @@ import type {
   KunEditorLocale
 } from '@kungal/editor-core'
 import { watch } from 'vue'
+import MentionDropdown from './MentionDropdown.vue'
 
 const props = defineProps<{
   modelValue: string
@@ -39,8 +42,19 @@ const emit = defineEmits<{
 // cursor on every keystroke.
 let lastEmitted = props.modelValue
 
-const editorInfo = useEditor((root) =>
-  Editor.make()
+// The @mention dropdown is a render-layer VIEW: wire it only when the mention
+// feature is on AND the host supplies searchMentionUsers (no adapter → the
+// mention schema still round-trips, just no autocomplete). The dropdown reads
+// the adapter via the KunEditor context (provided by the outer component).
+const pluginViewFactory = usePluginViewFactory()
+const mentionSlash = slashFactory('kunMention')
+const mentionEnabled =
+  props.features.mention !== false &&
+  !!props.adapters.searchMentionUsers &&
+  !!pluginViewFactory
+
+const editorInfo = useEditor((root) => {
+  const editor = Editor.make()
     .config((ctx) => {
       ctx.set(rootCtx, root)
       ctx.set(defaultValueCtx, props.modelValue)
@@ -56,13 +70,25 @@ const editorInfo = useEditor((root) =>
         ...prev,
         editable: () => !props.readonly
       }))
+
+      if (mentionEnabled) {
+        ctx.set(mentionSlash.key, {
+          view: pluginViewFactory!({ component: MentionDropdown })
+        })
+      }
     })
     .use(
       createKunEditorPlugins(props.adapters, props.features, {
         locale: props.locale
       })
     )
-)
+
+  if (mentionEnabled) {
+    editor.use(mentionSlash)
+  }
+
+  return editor
+})
 
 // Re-sync the doc when modelValue changes from OUTSIDE the editor (a parent
 // replacing the bound value). Guarded by lastEmitted so the editor's own edits

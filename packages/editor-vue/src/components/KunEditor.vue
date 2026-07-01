@@ -14,13 +14,14 @@
 // view uses a plain <textarea> until the CodeMirror source view is ported.
 import { MilkdownProvider } from '@milkdown/vue'
 import { ProsemirrorAdapterProvider } from '@prosemirror-adapter/vue'
-import { computed, ref } from 'vue'
+import { computed, provide, ref } from 'vue'
 import type {
   KunEditorAdapters,
   KunEditorFeatures,
   KunEditorLocale
 } from '@kungal/editor-core'
 import MilkdownEditor from './MilkdownEditor.vue'
+import { KUN_EDITOR_CONTEXT } from '../context'
 
 const props = withDefaults(
   defineProps<{
@@ -46,6 +47,20 @@ const props = withDefaults(
 const emit = defineEmits<{
   'update:modelValue': [markdown: string]
 }>()
+
+// Provide the adapters + locale to the plugin VIEWS (the @mention dropdown, and
+// later the sticker picker). It MUST be provided here, not in <MilkdownEditor>:
+// @prosemirror-adapter/vue renders those views as portals under
+// <ProsemirrorAdapterProvider> (siblings of <MilkdownEditor>), so only an
+// ancestor of that provider can reach them. Getters keep prop reactivity.
+provide(KUN_EDITOR_CONTEXT, {
+  get adapters() {
+    return props.adapters
+  },
+  get locale() {
+    return props.locale
+  }
+})
 
 // Per-instance view mode — NOT a module-level singleton (the forum's atom.ts
 // shared one `activeTab` across every editor, which would cross-wire two editors

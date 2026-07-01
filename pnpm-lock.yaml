@@ -12,6 +12,58 @@ importers:
         specifier: ^2.31.0
         version: 2.31.0(@types/node@22.20.0)
 
+  apps/playground:
+    dependencies:
+      '@codemirror/commands':
+        specifier: ^6.7.1
+        version: 6.10.4
+      '@codemirror/language':
+        specifier: ^6.11.3
+        version: 6.12.4
+      '@codemirror/language-data':
+        specifier: ^6.5.2
+        version: 6.5.2
+      '@codemirror/state':
+        specifier: ^6.5.2
+        version: 6.7.0
+      '@codemirror/view':
+        specifier: ^6.39.4
+        version: 6.43.4
+      '@kungal/editor-core':
+        specifier: workspace:*
+        version: link:../../packages/editor-core
+      '@kungal/editor-vue':
+        specifier: workspace:*
+        version: link:../../packages/editor-vue
+      '@lezer/highlight':
+        specifier: ^1.2.1
+        version: 1.2.3
+      '@milkdown/kit':
+        specifier: ^7.21.2
+        version: 7.21.2(@codemirror/language@6.12.4)(@codemirror/state@6.7.0)(@codemirror/view@6.43.4)(typescript@5.9.3)
+      '@milkdown/prose':
+        specifier: ^7.21.2
+        version: 7.21.2
+      '@milkdown/vue':
+        specifier: 7.21.2
+        version: 7.21.2(@codemirror/language@6.12.4)(@codemirror/state@6.7.0)(@codemirror/view@6.43.4)(prosemirror-model@1.25.9)(prosemirror-state@1.4.4)(prosemirror-view@1.41.9)(typescript@5.9.3)(vue@3.5.39(typescript@5.9.3))
+      codemirror:
+        specifier: ^6.0.2
+        version: 6.0.2
+      katex:
+        specifier: ^0.16.27
+        version: 0.16.47
+      vue:
+        specifier: ^3.5.35
+        version: 3.5.39(typescript@5.9.3)
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.7
+        version: 6.0.7(vite@8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))(vue@3.5.39(typescript@5.9.3))
+      vite:
+        specifier: ^8.0.16
+        version: 8.1.2(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0)
+
   packages/editor-core:
     dependencies:
       remark-math:

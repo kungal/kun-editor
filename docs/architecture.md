@@ -132,9 +132,13 @@ KunEditor — no big-bang cutover.
   view) over one `v-model`, replacing the P0 textarea — ported from the forum's
   `DualEditorProvider` + `Editor.vue`, minus the forum-specific flags (now
   adapters/features). The per-instance view state fixes the forum's module-level
-  `activeTab` singleton. Still to port (they build on `@kungal/ui-vue`): the
-  formatting toolbar, the `@mention` dropdown, the sticker/emoji picker, and the
-  CodeMirror source view (currently a `<textarea>`).
+  `activeTab` singleton. The `@mention` autocomplete dropdown is wired too — a
+  slash view over the `searchMentionUsers` adapter, injected from `<KunEditor>`
+  (an ancestor of the adapter provider, since @prosemirror-adapter/vue renders
+  plugin views as portal siblings of the editor). Verified end-to-end in a
+  browser via `apps/playground`. Still to port (they build on `@kungal/ui-vue`):
+  the formatting toolbar, the sticker/emoji picker, and the CodeMirror source
+  view (currently a `<textarea>`).
 - **P4 — adopt in the forum.** Replace `components/kun/milkdown` with
   `@kungal/editor-nuxt`, passing the forum's real adapters (`/image/topic`
   upload, OAuth mention search, `useMessage` notify). Delete the in-repo copy
