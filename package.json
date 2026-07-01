@@ -1,0 +1,27 @@
+{
+  "name": "kun-editor",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "KunEditor — a Milkdown-based Markdown editor for the KUN Galgame ecosystem. Framework-agnostic plugin core + a Vue render layer, so every KUN app shares one editor brain instead of re-implementing the same plugins.",
+  "scripts": {
+    "build": "pnpm -r --filter \"./packages/*\" build",
+    "typecheck": "pnpm -r --filter \"./packages/*\" typecheck",
+    "clean": "pnpm -r --filter \"./packages/*\" clean",
+    "changeset": "changeset",
+    "ci:version": "changeset version",
+    "ci:publish": "pnpm -r --filter \"./packages/*\" build && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.28.2",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

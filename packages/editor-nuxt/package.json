@@ -1,0 +1,47 @@
+{
+  "name": "@kungal/editor-nuxt",
+  "version": "0.0.0",
+  "description": "KunEditor Nuxt Layer — wraps @kungal/editor-vue and auto-imports <KunEditor> so an existing Nuxt app keeps its exact DX (no import needed).",
+  "type": "module",
+  "keywords": [
+    "kungal",
+    "kun-editor",
+    "nuxt",
+    "nuxt-layer",
+    "milkdown",
+    "editor"
+  ],
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kungal/kun-editor.git",
+    "directory": "packages/editor-nuxt"
+  },
+  "homepage": "https://github.com/kungal/kun-editor#readme",
+  "bugs": "https://github.com/kungal/kun-editor/issues",
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./nuxt.config.ts",
+  "files": [
+    "CHANGELOG.md",
+    "app",
+    "nuxt.config.ts"
+  ],
+  "scripts": {
+    "build": "echo \"@kungal/editor-nuxt ships a Nuxt layer, no build step\"",
+    "typecheck": "echo \"@kungal/editor-nuxt has no standalone typecheck\"",
+    "clean": "rm -rf .nuxt"
+  },
+  "dependencies": {
+    "@kungal/editor-vue": "workspace:*"
+  },
+  "peerDependencies": {
+    "@kungal/ui-vue": "^2.7.0",
+    "nuxt": "^4.0.0",
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "@nuxt/kit": "^4.4.7"
+  }
+}

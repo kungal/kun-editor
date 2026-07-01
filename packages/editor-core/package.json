@@ -1,0 +1,70 @@
+{
+  "name": "@kungal/editor-core",
+  "version": "0.0.0",
+  "description": "KunEditor framework-agnostic core — the Milkdown plugin bundle (spoiler / mention / quote / katex / upload / code-block) plus the adapter contracts. No Vue/React.",
+  "type": "module",
+  "keywords": [
+    "kungal",
+    "kun-editor",
+    "milkdown",
+    "prosemirror",
+    "markdown",
+    "editor",
+    "wysiwyg"
+  ],
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kungal/kun-editor.git",
+    "directory": "packages/editor-core"
+  },
+  "homepage": "https://github.com/kungal/kun-editor#readme",
+  "bugs": "https://github.com/kungal/kun-editor/issues",
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "files": [
+    "CHANGELOG.md",
+    "dist"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "unist-util-visit": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@codemirror/language-data": "^6.0.0",
+    "@codemirror/view": "^6.0.0",
+    "@milkdown/kit": "^7.21.2",
+    "@milkdown/prose": "^7.21.2",
+    "codemirror": "^6.0.0",
+    "katex": "^0.16.0"
+  },
+  "peerDependenciesMeta": {
+    "@codemirror/language-data": { "optional": true },
+    "@codemirror/view": { "optional": true },
+    "codemirror": { "optional": true },
+    "katex": { "optional": true }
+  },
+  "devDependencies": {
+    "@milkdown/kit": "^7.21.2",
+    "@milkdown/prose": "^7.21.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.7.0"
+  }
+}
