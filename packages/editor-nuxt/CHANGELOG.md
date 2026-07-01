@@ -1,5 +1,12 @@
 # @kungal/editor-nuxt
 
+## 0.5.0
+
+### Patch Changes
+
+- Updated dependencies [53a2769]
+  - @kungal/editor-vue@0.5.0
+
 ## 0.4.0
 
 ### Patch Changes
