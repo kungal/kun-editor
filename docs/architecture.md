@@ -155,6 +155,13 @@ KunEditor — no big-bang cutover.
   and `/playground` shows a live, fully-styled `<KunEditor>` with adapter/feature
   toggles. This keeps the editor installable in any Vue app (no `@kungal/ui-vue`
   dependency) while KunUI hosts get a matching look by copying the reference CSS.
+  The site is a full docs site (sidebar + SEO from a `site.config`, Shiki code,
+  hand-authored prop tables, live client-only `<DemoEditor>` on every page):
+  getting-started, guides (styling / adapters / features / nuxt), a page per
+  plugin (spoiler / katex / code-block / mention / upload / quote / sticker),
+  API reference (editor / adapters / core), and a changelog rendered from the
+  published CHANGELOG. Reuses kun-ui's docs primitives (Demo/Code/PropsTable/
+  DocsNav/DocTitle).
 - **P4 — adopt in the forum.** Replace `components/kun/milkdown` with
   `@kungal/editor-nuxt`, passing the forum's real adapters (`/image/topic`
   upload, OAuth mention search, `useMessage` notify). Delete the in-repo copy

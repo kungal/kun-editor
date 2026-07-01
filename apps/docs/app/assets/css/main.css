@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 @import '@kungal/ui-tokens';
 @import '@kungal/ui-vue/style.css';
+/* The `.kun-prose` type system — used to render the changelog markdown. */
+@import '@kungal/ui-vue/prose.css';
 
 /* The headless editor's chrome, themed with KunUI tokens (see the file header). */
 @import './kun-editor.css';
