@@ -48,12 +48,16 @@ Enable optional plugins by also installing their peers: `katex` (LaTeX),
 
 ## Status
 
-Scaffold. The `<KunEditor>` prop/emit surface (`v-model`, `adapters`,
-`features`, `locale`, `readonly`) is stable; the Milkdown wiring is ported from
-the forum's `DualEditorProvider` + `Editor.vue` — see
-[`../../docs/architecture.md`](../../docs/architecture.md) § migration. Until
-then the component renders a textarea fallback that keeps `v-model` live so you
-can integrate against the real contract today.
+**P3 in progress.** `<KunEditor>` now renders a **real Milkdown dual-view
+editor**: a WYSIWYG view built from `@kungal/editor-core/preset`
+(`createKunEditorPlugins` — spoiler / katex / code-block / mention / upload /
+…), plus a markdown-source view, over one `v-model`. The prop/emit surface
+(`v-model`, `adapters`, `features`, `locale`, `readonly`) is stable.
+
+Still to come in P3 (they build on `@kungal/ui-vue`, hence staged): the rich
+formatting toolbar, the `@mention` autocomplete dropdown, the sticker/emoji
+picker, and the CodeMirror markdown-source view (currently a `<textarea>`). See
+[`../../docs/architecture.md`](../../docs/architecture.md) § migration.
 
 ## Build
 

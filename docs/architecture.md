@@ -127,9 +127,14 @@ KunEditor — no big-bang cutover.
   node, so its picker is a P3 view over the `stickerSource` adapter.
   `createKunEditorPlugins` gates upload on the adapter, mention on by default,
   quote opt-in. Covered by headless round-trip + uploader tests.
-- **P3 — Vue layer.** Port `DualEditorProvider` + `Editor.vue` + the toolbar and
-  plugin views into `<KunEditor>`, consuming `editor-core` + `@kungal/ui-vue`.
-  Publish `0.1.0`.
+- **P3 — Vue layer. 🚧 in progress.** `<KunEditor>` now renders a real Milkdown
+  dual-view editor (WYSIWYG from `createKunEditorPlugins` + a markdown-source
+  view) over one `v-model`, replacing the P0 textarea — ported from the forum's
+  `DualEditorProvider` + `Editor.vue`, minus the forum-specific flags (now
+  adapters/features). The per-instance view state fixes the forum's module-level
+  `activeTab` singleton. Still to port (they build on `@kungal/ui-vue`): the
+  formatting toolbar, the `@mention` dropdown, the sticker/emoji picker, and the
+  CodeMirror source view (currently a `<textarea>`).
 - **P4 — adopt in the forum.** Replace `components/kun/milkdown` with
   `@kungal/editor-nuxt`, passing the forum's real adapters (`/image/topic`
   upload, OAuth mention search, `useMessage` notify). Delete the in-repo copy
