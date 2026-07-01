@@ -5,7 +5,7 @@ const types = `interface KunEditorAdapters {
   stickerSource?: () => StickerPack[] | Promise<StickerPack[]>
   notify?: (message: string, level: NotifyLevel) => void
   mentionToUrl?: (userId: number) => string
-  mentionFromUrl?: (url: string) => number | null
+  mentionFromUrl?: (url: string, text: string) => number | null
 }
 
 interface MentionUser { id: number; name: string; avatar?: string }
@@ -20,7 +20,7 @@ const rows = [
   { name: 'stickerSource', type: '() => StickerPack[] | Promise', description: '提供贴纸包。省略则隐藏贴纸 UI。' },
   { name: 'notify', type: '(message, level) => void', description: '把编辑器通知路由到宿主的 toast 系统。' },
   { name: 'mentionToUrl', type: '(userId) => string', description: '@提及 的链接 URL 形态(服务端契约,故为策略)。默认 kungal-user:<id>;如 moyu 用 /user/<id>/resource。' },
-  { name: 'mentionFromUrl', type: '(url) => number | null', description: '把链接 URL 解析回 user id(非提及返回 null),须与 mentionToUrl 对应。默认 kungal-user: scheme。' }
+  { name: 'mentionFromUrl', type: '(url, text) => number | null', description: '把链接解析回 user id(非提及返回 null),须与 mentionToUrl 对应。也拿到链接文本 → 可复现文本守卫(如 moyu「文本须以 @ 开头」)。默认 kungal-user: scheme。' }
 ]
 </script>
 

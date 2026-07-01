@@ -81,7 +81,9 @@ describe('mention URL is injectable (host policy)', () => {
       .use(
         createMentionPlugin({
           toUrl: (id) => `/user/${id}/resource`,
-          fromUrl: (url) => {
+          // moyu's guard: a /user/<id> link is a mention only if the text is @…
+          fromUrl: (url, text) => {
+            if (!text.startsWith('@')) return null
             const m = url.match(/^\/user\/(\d+)/)
             return m ? Number(m[1]) : null
           }
@@ -105,6 +107,14 @@ describe('mention URL is injectable (host policy)', () => {
     // migration needed for existing content.
     expect(await roundTripMoyu('[@x](kungal-user:1)')).toBe(
       '[@x](kungal-user:1)'
+    )
+  })
+
+  it('honours a text guard — a /user/<id> link whose text is NOT @ stays a link', async () => {
+    // fromUrl gets the link text, so moyu's "must start with @" guard is
+    // reproducible: a real /user/ link that isn't a mention is left alone.
+    expect(await roundTripMoyu('[see here](/user/42/resource)')).toBe(
+      '[see here](/user/42/resource)'
     )
   })
 })

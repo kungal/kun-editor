@@ -88,10 +88,12 @@ export interface KunEditorAdapters {
    */
   mentionToUrl?: (userId: number) => string
   /**
-   * Parse a markdown link URL back to a user id, or `null` if it isn't a
-   * mention. MUST mirror `mentionToUrl`. Default: the `kungal-user:` scheme.
+   * Parse a markdown link back to a user id, or `null` if it isn't a mention.
+   * MUST mirror `mentionToUrl`. Gets the link URL AND its plain text, so a host
+   * can replicate a text guard — e.g. moyu treats `/user/<id>` as a mention only
+   * when the link text starts with `@`. Default: the `kungal-user:` scheme.
    */
-  mentionFromUrl?: (url: string) => number | null
+  mentionFromUrl?: (url: string, text: string) => number | null
 }
 
 /** BCP-47-ish UI language for the editor chrome (toolbar labels, placeholders). */

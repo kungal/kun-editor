@@ -29,8 +29,13 @@ export const mentionId = 'mention'
 export interface MentionUrlConfig {
   /** Build the link URL for a mention of `userId`. */
   toUrl?: (userId: number) => string
-  /** Parse a link URL back to a user id, or `null` if it isn't a mention. */
-  fromUrl?: (url: string) => number | null
+  /**
+   * Parse a link back to a user id, or `null` if it isn't a mention. Gets the
+   * link URL AND its plain text, so a host can replicate text-based guards — e.g.
+   * moyu treats `/user/<id>` as a mention only when the link text starts with
+   * `@`, so `[see here](/user/5/x)` stays a plain link.
+   */
+  fromUrl?: (url: string, text: string) => number | null
 }
 
 const defaultToUrl = (userId: number): string => `${MENTION_SCHEME}${userId}`
@@ -102,21 +107,26 @@ const makeMentionSchema = (toUrl: (userId: number) => string) =>
   }))
 
 /** Rewrites links that `fromUrl` recognizes as mentions into mention nodes. */
-const makeRemarkMention = (fromUrl: (url: string) => number | null) =>
+const makeRemarkMention = (
+  fromUrl: (url: string, text: string) => number | null
+) =>
   $remark('remarkMention', () => () => {
     const transformer = (tree: UnistNode) => {
       visit(tree, 'link', (node: MdastNode, index, parent: MdastNode) => {
         if (typeof node.url !== 'string') {
           return
         }
-        const userId = fromUrl(node.url)
+        // The link's plain text, so fromUrl can apply text-based guards (e.g.
+        // moyu requires the text to start with `@`). Concatenated across children
+        // to be robust to `[**@name**](url)` etc.
+        const text = (node.children ?? [])
+          .map((child) => (typeof child.value === 'string' ? child.value : ''))
+          .join('')
+        const userId = fromUrl(node.url, text)
         if (userId == null) {
           return
         }
-        const first = node.children?.[0]
-        const name = (
-          typeof first?.value === 'string' ? first.value : ''
-        ).replace(/^@/, '')
+        const name = text.replace(/^@/, '')
         if (typeof index === 'number' && parent.children) {
           parent.children.splice(index, 1, {
             type: mentionId,

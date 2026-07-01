@@ -7,7 +7,10 @@ const md = `markdown 形式(与服务端共用):
 const custom = `const adapters = {
   // 默认是 kungal-user:<id>;换成你服务端的形态(如 moyu 的真实链接)
   mentionToUrl: (id) => \`/user/\${id}/resource\`,
-  mentionFromUrl: (url) => {
+  // fromUrl 同时拿到链接文本 → 复现服务端「文本须以 @ 开头」的守卫,
+  // 于是 [看这里](/user/5/x) 这种普通链接不会被误判成提及。
+  mentionFromUrl: (url, text) => {
+    if (!text.startsWith('@')) return null
     const m = url.match(/^\\/user\\/(\\d+)/)
     return m ? Number(m[1]) : null
   }
