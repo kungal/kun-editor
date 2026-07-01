@@ -80,6 +80,18 @@ export interface KunEditorAdapters {
   searchMentionUsers?: SearchMentionUsers
   stickerSource?: StickerSource
   notify?: Notify
+  /**
+   * How an @mention's user id becomes its markdown link URL. The URL form is a
+   * server contract, so it's host policy — default `kungal-user:<id>` (the KUN
+   * server), but e.g. moyu uses a real link `/user/<id>/resource`. Pair with
+   * `mentionFromUrl`.
+   */
+  mentionToUrl?: (userId: number) => string
+  /**
+   * Parse a markdown link URL back to a user id, or `null` if it isn't a
+   * mention. MUST mirror `mentionToUrl`. Default: the `kungal-user:` scheme.
+   */
+  mentionFromUrl?: (url: string) => number | null
 }
 
 /** BCP-47-ish UI language for the editor chrome (toolbar labels, placeholders). */

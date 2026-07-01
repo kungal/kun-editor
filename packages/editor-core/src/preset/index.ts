@@ -104,9 +104,15 @@ export const createKunEditorPlugins = (
     plugins.push(createSpoilerPlugin())
   }
   // The mention SCHEMA (round-trip) is wired here; the `@` autocomplete dropdown
-  // that uses `searchMentionUsers` is a render-layer view (P3).
+  // that uses `searchMentionUsers` is a render-layer view (P3). The link-URL form
+  // is host policy — default `kungal-user:`, overridable per host.
   if (mention) {
-    plugins.push(createMentionPlugin())
+    plugins.push(
+      createMentionPlugin({
+        toUrl: adapters.mentionToUrl,
+        fromUrl: adapters.mentionFromUrl
+      })
+    )
   }
   // Quote is opt-in — the host inserts references via insertQuoteCommand.
   if (quote) {

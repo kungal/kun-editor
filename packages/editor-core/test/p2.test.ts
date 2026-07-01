@@ -65,6 +65,50 @@ describe('mention round-trip', () => {
   })
 })
 
+describe('mention URL is injectable (host policy)', () => {
+  // A host (e.g. moyu) whose mention link form is a real `/user/<id>/…` link,
+  // not the default kungal-user: scheme.
+  const roundTripMoyu = async (markdown: string): Promise<string> => {
+    const root = document.createElement('div')
+    document.body.appendChild(root)
+    const editor = await Editor.make()
+      .config((ctx) => {
+        ctx.set(rootCtx, root)
+        ctx.set(defaultValueCtx, markdown)
+      })
+      .use(commonmark)
+      .use(gfm)
+      .use(
+        createMentionPlugin({
+          toUrl: (id) => `/user/${id}/resource`,
+          fromUrl: (url) => {
+            const m = url.match(/^\/user\/(\d+)/)
+            return m ? Number(m[1]) : null
+          }
+        })
+      )
+      .create()
+    const out = editor.action(getMarkdown())
+    await editor.destroy()
+    root.remove()
+    return out.trim()
+  }
+
+  it('round-trips a custom /user/<id> mention link', async () => {
+    expect(await roundTripMoyu('[@Alice](/user/42/resource)')).toBe(
+      '[@Alice](/user/42/resource)'
+    )
+  })
+
+  it('does NOT treat a foreign scheme as a mention (stays a link)', async () => {
+    // Under moyu's fromUrl, kungal-user: is not a mention → plain link, no data
+    // migration needed for existing content.
+    expect(await roundTripMoyu('[@x](kungal-user:1)')).toBe(
+      '[@x](kungal-user:1)'
+    )
+  })
+})
+
 describe('quote round-trip', () => {
   it('round-trips [label](kungal-reply:refId)', async () => {
     expect(await roundTrip('[#5](kungal-reply:123)')).toBe(
