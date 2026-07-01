@@ -27,5 +27,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Build first (topological): editor-vue's typecheck resolves
+      # @kungal/editor-core types from its built dist.
+      - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm --filter @kungal/editor-core test
