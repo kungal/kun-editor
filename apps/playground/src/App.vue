@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { KunEditor, type KunEditorAdapters } from '@kungal/editor-vue'
-import '@kungal/editor-vue/style.css'
+// editor-vue is zero-style; this bare dev harness stays unstyled on purpose.
+// The styled reference lives in the docs site (apps/docs).
 
 const markdown = ref('Hello **world** — type `@a` to test @mentions.\n')
 

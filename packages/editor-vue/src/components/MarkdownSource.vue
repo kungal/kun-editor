@@ -71,10 +71,3 @@ watch(
   <div ref="host" class="kun-editor__source" />
 </template>
 
-<style>
-.kun-editor__source .cm-editor {
-  border: 1px solid var(--color-default-200, #e4e4e7);
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
-</style>

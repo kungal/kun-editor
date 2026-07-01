@@ -1,0 +1,41 @@
+{
+  "name": "@kungal/editor-docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "nuxt:prepare": "nuxt prepare"
+  },
+  "dependencies": {
+    "@kungal/editor-core": "workspace:*",
+    "@kungal/editor-vue": "workspace:*",
+    "@kungal/ui-nuxt": "^2.7.0",
+    "@kungal/ui-tokens": "^2.7.0",
+    "@kungal/ui-vue": "^2.7.0",
+    "@codemirror/commands": "^6.7.1",
+    "@codemirror/lang-markdown": "^6.5.0",
+    "@codemirror/language": "^6.11.3",
+    "@codemirror/language-data": "^6.5.2",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.39.4",
+    "@lezer/highlight": "^1.2.1",
+    "@milkdown/kit": "^7.21.2",
+    "@milkdown/prose": "^7.21.2",
+    "@milkdown/vue": "7.21.2",
+    "codemirror": "^6.0.2",
+    "katex": "^0.16.27",
+    "vue": "^3.5.35"
+  },
+  "devDependencies": {
+    "@iconify-json/lucide": "^1.2.0",
+    "@iconify-json/simple-icons": "^1.2.0",
+    "@tailwindcss/vite": "^4.3.0",
+    "nuxt": "^4.4.7",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^5.7.0"
+  }
+}

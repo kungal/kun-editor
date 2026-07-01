@@ -13,5 +13,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@kungal/editor-playground"]
+  "ignore": ["@kungal/editor-playground", "@kungal/editor-docs"]
 }

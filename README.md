@@ -47,15 +47,17 @@ beside `editor-vue` and share the exact same plugin brain.
 Plain Vue:
 
 ```bash
-pnpm add @kungal/editor-vue @kungal/editor-core \
-  @kungal/ui-vue vue \
+pnpm add @kungal/editor-vue @kungal/editor-core vue \
   @milkdown/kit @milkdown/prose @milkdown/vue
 ```
 
 ```vue
 <script setup lang="ts">
 import { KunEditor, type KunEditorAdapters } from '@kungal/editor-vue'
-import '@kungal/editor-vue/style.css'
+// editor-vue is HEADLESS (ships no CSS). Give it a look with your own
+// stylesheet — copy the reference `kun-editor.css` from the docs site
+// (apps/docs), which themes it with KunUI tokens.
+import '~/assets/kun-editor.css'
 
 const markdown = ref('')
 const adapters: KunEditorAdapters = {

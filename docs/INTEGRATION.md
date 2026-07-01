@@ -25,16 +25,26 @@ Nuxt: also add `@kungal/editor-nuxt`, `@kungal/ui-nuxt`, `nuxt`.
 
 ## 2. Styles
 
-Add the editor stylesheet next to your existing KunUI Tailwind entry:
+KunEditor is **headless** — it ships zero CSS, only stable class hooks
+(`.kun-editor__*`, `.kun-mention-dropdown*`) and `data-*` state. Give it a look
+with your own stylesheet. The canonical reference is
+[`apps/docs/app/assets/css/kun-editor.css`](../apps/docs/app/assets/css/kun-editor.css),
+which themes the hooks with KunUI tokens — copy it next to your KunUI entry:
 
 ```css
 /* your app's main.css — after @kungal/ui-tokens + @kungal/ui-vue */
-@import '@kungal/editor-vue/style.css';
+@import './kun-editor.css'; /* the reference stylesheet, copied into your app */
 ```
 
-KunEditor ships no Tailwind entry of its own (the `@source` scan path is
-node_modules-layout-specific — only the app can write it). It assumes KunUI is
-already set up per the [kun-ui integration guide](https://github.com/kungal/kun-ui).
+Also import the peers' own CSS for the features you enable:
+
+```ts
+import 'katex/dist/katex.min.css' // when the katex feature is on
+```
+
+The reference stylesheet carries the two structural rules the editor genuinely
+needs (ProseMirror `white-space`, popover positioning / show-hide), so don't drop
+those if you write your own.
 
 ## 3. Wire adapters (the important part)
 
@@ -69,7 +79,7 @@ const adapters: KunEditorAdapters = {
 ```vue
 <script setup lang="ts">
 import { KunEditor } from '@kungal/editor-vue'
-import '@kungal/editor-vue/style.css'
+import '~/assets/kun-editor.css' // your copy of the reference stylesheet
 const markdown = ref('')
 </script>
 

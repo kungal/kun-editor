@@ -147,6 +147,14 @@ KunEditor — no big-bang cutover.
   editor (markdown highlighting, sharing core's `kunCM` theme) that syncs back to
   the WYSIWYG through `v-model`. All verified end-to-end in a browser via
   `apps/playground`.
+- **P3.5 — headless + docs site. ✅ done.** `editor-vue` ships **zero CSS** — it
+  renders only stable class hooks (`.kun-editor__*`, `.kun-mention-dropdown*`) and
+  `data-*` state; all styling is the host's. The canonical reference styling lives
+  in the docs site (`apps/docs`, Nuxt 4 + KunUI + Tailwind v4, mirroring kun-ui's
+  own docs): `app/assets/css/kun-editor.css` themes the hooks with KunUI tokens,
+  and `/playground` shows a live, fully-styled `<KunEditor>` with adapter/feature
+  toggles. This keeps the editor installable in any Vue app (no `@kungal/ui-vue`
+  dependency) while KunUI hosts get a matching look by copying the reference CSS.
 - **P4 — adopt in the forum.** Replace `components/kun/milkdown` with
   `@kungal/editor-nuxt`, passing the forum's real adapters (`/image/topic`
   upload, OAuth mention search, `useMessage` notify). Delete the in-repo copy

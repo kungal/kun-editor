@@ -2,18 +2,22 @@
 
 The **Vue 3 render layer** of KunEditor: the `<KunEditor>` component (dual
 WYSIWYG preview + markdown-source), its toolbar and the Vue plugin views
-(mention dropdown, tooltip, sticker/emoji picker). Consumes
-[`@kungal/editor-core`](../editor-core) for the plugin brain and pairs with
-[`@kungal/ui-vue`](https://github.com/kungal/kun-ui) for the chrome.
+(mention dropdown, sticker/emoji picker). Consumes
+[`@kungal/editor-core`](../editor-core) for the plugin brain.
 
-Works in any Vue 3 app; `@kungal/editor-nuxt` adds Nuxt auto-import sugar.
+**Headless — ships zero CSS.** The component only renders stable class hooks
+(`.kun-editor__*`, `.kun-mention-dropdown*`) + `data-*` state; you own the look.
+Copy the reference stylesheet [`apps/docs/app/assets/css/kun-editor.css`](../../apps/docs/app/assets/css/kun-editor.css)
+(themed with KunUI tokens), or write your own. It works in any Vue 3 app;
+`@kungal/editor-nuxt` adds Nuxt auto-import sugar.
 
 ## Usage
 
 ```vue
 <script setup lang="ts">
 import { KunEditor, type KunEditorAdapters } from '@kungal/editor-vue'
-import '@kungal/editor-vue/style.css'
+// Headless: bring your own styles. See apps/docs for the KunUI-themed reference.
+import '~/assets/kun-editor.css'
 
 const markdown = ref('')
 
@@ -38,13 +42,13 @@ no other config.
 Install the Milkdown stack **once in the host** (single ProseMirror instance):
 
 ```bash
-pnpm add @kungal/editor-vue @kungal/editor-core \
-  @kungal/ui-vue vue \
+pnpm add @kungal/editor-vue @kungal/editor-core vue \
   @milkdown/kit @milkdown/prose @milkdown/vue
 ```
 
-Enable optional plugins by also installing their peers: `katex` (LaTeX),
-`codemirror` + `@codemirror/view` + `@codemirror/language-data` (code blocks).
+Enable optional plugins by also installing their peers: `katex` (LaTeX, also
+import `katex/dist/katex.min.css`), the `@codemirror/*` packages + `codemirror`
+(code blocks and the markdown-source view).
 
 ## Status
 

@@ -13,7 +13,6 @@ export default defineConfig({
       entry: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
       formats: ['es'],
       fileName: 'index',
-      cssFileName: 'style',
     },
     rollupOptions: {
       // Externalize the framework, the whole Milkdown/ProseMirror stack, and

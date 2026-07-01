@@ -1,0 +1,15 @@
+@import 'tailwindcss';
+@import '@kungal/ui-tokens';
+@import '@kungal/ui-vue/style.css';
+
+/* The headless editor's chrome, themed with KunUI tokens (see the file header). */
+@import './kun-editor.css';
+
+/*
+ * Tailwind only generates the utility classes it finds in scanned source. KunUI's
+ * components (from node_modules) reference utilities that must be generated in
+ * THIS app's Tailwind build, so point @source at the installed packages. Paths
+ * are relative to this file.
+ */
+@source '../../../node_modules/@kungal/ui-vue';
+@source '../../../node_modules/@kungal/ui-core';
