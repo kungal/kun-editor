@@ -1,12 +1,14 @@
 # KunEditor
 
-A **Milkdown-based Markdown editor** for the KUN Galgame ecosystem. One editor
-brain, shared across every KUN app, instead of each re-implementing the same
-Milkdown plugins.
+A **Milkdown-based, headless Markdown editor** for the KUN Galgame ecosystem.
+One editor brain, shared across every KUN app, instead of each re-implementing
+the same Milkdown plugins.
 
-> Status: **P0 scaffold.** The monorepo, publishing pipeline and the public
-> contract (`@kungal/editor-core` adapter types + `<KunEditor>` prop surface)
-> are in place. The Milkdown plugin ports land incrementally — see
+> Status: **published (`0.9.0`).** The core plugins (P1), adapter-driven plugins
+> (P2) and the Vue layer (P3 — dual WYSIWYG / markdown-source, toolbar, @mention
+> dropdown, sticker/emoji picker, imperative insert API) are done and on npm.
+> Next: **P4** — adopt in the forum. Docs + live playground:
+> **[apps/docs](./apps/docs)** (`editor.kungal.com`). Roadmap in
 > [`docs/architecture.md`](./docs/architecture.md).
 
 ## Why this exists
@@ -29,20 +31,36 @@ uploads go, how `@mentions` resolve, what stickers exist, how toasts show. See
 
 | Package | What | State |
 | --- | --- | --- |
-| [`@kungal/editor-core`](./packages/editor-core) | framework-agnostic Milkdown plugin bundle + adapter contracts (no Vue/React) | 🟡 scaffold — contracts landed, plugin ports in progress |
-| [`@kungal/editor-vue`](./packages/editor-vue) | Vue 3 `<KunEditor>` component (dual WYSIWYG / markdown-source) | 🟡 scaffold — prop surface stable, wiring in progress |
-| [`@kungal/editor-nuxt`](./packages/editor-nuxt) | Nuxt Layer (auto-imports `<KunEditor>`) | 🟡 scaffold |
+| [`@kungal/editor-core`](./packages/editor-core) | framework-agnostic Milkdown plugin bundle + adapter contracts (no Vue/React) | ✅ P1+P2 — spoiler / katex / code-block / stop-link / mention / upload / quote |
+| [`@kungal/editor-vue`](./packages/editor-vue) | Vue 3 `<KunEditor>` (dual WYSIWYG / markdown-source, headless) | ✅ P3 — toolbar, @mention dropdown, sticker/emoji picker, imperative insert API |
+| [`@kungal/editor-nuxt`](./packages/editor-nuxt) | Nuxt Layer (auto-imports `<KunEditor>`) | ✅ layer |
 
 ```
 @kungal/editor-core   Milkdown plugins + adapter types   ← the brain (portable)
-@kungal/editor-vue    Vue 3 <KunEditor> render layer     ← Vue chrome (on @kungal/ui-vue)
+@kungal/editor-vue    Vue 3 <KunEditor> render layer     ← headless, CSS-var themed
 @kungal/editor-nuxt   thin Nuxt Layer over editor-vue    ← Nuxt auto-import sugar
 ```
 
 `editor-core` never imports Vue; a future `@kungal/editor-react` could sit
-beside `editor-vue` and share the exact same plugin brain.
+beside `editor-vue` and share the exact same plugin brain. The core has a **light
+main entry** (types + `MENTION_SCHEME` / `QUOTE_SCHEME`, zero runtime deps — safe
+for the server) and a heavier `@kungal/editor-core/preset` that carries the
+Milkdown plugins.
 
-## Use it (once published)
+## What's inside
+
+- **Dual view** — Milkdown WYSIWYG + a CodeMirror markdown-source tab over one
+  `v-model`.
+- **Plugins** — `||spoiler||`, KaTeX (`$…$` / `$$…$$`), CodeMirror code blocks,
+  `@mention`, image upload, sticker/emoji, inline reply-quote. Each a factory
+  over its adapter, never a host-bound singleton.
+- **Headless** — `editor-vue` ships **zero CSS**, only stable class hooks; style
+  it with the reference [`kun-editor.css`](./apps/docs/app/assets/css/kun-editor.css)
+  (themed with KunUI tokens) or your own.
+- **Imperative API** — a `<KunEditor>` ref exposes `insertQuote` / `insertMention`
+  / `focus` for cursor-level inserts (the forum's 「引用」 flow).
+
+## Install & use
 
 Plain Vue:
 
@@ -79,13 +97,16 @@ Nuxt: `extends: ['@kungal/ui-nuxt', '@kungal/editor-nuxt']`, then use
 
 ```bash
 pnpm install
-pnpm build       # build all packages
-pnpm typecheck   # typecheck all packages
+pnpm build                                  # build all packages
+pnpm typecheck                              # typecheck all packages
+pnpm --filter @kungal/editor-core test      # headless markdown round-trip tests
+pnpm --filter @kungal/editor-docs dev       # run the docs site + live playground
 ```
 
 Requires Node ≥ 20 and pnpm 10. Uses [changesets](./.changeset) for versioning
 (the three packages move in lockstep) and OIDC trusted publishing — see
-[`docs/RELEASING.md`](./docs/RELEASING.md).
+[`docs/RELEASING.md`](./docs/RELEASING.md). The docs site ships as a GHCR image
+(`docker/docs.Dockerfile` + `.github/workflows/docs-image.yml`).
 
 ## Ownership
 
