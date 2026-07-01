@@ -89,8 +89,18 @@ export type KunEditorLocale = 'zh-cn' | 'en-us' | (string & {})
 export interface KunEditorFeatures {
   /** ||spoiler|| hidden text. Default: true. */
   spoiler?: boolean
-  /** @mentions. Requires `searchMentionUsers`. Default: on when adapter present. */
+  /**
+   * @mention nodes. Default: true. The mention *schema* (so `[@x](kungal-user:1)`
+   * round-trips) is always wired when on; the interactive `@` autocomplete
+   * dropdown additionally needs the `searchMentionUsers` adapter (render layer).
+   */
   mention?: boolean
+  /**
+   * Inline reference / reply-quote atom (`[label](kungal-reply:<refId>)`). The
+   * reference is opaque — the host inserts one via `insertQuoteCommand({ refId,
+   * label })` and decides what it means. Host-specific, so default: false.
+   */
+  quote?: boolean
   /** LaTeX via katex (inline `$…$` and block `$$…$$`). Requires the katex peer. Default: true. */
   katex?: boolean
   /** Fenced code blocks with CodeMirror. Requires the codemirror peers. Default: true. */

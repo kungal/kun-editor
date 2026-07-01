@@ -9,9 +9,14 @@ export * from './types'
 
 // Markdown scheme used to encode an @mention as a plain link the server can
 // render + parse: `[@name](kungal-user:<id>)`. Lives here (not the plugin) so
-// hosts and the server can share the exact string. See the forum's
-// mentionPlugin.ts, which this core will absorb.
+// hosts and the server can share the exact string. See ./plugins/mention.
 export const MENTION_SCHEME = 'kungal-user:'
+
+// Markdown scheme for an inline reference (reply quote): `[label](kungal-reply:<refId>)`.
+// Like MENTION_SCHEME, shared with the server renderer so both agree on the
+// exact string. The reference is opaque here — the host decides what `refId` /
+// `label` mean (see docs/architecture.md § the reply-quote question, option 1).
+export const QUOTE_SCHEME = 'kungal-reply:'
 
 export const KUN_EDITOR_CORE_VERSION = '0.0.0'
 

@@ -58,7 +58,10 @@ import { createKunEditorPlugins } from '@kungal/editor-core/preset'
 editor.use(createKunEditorPlugins(adapters, features, { locale: 'zh-cn' }))
 ```
 
-Landed so far (**P1** — the pure plugins, no host policy needed):
+Landed so far — each a **factory**, never a module-level singleton bound to one
+host:
+
+**P1** (pure — no host policy):
 
 | Export (from `/preset`) | Syntax / behaviour |
 | --- | --- |
@@ -67,8 +70,17 @@ Landed so far (**P1** — the pure plugins, no host policy needed):
 | `createCodeBlockPlugins(opts)` | CodeMirror code block: theme, languages, toolbar, `latex` preview |
 | `createStopLinkPlugin()` | Space clears the active link mark |
 
-Each is a **factory**, never a module-level singleton bound to one host. The
-adapter-driven plugins (upload / mention / sticker) land in P2.
+**P2** (adapter-driven):
+
+| Export (from `/preset`) | Syntax / behaviour | Host policy |
+| --- | --- | --- |
+| `createUploadPlugin(uploadImage, opts)` | paste / drop / toolbar image upload | `uploadImage(file) → url` (+ optional `notify`) |
+| `createMentionPlugin()` | `[@name](kungal-user:id)` mention atom | schema is pure; the `@` dropdown (P3) uses `searchMentionUsers` |
+| `createQuotePlugin()` | `[label](kungal-reply:refId)` inline reference atom | host inserts via `insertQuoteCommand({ refId, label })` |
+
+Stickers have **no core plugin** — a sticker is a plain image node, so the picker
+is a render-layer view (P3) that reads the `stickerSource` adapter and inserts an
+image. The `<KunEditor>` Vue component + toolbar + plugin views land in P3.
 
 ## Peer dependencies (and why)
 

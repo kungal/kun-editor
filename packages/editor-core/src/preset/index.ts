@@ -31,6 +31,9 @@ import { createSpoilerPlugin } from '../plugins/spoiler'
 import { createStopLinkPlugin } from '../plugins/stop-link'
 import { createKatexPlugins } from '../plugins/katex'
 import { createCodeBlockPlugins } from '../plugins/code-block'
+import { createMentionPlugin } from '../plugins/mention'
+import { createQuotePlugin } from '../plugins/quote'
+import { createUploadPlugin } from '../plugins/upload'
 
 // Re-export the individual plugin factories + building blocks so advanced hosts
 // can compose their own bundle instead of using the preset.
@@ -38,6 +41,9 @@ export * from '../plugins/spoiler'
 export * from '../plugins/stop-link'
 export * from '../plugins/katex'
 export * from '../plugins/code-block'
+export * from '../plugins/mention'
+export * from '../plugins/quote'
+export * from '../plugins/upload'
 
 /** Extra, non-adapter options for the composed bundle. */
 export interface KunEditorPluginOptions {
@@ -50,23 +56,28 @@ export interface KunEditorPluginOptions {
 /**
  * Assemble the KunEditor Milkdown plugin list.
  *
- * P1 wires the pure plugins (spoiler, katex, code-block, stop-link). The
- * `adapters` bundle is accepted now for a stable signature; the adapter-driven
- * plugins (upload / mention / sticker) land in P2 and will read it here.
+ * P1 wired the pure plugins (spoiler, katex, code-block, stop-link); P2 adds the
+ * adapter-driven ones — image upload (gated on the `uploadImage` adapter), the
+ * mention schema, and the opt-in quote atom. Sticker has no core plugin: a
+ * sticker is a plain image node, so its picker is a render-layer view (P3) that
+ * consumes the `stickerSource` adapter and inserts an image.
  *
- * Feature flags default to on; an absent feature simply drops its plugins. The
- * order matters — the baseline comes first so katex's block schema can extend
- * commonmark's code-block schema.
+ * Feature flags default to on (except `quote`, host-specific → off); an absent
+ * feature simply drops its plugins. The order matters — the baseline comes first
+ * so katex's block schema can extend commonmark's code-block schema.
  */
 export const createKunEditorPlugins = (
   adapters: KunEditorAdapters = {},
   features: KunEditorFeatures = {},
   options: KunEditorPluginOptions = {}
 ): MilkdownPlugin[] => {
-  // P2: upload / mention / sticker factories will read `adapters` here.
-  void adapters
-
-  const { spoiler = true, katex = true, codeBlock = true } = features
+  const {
+    spoiler = true,
+    katex = true,
+    codeBlock = true,
+    mention = true,
+    quote = false
+  } = features
 
   const plugins: (MilkdownPlugin | MilkdownPlugin[])[] = [
     commonmark,
@@ -91,6 +102,25 @@ export const createKunEditorPlugins = (
   }
   if (spoiler) {
     plugins.push(createSpoilerPlugin())
+  }
+  // The mention SCHEMA (round-trip) is wired here; the `@` autocomplete dropdown
+  // that uses `searchMentionUsers` is a render-layer view (P3).
+  if (mention) {
+    plugins.push(createMentionPlugin())
+  }
+  // Quote is opt-in — the host inserts references via insertQuoteCommand.
+  if (quote) {
+    plugins.push(createQuotePlugin())
+  }
+  // Image upload is gated purely on the adapter: no `uploadImage` → no upload,
+  // paste and drop paths (the image-free galgame 简介 editor).
+  if (adapters.uploadImage) {
+    plugins.push(
+      createUploadPlugin(adapters.uploadImage, {
+        locale: options.locale,
+        notify: adapters.notify
+      })
+    )
   }
   // stop-link is pure chrome-free behaviour; always on.
   plugins.push(createStopLinkPlugin())

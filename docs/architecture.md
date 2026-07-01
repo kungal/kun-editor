@@ -95,9 +95,12 @@ the plugin.
 2. Ship it as an optional plugin the host explicitly enables with its own
    reference type.
 
-Leaning (1): the mechanism (a non-editable inline atom with a stable trailing
-caret — see the trailing-space fix in the forum's `Editor.vue insertReference`)
-is genuinely reusable; only the label/target is host-specific.
+**Decided (P2): option 1.** The mechanism (a non-editable inline atom with a
+stable trailing caret — see the trailing-space fix in the forum's `Editor.vue
+insertReference`) is genuinely reusable; only the label/target is host-specific.
+`createQuotePlugin()` ships a `quote` node with opaque `{ refId, label }` attrs;
+the host inserts one via `insertQuoteCommand({ refId, label })` and owns what the
+reference means. Markdown form: `[label](kungal-reply:<refId>)`.
 
 ## Migration plan (incremental, forum stays the reference)
 
@@ -114,8 +117,16 @@ KunEditor — no big-bang cutover.
   lowest risk. Headless vitest round-trips markdown for `||spoiler||`, inline
   `$…$` and block `$$…$$`, plus the full preset. Each plugin is a factory
   (`createXxxPlugin`), never a host-bound singleton.
-- **P2 — adapter plugins.** Port upload, mention, sticker as factories over
-  their adapters. Port quote per the decision above.
+- **P2 — adapter plugins. ✅ done.** Ported upload
+  (`createUploadPlugin(uploadImage)` — the forum's `kunFetch('/image/topic')`
+  becomes the injected adapter), the mention schema (`createMentionPlugin()`,
+  pure round-trip; the `@` dropdown that uses `searchMentionUsers` is a P3 view),
+  and quote (`createQuotePlugin()`) generalized per option 1 — the forum's
+  `{ replyId, floor }` is now an opaque `{ refId, label }` the host supplies via
+  `insertQuoteCommand`. Sticker needs no core plugin: a sticker is a plain image
+  node, so its picker is a P3 view over the `stickerSource` adapter.
+  `createKunEditorPlugins` gates upload on the adapter, mention on by default,
+  quote opt-in. Covered by headless round-trip + uploader tests.
 - **P3 — Vue layer.** Port `DualEditorProvider` + `Editor.vue` + the toolbar and
   plugin views into `<KunEditor>`, consuming `editor-core` + `@kungal/ui-vue`.
   Publish `0.1.0`.
