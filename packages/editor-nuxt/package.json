@@ -1,6 +1,6 @@
 {
   "name": "@kungal/editor-nuxt",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "KunEditor Nuxt Layer — wraps @kungal/editor-vue and auto-imports <KunEditor> so an existing Nuxt app keeps its exact DX (no import needed).",
   "type": "module",
   "keywords": [
