@@ -1,6 +1,6 @@
 {
   "name": "@kungal/editor-vue",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "KunEditor Vue 3 layer — the <KunEditor> component (dual WYSIWYG / markdown-source), toolbar and plugin views. Consumes @kungal/editor-core; pairs with @kungal/ui-vue.",
   "type": "module",
   "keywords": [
