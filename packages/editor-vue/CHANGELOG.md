@@ -1,5 +1,12 @@
 # @kungal/editor-vue
 
+## 0.10.0
+
+### Patch Changes
+
+- Updated dependencies [ebe6c61]
+  - @kungal/editor-core@0.10.0
+
 ## 0.9.0
 
 ### Minor Changes
