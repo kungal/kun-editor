@@ -1,6 +1,6 @@
 {
   "name": "@kungal/editor-core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "KunEditor framework-agnostic core — the Milkdown plugin bundle (spoiler / mention / quote / katex / upload / code-block) plus the adapter contracts. No Vue/React.",
   "type": "module",
   "keywords": [
@@ -68,14 +68,30 @@
     "katex": "^0.16.0"
   },
   "peerDependenciesMeta": {
-    "@codemirror/commands": { "optional": true },
-    "@codemirror/language": { "optional": true },
-    "@codemirror/language-data": { "optional": true },
-    "@codemirror/state": { "optional": true },
-    "@codemirror/view": { "optional": true },
-    "@lezer/highlight": { "optional": true },
-    "codemirror": { "optional": true },
-    "katex": { "optional": true }
+    "@codemirror/commands": {
+      "optional": true
+    },
+    "@codemirror/language": {
+      "optional": true
+    },
+    "@codemirror/language-data": {
+      "optional": true
+    },
+    "@codemirror/state": {
+      "optional": true
+    },
+    "@codemirror/view": {
+      "optional": true
+    },
+    "@lezer/highlight": {
+      "optional": true
+    },
+    "codemirror": {
+      "optional": true
+    },
+    "katex": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@codemirror/commands": "^6.7.1",
