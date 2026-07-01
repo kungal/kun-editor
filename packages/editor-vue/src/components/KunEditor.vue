@@ -19,6 +19,7 @@ import type {
 } from '@kungal/editor-core'
 import MilkdownEditor from './MilkdownEditor.vue'
 import EditorToolbar from './EditorToolbar.vue'
+import ToolbarHost from './ToolbarHost.vue'
 import MarkdownSource from './MarkdownSource.vue'
 import { KUN_EDITOR_CONTEXT } from '../context'
 import type { KunEditorExpose } from '../types'
@@ -115,10 +116,18 @@ defineExpose<KunEditorExpose>({
 
     <!-- WYSIWYG stays mounted (v-show) so editor state survives a view switch.
          The format toolbar lives INSIDE the providers so it can useInstance()
-         to reach the editor; it's hidden in source mode and when read-only. -->
+         to reach the editor; it's hidden in source mode and when read-only.
+         <ToolbarHost> exposes the command API to the #toolbar slot — override it
+         to swap the hand-rolled default for e.g. a KunUI toolbar. -->
     <MilkdownProvider>
       <ProsemirrorAdapterProvider>
-        <EditorToolbar v-show="mode === 'wysiwyg' && !readonly" />
+        <div v-show="mode === 'wysiwyg' && !readonly">
+          <ToolbarHost>
+            <template #default="api">
+              <slot name="toolbar" v-bind="api"><EditorToolbar /></slot>
+            </template>
+          </ToolbarHost>
+        </div>
         <div v-show="mode === 'wysiwyg'" class="kun-editor__wysiwyg">
           <MilkdownEditor
             ref="inner"

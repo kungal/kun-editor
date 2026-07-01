@@ -87,6 +87,12 @@ export const pageMeta: Record<string, PageMeta> = {
     description:
       '贴近 kun-galgame-forum 回复编辑器的整合示例:KunUI 提供面板外壳,<KunEditor> 是回复正文,支持「引用」楼层、@提及、上传、贴纸,已发布回复用只读编辑器渲染。这就是 KunEditor + KunUI 的真实用法。'
   },
+  '/examples/kunui-toolbar': {
+    title: 'KunUI toolbar',
+    cn: 'KunUI 工具栏',
+    description:
+      '用 #toolbar 具名插槽把手搓工具栏换成 KunUI 组件版(KunButton / KunIcon / KunTooltip / KunPopover)。核心保持 headless:插槽把命令 API 传出,editor-nuxt 提供 <KunEditorToolbar> 作默认实现。'
+  },
 
   // Plugins
   '/plugins/spoiler': {

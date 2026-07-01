@@ -34,7 +34,7 @@ export const nav: NavSection[] = [
   },
   {
     title: '示例',
-    items: [item('/examples/forum-reply')]
+    items: [item('/examples/forum-reply'), item('/examples/kunui-toolbar')]
   },
   {
     title: '插件',

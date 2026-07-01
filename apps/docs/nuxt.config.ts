@@ -7,7 +7,10 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   devtools: { enabled: false },
 
-  extends: ['@kungal/ui-nuxt'],
+  // @kungal/ui-nuxt → KunUI chrome; @kungal/editor-nuxt → auto-imports
+  // <KunEditor> + the KunUI <KunEditorToolbar> (so the docs dogfoods the same
+  // toolbar the forum/moyu use via the #toolbar slot).
+  extends: ['@kungal/ui-nuxt', '@kungal/editor-nuxt'],
 
   // main.css = Tailwind + KunUI theme + the editor reference stylesheet.
   // katex.min.css is the KaTeX render styling — a downstream responsibility when

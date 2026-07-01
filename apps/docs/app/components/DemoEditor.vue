@@ -19,6 +19,8 @@ const props = withDefaults(
     readonly?: boolean
     /** Show the raw markdown v-model under the editor. Default: true. */
     output?: boolean
+    /** Fill the #toolbar slot with the KunUI <KunEditorToolbar> (editor-nuxt). */
+    kunuiToolbar?: boolean
   }>(),
   {
     modelValue: '',
@@ -26,7 +28,8 @@ const props = withDefaults(
     features: () => ({}),
     locale: 'zh-cn',
     readonly: false,
-    output: true
+    output: true,
+    kunuiToolbar: false
   }
 )
 
@@ -45,7 +48,11 @@ const md = ref(props.modelValue)
           :features="features"
           :locale="locale"
           :readonly="readonly"
-        />
+        >
+          <template v-if="kunuiToolbar" #toolbar="api">
+            <KunEditorToolbar v-bind="api" />
+          </template>
+        </KunEditor>
         <template #fallback>
           <div class="text-default-400 py-8 text-center text-sm">
             加载编辑器…

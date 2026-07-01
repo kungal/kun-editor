@@ -26,6 +26,7 @@
   "files": [
     "CHANGELOG.md",
     "app",
+    "runtime",
     "nuxt.config.ts"
   ],
   "scripts": {
@@ -34,10 +35,12 @@
     "clean": "rm -rf .nuxt"
   },
   "dependencies": {
+    "@kungal/editor-core": "workspace:*",
     "@kungal/editor-vue": "workspace:*"
   },
   "peerDependencies": {
     "@kungal/ui-vue": "^2.7.0",
+    "@milkdown/kit": "^7.21.2",
     "nuxt": "^4.0.0",
     "vue": "^3.5.0"
   },

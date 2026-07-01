@@ -11,6 +11,12 @@ export { KunEditor }
 // The imperative handle from a <KunEditor> template ref (insertQuote / …).
 export type { KunEditorExpose } from './types'
 
+// The command API the #toolbar scoped slot exposes (build a custom toolbar).
+export type { KunEditorToolbarApi } from './types'
+
+// The built-in emoji set — handy when building a custom toolbar's emoji picker.
+export { EMOJI } from './emoji'
+
 // Re-export the core types so hosts don't need a second import line.
 export type {
   KunEditorAdapters,

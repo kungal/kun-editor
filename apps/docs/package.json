@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@kungal/editor-core": "workspace:*",
+    "@kungal/editor-nuxt": "workspace:*",
     "@kungal/editor-vue": "workspace:*",
     "@kungal/ui-nuxt": "^2.7.0",
     "@kungal/ui-tokens": "^2.7.0",

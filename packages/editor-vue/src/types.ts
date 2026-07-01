@@ -1,3 +1,33 @@
+import type { CmdKey } from '@milkdown/kit/core'
+import type {
+  KunEditorAdapters,
+  KunEditorFeatures,
+  KunEditorLocale
+} from '@kungal/editor-core'
+
+// The scoped-slot props `<KunEditor #toolbar="api">` hands to a custom toolbar.
+// The core stays headless: this is the command API a UI (the default hand-rolled
+// toolbar, or a KunUI one, or your own) builds buttons on top of — the same shape
+// TipTap/BlockNote expose so the toolbar is a swappable layer, not baked in.
+export interface KunEditorToolbarApi {
+  /** Run a Milkdown command (import its key from the preset/commonmark/gfm). */
+  run: <T>(key: CmdKey<T>, payload?: T) => void
+  /** Insert plain text at the cursor (e.g. an emoji). */
+  insertText: (text: string) => void
+  /** Insert a reference atom at the cursor (requires the quote feature). */
+  insertQuote: (payload: { refId: string; label: string }) => void
+  /** Insert an @mention atom at the cursor. */
+  insertMention: (payload: { userId: number; name: string }) => void
+  /** Focus the WYSIWYG editor. */
+  focus: () => void
+  /** The host policy bundle (uploadImage / stickerSource / notify / …). */
+  readonly adapters: KunEditorAdapters
+  /** Enabled features — so a toolbar can gate its buttons (e.g. the picker). */
+  readonly features: KunEditorFeatures
+  /** UI language, for localized labels. */
+  readonly locale: KunEditorLocale
+}
+
 // The imperative handle a host gets from a `<KunEditor>` template ref:
 //
 //   const editor = ref<InstanceType<typeof KunEditor>>()
