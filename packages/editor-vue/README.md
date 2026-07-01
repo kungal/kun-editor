@@ -48,11 +48,11 @@ Enable optional plugins by also installing their peers: `katex` (LaTeX),
 
 ## Status
 
-**P3 in progress.** `<KunEditor>` now renders a **real Milkdown dual-view
-editor**: a WYSIWYG view built from `@kungal/editor-core/preset`
-(`createKunEditorPlugins` — spoiler / katex / code-block / mention / upload /
-…), plus a markdown-source view, over one `v-model`. The prop/emit surface
-(`v-model`, `adapters`, `features`, `locale`, `readonly`) is stable.
+**P3 complete.** `<KunEditor>` is a **real Milkdown dual-view editor**: a WYSIWYG
+view built from `@kungal/editor-core/preset` (`createKunEditorPlugins` — spoiler /
+katex / code-block / mention / upload / …) and a CodeMirror markdown-source view,
+over one `v-model`. The prop/emit surface (`v-model`, `adapters`, `features`,
+`locale`, `readonly`) is stable.
 
 A **formatting toolbar** is wired: bold / italic / strikethrough / inline code,
 H1–H3, bullet & ordered lists, blockquote, code block, divider, spoiler, LaTeX —
@@ -70,8 +70,12 @@ The **sticker / emoji picker** is a toolbar popover: a built-in emoji tab
 host supplies `stickerSource`, inserting each sticker as an image node. Turn the
 whole picker off with `features.sticker: false`.
 
-Still to come in P3: the CodeMirror markdown-source view (currently a
-`<textarea>`). See
+The **markdown-source view** (the "Markdown" tab) is a CodeMirror editor with
+markdown highlighting, sharing the code block's `kunCM` theme. Edits sync back
+through `v-model` to the WYSIWYG view.
+
+Next: **P4** — adopt in the forum, replacing its in-repo `components/kun/milkdown`
+with real adapters. See
 [`../../docs/architecture.md`](../../docs/architecture.md) § migration.
 
 ## Build

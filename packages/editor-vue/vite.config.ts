@@ -26,9 +26,12 @@ export default defineConfig({
         if (id.endsWith('.css')) return false
         return (
           id === 'vue' ||
+          id === 'codemirror' ||
           id.startsWith('@milkdown/') ||
           id.startsWith('@prosemirror-adapter/') ||
-          id.startsWith('@kungal/')
+          id.startsWith('@kungal/') ||
+          id.startsWith('@codemirror/') ||
+          id.startsWith('@lezer/')
         )
       },
     },

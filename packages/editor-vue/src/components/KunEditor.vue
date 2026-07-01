@@ -22,6 +22,7 @@ import type {
 } from '@kungal/editor-core'
 import MilkdownEditor from './MilkdownEditor.vue'
 import EditorToolbar from './EditorToolbar.vue'
+import MarkdownSource from './MarkdownSource.vue'
 import { KUN_EDITOR_CONTEXT } from '../context'
 
 const props = withDefaults(
@@ -80,8 +81,6 @@ const labels = computed(() =>
 )
 
 const onUpdate = (markdown: string) => emit('update:modelValue', markdown)
-const onSourceInput = (e: Event) =>
-  emit('update:modelValue', (e.target as HTMLTextAreaElement).value)
 </script>
 
 <template>
@@ -126,14 +125,13 @@ const onSourceInput = (e: Event) =>
       </ProsemirrorAdapterProvider>
     </MilkdownProvider>
 
-    <textarea
-      v-show="mode === 'source'"
-      class="kun-editor__source"
-      :value="modelValue"
+    <!-- Source view is mounted on demand (v-if): CodeMirror measures poorly
+         while display:none, so build it fresh each time source mode opens. -->
+    <MarkdownSource
+      v-if="mode === 'source'"
+      :model-value="modelValue"
       :readonly="readonly"
-      :lang="locale"
-      spellcheck="false"
-      @input="onSourceInput"
+      @update:model-value="onUpdate"
     />
   </div>
 </template>
@@ -178,16 +176,5 @@ const onSourceInput = (e: Event) =>
   /* ProseMirror requires a whitespace rule; pre-wrap keeps wrapping + spaces. */
   white-space: pre-wrap;
   word-wrap: break-word;
-}
-
-.kun-editor__source {
-  width: 100%;
-  min-height: 8rem;
-  padding: 0.75rem;
-  border: 1px solid var(--color-default-200, #e4e4e7);
-  border-radius: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.875rem;
-  resize: vertical;
 }
 </style>
