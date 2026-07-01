@@ -65,8 +65,13 @@ supplies `searchMentionUsers` — a debounced, keyboard-navigable dropdown offer
 users and inserts a mention chip (`[@name](kungal-user:id)`). Without the adapter
 the mention schema still round-trips; there's just no autocomplete.
 
-Still to come in P3: the sticker/emoji picker (over `stickerSource`) and the
-CodeMirror markdown-source view (currently a `<textarea>`). See
+The **sticker / emoji picker** is a toolbar popover: a built-in emoji tab
+(unicode, inserted as text — no adapter) plus a sticker tab that appears when the
+host supplies `stickerSource`, inserting each sticker as an image node. Turn the
+whole picker off with `features.sticker: false`.
+
+Still to come in P3: the CodeMirror markdown-source view (currently a
+`<textarea>`). See
 [`../../docs/architecture.md`](../../docs/architecture.md) § migration.
 
 ## Build

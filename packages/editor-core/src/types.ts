@@ -105,6 +105,10 @@ export interface KunEditorFeatures {
   katex?: boolean
   /** Fenced code blocks with CodeMirror. Requires the codemirror peers. Default: true. */
   codeBlock?: boolean
-  /** Sticker/emoji picker. Requires `stickerSource`. Default: on when adapter present. */
+  /**
+   * The sticker/emoji picker. Emoji is built into the render layer (plain
+   * unicode, no adapter); the sticker tab additionally needs `stickerSource`.
+   * Set false to drop the picker entirely. Default: true.
+   */
   sticker?: boolean
 }

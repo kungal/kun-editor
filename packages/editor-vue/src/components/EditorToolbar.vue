@@ -31,11 +31,15 @@ import type { CmdKey } from '@milkdown/kit/core'
 import { computed, inject, ref } from 'vue'
 import { KUN_EDITOR_CONTEXT } from '../context'
 import { TOOLBAR_ICONS as I } from '../toolbar-icons'
+import StickerPicker from './StickerPicker.vue'
 
 const [, getEditor] = useInstance()
 const ctx = inject(KUN_EDITOR_CONTEXT)
 const uploadImage = computed(() => ctx?.adapters.uploadImage)
 const notify = () => ctx?.adapters.notify
+// The emoji/sticker picker (emoji is built-in; the sticker tab needs the
+// adapter). Shown unless the host turns the feature off.
+const showPicker = computed(() => ctx?.features.sticker !== false)
 const isEnglish = computed(() =>
   (ctx?.locale ?? 'zh-cn').toLowerCase().startsWith('en')
 )
@@ -153,6 +157,11 @@ const onFileChange = async (e: Event) => {
         hidden
         @change="onFileChange"
       />
+    </template>
+
+    <template v-if="showPicker">
+      <span class="kun-editor__toolbar-divider" aria-hidden="true" />
+      <StickerPicker />
     </template>
   </div>
 </template>

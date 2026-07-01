@@ -26,5 +26,6 @@ export const TOOLBAR_ICONS = {
   hr: svg('<line x1="4" y1="12" x2="20" y2="12"/>'),
   image: svg('<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.8" fill="currentColor" stroke="none"/><path d="m21 15-4.5-4.5a2 2 0 0 0-2.8 0L5 19"/>'),
   spoiler: svg('<path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c7 0 10 8 10 8a13.2 13.2 0 0 1-1.67 2.68"/><path d="M6.6 6.6A13.5 13.5 0 0 0 2 12s3 8 10 8a9.7 9.7 0 0 0 5.4-1.6"/><line x1="2" y1="2" x2="22" y2="22"/>'),
-  latex: text('Σ', 15)
+  latex: text('Σ', 15),
+  smile: svg('<circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>')
 } as const

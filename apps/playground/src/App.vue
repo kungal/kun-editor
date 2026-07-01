@@ -20,7 +20,22 @@ const searchMentionUsers: KunEditorAdapters['searchMentionUsers'] = async (
   )
 }
 
-const adapters: KunEditorAdapters = { searchMentionUsers }
+// Mock sticker source for the picker's 贴纸 tab (data URLs so no network).
+const dot = (color: string) =>
+  `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><circle cx='32' cy='32' r='28' fill='${color}'/></svg>`
+const stickerSource: KunEditorAdapters['stickerSource'] = () => [
+  {
+    name: 'Demo',
+    stickers: [
+      { src: dot('%23f43f5e'), name: 'red' },
+      { src: dot('%233b82f6'), name: 'blue' },
+      { src: dot('%2322c55e'), name: 'green' },
+      { src: dot('%23eab308'), name: 'yellow' }
+    ]
+  }
+]
+
+const adapters: KunEditorAdapters = { searchMentionUsers, stickerSource }
 </script>
 
 <template>

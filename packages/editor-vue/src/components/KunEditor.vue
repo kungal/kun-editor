@@ -58,6 +58,9 @@ provide(KUN_EDITOR_CONTEXT, {
   get adapters() {
     return props.adapters
   },
+  get features() {
+    return props.features
+  },
   get locale() {
     return props.locale
   }

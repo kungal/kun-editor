@@ -140,9 +140,12 @@ KunEditor — no big-bang cutover.
   lists, quote, code block, divider, spoiler, LaTeX, + image upload when the
   adapter is present) that reads the editor via `useInstance()` and fires
   commands via `callCommand`; kept dependency-free (inline SVG, CSS-var themed)
-  rather than binding to `@kungal/ui-vue`. All verified end-to-end in a browser
-  via `apps/playground`. Still to port: the sticker/emoji picker (over
-  `stickerSource`) and the CodeMirror source view (currently a `<textarea>`).
+  rather than binding to `@kungal/ui-vue`. The sticker/emoji picker is a toolbar
+  popover: a built-in emoji tab (unicode → text, no adapter) + a sticker tab that
+  appears when `stickerSource` is present (each sticker inserted as an image
+  node), gated by `features.sticker`. All verified end-to-end in a browser via
+  `apps/playground`. Still to port: the CodeMirror markdown-source view
+  (currently a `<textarea>`).
 - **P4 — adopt in the forum.** Replace `components/kun/milkdown` with
   `@kungal/editor-nuxt`, passing the forum's real adapters (`/image/topic`
   upload, OAuth mention search, `useMessage` notify). Delete the in-repo copy
