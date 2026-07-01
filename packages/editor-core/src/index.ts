@@ -15,17 +15,16 @@ export const MENTION_SCHEME = 'kungal-user:'
 
 export const KUN_EDITOR_CORE_VERSION = '0.0.0'
 
-// ── Planned exports (tracked in docs/architecture.md § migration) ────────────
-// The following are ported from the forum's components/kun/milkdown, generalized
-// to take KunEditorAdapters instead of hardcoding forum endpoints:
+// ── The Milkdown plugins live in the `./preset` subpath ──────────────────────
+// This main entry stays light on purpose: types + MENTION_SCHEME, ZERO runtime
+// deps, so the server (which only needs the @mention scheme string) can import
+// it without installing @milkdown/kit / katex / codemirror.
 //
-//   createKunEditorPlugins(adapters, features)  — the composed Milkdown bundle
-//   kunSpoilerPlugin                            — ||spoiler|| node + $remark round-trip
-//   createMentionPlugin(searchMentionUsers)     — @mention atom + kungal-user: scheme
-//   createUploadPlugin(uploadImage)             — paste/drop/toolbar image upload
-//   katex plugins (inline + block + input rules)
-//   code-block (CodeMirror) config factory
-//   stop-link keymap
+// The composed Milkdown bundle and the individual plugin factories are exported
+// from `@kungal/editor-core/preset` (they pull in the peer deps):
 //
-// Each is deliberately a factory over an adapter, never a module-level singleton
-// bound to one host — that is what the forum version got wrong for reuse.
+//   import { createKunEditorPlugins } from '@kungal/editor-core/preset'
+//
+// P1 landed (docs/architecture.md § migration): spoiler, katex, code-block,
+// stop-link — each a factory (createXxxPlugin), never a host-bound singleton.
+// P2 adds the adapter-driven plugins (upload / mention / sticker).

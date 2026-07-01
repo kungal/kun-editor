@@ -104,12 +104,16 @@ is genuinely reusable; only the label/target is host-specific.
 The forum keeps its working in-repo editor until each piece is proven in
 KunEditor — no big-bang cutover.
 
-- **P0 — scaffold (this).** Monorepo, three package skeletons, publish
+- **P0 — scaffold. ✅ done.** Monorepo, three package skeletons, publish
   pipeline, adapter contracts, `<KunEditor>` prop surface. Textarea fallback
   keeps `v-model` live so hosts can integrate against the real contract now.
-- **P1 — core, pure plugins.** Port spoiler, stop-link, katex, code-block into
-  `editor-core` behind `createKunEditorPlugins(adapters, features)`. No adapters
-  needed → lowest risk. Add a headless test that round-trips markdown.
+- **P1 — core, pure plugins. ✅ done.** Ported spoiler, stop-link, katex,
+  code-block into `editor-core` behind `createKunEditorPlugins(adapters,
+  features, options)`, exposed from the `@kungal/editor-core/preset` subpath
+  (the light main entry stays peer-free for the server). No adapters needed →
+  lowest risk. Headless vitest round-trips markdown for `||spoiler||`, inline
+  `$…$` and block `$$…$$`, plus the full preset. Each plugin is a factory
+  (`createXxxPlugin`), never a host-bound singleton.
 - **P2 — adapter plugins.** Port upload, mention, sticker as factories over
   their adapters. Port quote per the decision above.
 - **P3 — Vue layer.** Port `DualEditorProvider` + `Editor.vue` + the toolbar and

@@ -36,35 +36,63 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./preset": {
+      "types": "./dist/preset/index.d.ts",
+      "import": "./dist/preset/index.js",
+      "require": "./dist/preset/index.cjs"
     }
   },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "remark-math": "^6.0.0",
     "unist-util-visit": "^5.0.0"
   },
   "peerDependencies": {
+    "@codemirror/commands": "^6.0.0",
+    "@codemirror/language": "^6.0.0",
     "@codemirror/language-data": "^6.0.0",
+    "@codemirror/state": "^6.0.0",
     "@codemirror/view": "^6.0.0",
+    "@lezer/highlight": "^1.0.0",
     "@milkdown/kit": "^7.21.2",
     "@milkdown/prose": "^7.21.2",
     "codemirror": "^6.0.0",
     "katex": "^0.16.0"
   },
   "peerDependenciesMeta": {
+    "@codemirror/commands": { "optional": true },
+    "@codemirror/language": { "optional": true },
     "@codemirror/language-data": { "optional": true },
+    "@codemirror/state": { "optional": true },
     "@codemirror/view": { "optional": true },
+    "@lezer/highlight": { "optional": true },
     "codemirror": { "optional": true },
     "katex": { "optional": true }
   },
   "devDependencies": {
+    "@codemirror/commands": "^6.7.1",
+    "@codemirror/language": "^6.11.3",
+    "@codemirror/language-data": "^6.5.2",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.39.4",
+    "@lezer/highlight": "^1.2.1",
     "@milkdown/kit": "^7.21.2",
     "@milkdown/prose": "^7.21.2",
+    "@types/katex": "^0.16.7",
+    "@types/unist": "^3.0.3",
+    "codemirror": "^6.0.2",
+    "jsdom": "^25.0.1",
+    "katex": "^0.16.27",
     "tsup": "^8.5.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
   }
 }

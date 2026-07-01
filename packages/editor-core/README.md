@@ -39,22 +39,50 @@ paste/sticker paths, no special-casing.
 | `KunEditorFeatures`, `KunEditorLocale` | feature toggles + UI language |
 | `MENTION_SCHEME` (`kungal-user:`) | the markdown link scheme shared with the server |
 
-The Milkdown plugin ports (`createKunEditorPlugins`, spoiler, mention, upload,
-katex, code-block, stop-link) land incrementally — see
+The Milkdown plugin ports land incrementally — see
 [`../../docs/architecture.md`](../../docs/architecture.md) § migration.
+
+## The `/preset` subpath — the Milkdown plugins
+
+The main entry above is deliberately **light**: types + `MENTION_SCHEME`, zero
+runtime deps, so the server can import the `@mention` scheme without installing
+Milkdown. The actual Milkdown plugins live behind a separate subpath that pulls
+in the peers:
+
+```ts
+import { createKunEditorPlugins } from '@kungal/editor-core/preset'
+
+// The single call the render layer makes — assembles the Milkdown baseline
+// (commonmark/gfm/history/listener/clipboard/indent/trailing) with the KunEditor
+// plugins, wiring each optional one only when its feature/adapter is present.
+editor.use(createKunEditorPlugins(adapters, features, { locale: 'zh-cn' }))
+```
+
+Landed so far (**P1** — the pure plugins, no host policy needed):
+
+| Export (from `/preset`) | Syntax / behaviour |
+| --- | --- |
+| `createSpoilerPlugin()` | `\|\|hidden\|\|` inline node + `$remark` round-trip |
+| `createKatexPlugins()` | inline `$…$` and block `$$…$$` LaTeX (KaTeX) |
+| `createCodeBlockPlugins(opts)` | CodeMirror code block: theme, languages, toolbar, `latex` preview |
+| `createStopLinkPlugin()` | Space clears the active link mark |
+
+Each is a **factory**, never a module-level singleton bound to one host. The
+adapter-driven plugins (upload / mention / sticker) land in P2.
 
 ## Peer dependencies (and why)
 
 `@milkdown/kit` and `@milkdown/prose` are **peer** dependencies, not bundled.
 ProseMirror MUST resolve to a single runtime instance — a second
 `prosemirror-model` copy silently breaks schema/node identity. Keeping Milkdown
-as a peer means the host owns the one copy. `katex`, `codemirror` and the
-`@codemirror/*` packages are **optional** peers, needed only if you enable the
-katex / code-block plugins.
+as a peer means the host owns the one copy. `katex`, `codemirror`, the
+`@codemirror/*` packages and `@lezer/highlight` are **optional** peers, needed
+only if you enable the katex / code-block plugins (i.e. import `/preset`).
 
-## Build
+## Build & test
 
 ```bash
 pnpm --filter @kungal/editor-core build      # tsup → dist (esm + cjs + d.ts)
 pnpm --filter @kungal/editor-core typecheck
+pnpm --filter @kungal/editor-core test       # vitest — headless markdown round-trip
 ```
