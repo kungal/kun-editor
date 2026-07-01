@@ -169,6 +169,55 @@ KunEditor — no big-bang cutover.
 - **P5 (maybe) — React layer.** `@kungal/editor-react` on the same
   `editor-core`.
 
+## Why this shape (industry alignment)
+
+Every load-bearing decision here matches how the ecosystem says to build on these
+libraries — this is a curated **wrap** of Milkdown, not a fork:
+
+- **Extend Milkdown via plugins, don't fork it.** Milkdown is designed as a
+  headless, plugin-driven, framework-agnostic *framework*; its author states the
+  intended extension path is composable plugins, "rather than forking source
+  code." Every KunEditor plugin is written with Milkdown's own `$`-factories
+  (`$command` / `$nodeSchema` / `$remark` / `$inputRule` / `$useKeymap`) — we ride
+  the supported surface, not internals we'd have to re-vendor. Forking a large,
+  actively-maintained library (Milkdown drags the whole ProseMirror/remark stack)
+  means inheriting its security fixes, bug fixes and upstream churn forever, plus
+  permanent drift — the classic fork tax. Vendoring/forking is only sound for
+  small, "done" deps; Milkdown is neither.
+- **Wrapping is the maintainable default.** A thin wrapper isolates the
+  dependency behind our own contract (the `KunEditorAdapters` policy surface),
+  which keeps the integration testable (adapters mock cleanly) and replaceable.
+- **ProseMirror as a single instance via peerDependencies** is ProseMirror's own
+  recommended fix — a second `prosemirror-model` copy breaks NodeType/schema
+  identity; the community answer is to move the deps to peers so the host dedupes.
+  `.npmrc` `shamefully-hoist=false` turns an accidental second copy into a loud
+  resolution error rather than a heisenbug.
+- **Framework-agnostic core + per-framework layers** mirrors TipTap (the leading
+  headless editor): a headless, framework-agnostic core wrapping ProseMirror, with
+  thin Vue/React layers on top. Our `core → vue → (react-ready)` split + the
+  zero-CSS `editor-vue` is the same modern shape.
+
+The cost of wrapping — riding Milkdown's version churn, occasionally reaching a
+bit into its typing (`extendSchema`, the lazily-assigned `$command.key`, a
+nominal-`Ctx` cast in the upload config) — is real but localized to this one
+package, and far cheaper than a fork. A [markdown round-trip **contract test**](../packages/editor-core/test/contract.test.ts)
+(run in CI on every push) guards the one thing a wrapper must not let drift: how
+markdown parses and serializes across a Milkdown upgrade.
+
+### Sources
+
+- Milkdown v7 design (headless, composable `$` plugins, extend-don't-fork) —
+  <https://mirone.me/a-brief-introduction-to-milkdown-v7/>,
+  <https://milkdown.dev/docs/plugin/composable-plugins>
+- TipTap — headless, framework-agnostic wrapper over ProseMirror —
+  <https://tiptap.dev/product/editor>
+- ProseMirror deps as `peerDependencies` to avoid duplicate instances —
+  <https://github.com/ueberdosis/hocuspocus/issues/417>
+- Wrap third-party libraries (maintainability / testability / replaceability) —
+  <https://markus.oberlehner.net/blog/wrap-third-party-libraries>
+- To fork or not to fork (fork/vendoring costs) —
+  <https://www.kusari.dev/blog/to-fork-or-not-to-fork>
+
 ## Non-goals
 
 - Not a general-purpose CMS editor — it targets the KUN ecosystem's markdown

@@ -1,0 +1,31 @@
+name: test
+
+# Typecheck + the markdown round-trip CONTRACT. Runs on every push/PR — so a
+# Milkdown (or other dep) bump that changes lockfile/manifests re-runs the
+# contract and surfaces any parse/serialize drift before it ships.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm --filter @kungal/editor-core test
