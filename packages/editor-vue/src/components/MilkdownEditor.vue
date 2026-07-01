@@ -9,13 +9,23 @@
 // bundle. The @mention dropdown / sticker picker / rich toolbar (the parts that
 // need @kungal/ui-vue) are follow-up P3 increments; this increment is the editor
 // itself, which needs no host UI kit.
-import { Editor, defaultValueCtx, editorViewOptionsCtx, rootCtx } from '@milkdown/kit/core'
+import {
+  Editor,
+  defaultValueCtx,
+  editorViewCtx,
+  editorViewOptionsCtx,
+  rootCtx
+} from '@milkdown/kit/core'
 import { listenerCtx } from '@milkdown/kit/plugin/listener'
 import { slashFactory } from '@milkdown/kit/plugin/slash'
-import { replaceAll } from '@milkdown/kit/utils'
+import { callCommand, replaceAll } from '@milkdown/kit/utils'
 import { Milkdown, useEditor } from '@milkdown/vue'
 import { usePluginViewFactory } from '@prosemirror-adapter/vue'
-import { createKunEditorPlugins } from '@kungal/editor-core/preset'
+import {
+  createKunEditorPlugins,
+  insertMentionCommand,
+  insertQuoteCommand
+} from '@kungal/editor-core/preset'
 import type {
   KunEditorAdapters,
   KunEditorFeatures,
@@ -23,6 +33,7 @@ import type {
 } from '@kungal/editor-core'
 import { watch } from 'vue'
 import MentionDropdown from './MentionDropdown.vue'
+import type { KunEditorExpose } from '../types'
 
 const props = defineProps<{
   modelValue: string
@@ -103,6 +114,23 @@ watch(
     editorInfo.get()?.action(replaceAll(val))
   }
 )
+
+// Imperative handle — cursor-level inserts (the forum's 「引用」 flow) + focus.
+// Each command inserts at the current selection with a trailing space, so
+// calling insertMention then insertQuote yields "@author #floor " at the caret.
+const focus: KunEditorExpose['focus'] = () => {
+  editorInfo.get()?.action((ctx) => ctx.get(editorViewCtx).focus())
+}
+const insertQuote: KunEditorExpose['insertQuote'] = (payload) => {
+  editorInfo.get()?.action(callCommand(insertQuoteCommand.key, payload))
+  focus()
+}
+const insertMention: KunEditorExpose['insertMention'] = (payload) => {
+  editorInfo.get()?.action(callCommand(insertMentionCommand.key, payload))
+  focus()
+}
+
+defineExpose<KunEditorExpose>({ insertQuote, insertMention, focus })
 </script>
 
 <template>

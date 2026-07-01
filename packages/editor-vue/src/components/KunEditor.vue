@@ -4,14 +4,11 @@
 // face of KunEditor.
 //
 // This wraps the Milkdown/ProseMirror providers and delegates the actual editor
-// to <MilkdownEditor> (which must live inside the providers). The prop surface is
-// unchanged from the P0 scaffold — hosts that integrated against it keep working;
-// the textarea fallback is now a real editor.
-//
-// P3 increment: the WYSIWYG + source dual view + v-model + adapters/features/
-// readonly/locale. The rich formatting toolbar, @mention dropdown and sticker
-// picker (which build on @kungal/ui-vue) are follow-up increments; the source
-// view uses a plain <textarea> until the CodeMirror source view is ported.
+// to <MilkdownEditor> (which must live inside the providers). It composes the
+// WYSIWYG view, the formatting toolbar, the @mention dropdown / sticker picker,
+// and the CodeMirror markdown-source view — over one `v-model`. It also forwards
+// <MilkdownEditor>'s imperative handle (insertQuote / insertMention / focus) so a
+// host can insert references at the caret via a template ref.
 import { MilkdownProvider } from '@milkdown/vue'
 import { ProsemirrorAdapterProvider } from '@prosemirror-adapter/vue'
 import { computed, provide, ref } from 'vue'
@@ -24,6 +21,7 @@ import MilkdownEditor from './MilkdownEditor.vue'
 import EditorToolbar from './EditorToolbar.vue'
 import MarkdownSource from './MarkdownSource.vue'
 import { KUN_EDITOR_CONTEXT } from '../context'
+import type { KunEditorExpose } from '../types'
 
 const props = withDefaults(
   defineProps<{
@@ -81,6 +79,15 @@ const labels = computed(() =>
 )
 
 const onUpdate = (markdown: string) => emit('update:modelValue', markdown)
+
+// Forward the WYSIWYG editor's imperative handle. The inner editor stays mounted
+// (v-show) in source mode too, so these work regardless of the active view.
+const inner = ref<InstanceType<typeof MilkdownEditor> | null>(null)
+defineExpose<KunEditorExpose>({
+  insertQuote: (payload) => inner.value?.insertQuote(payload),
+  insertMention: (payload) => inner.value?.insertMention(payload),
+  focus: () => inner.value?.focus()
+})
 </script>
 
 <template>
@@ -114,6 +121,7 @@ const onUpdate = (markdown: string) => emit('update:modelValue', markdown)
         <EditorToolbar v-show="mode === 'wysiwyg' && !readonly" />
         <div v-show="mode === 'wysiwyg'" class="kun-editor__wysiwyg">
           <MilkdownEditor
+            ref="inner"
             :model-value="modelValue"
             :adapters="adapters"
             :features="features"

@@ -8,6 +8,9 @@ import KunEditor from './components/KunEditor.vue'
 
 export { KunEditor }
 
+// The imperative handle from a <KunEditor> template ref (insertQuote / …).
+export type { KunEditorExpose } from './types'
+
 // Re-export the core types so hosts don't need a second import line.
 export type {
   KunEditorAdapters,

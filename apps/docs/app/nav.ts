@@ -33,6 +33,10 @@ export const nav: NavSection[] = [
     ]
   },
   {
+    title: '示例',
+    items: [item('/examples/forum-reply')]
+  },
+  {
     title: '插件',
     items: [
       item('/plugins/spoiler'),

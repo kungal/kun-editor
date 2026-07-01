@@ -80,6 +80,14 @@ export const pageMeta: Record<string, PageMeta> = {
       '通过 @kungal/editor-nuxt 层自动导入 <KunEditor>,无需手动 import。'
   },
 
+  // Examples
+  '/examples/forum-reply': {
+    title: 'Forum reply',
+    cn: '论坛回复编辑器',
+    description:
+      '贴近 kun-galgame-forum 回复编辑器的整合示例:KunUI 提供面板外壳,<KunEditor> 是回复正文,支持「引用」楼层、@提及、上传、贴纸,已发布回复用只读编辑器渲染。这就是 KunEditor + KunUI 的真实用法。'
+  },
+
   // Plugins
   '/plugins/spoiler': {
     title: 'Spoiler',
