@@ -35,5 +35,16 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()]
   },
 
+  // Prerender every page (Shiki code baked in at build) by crawling internal
+  // links from "/". It stays a Nitro node server (the Docker image runs it), so
+  // any page the crawler misses still renders on demand. Live editors are
+  // <ClientOnly>, so nothing Milkdown runs during prerender.
+  nitro: {
+    prerender: {
+      crawlLinks: true,
+      routes: ['/']
+    }
+  },
+
   compatibilityDate: '2025-01-01'
 })
