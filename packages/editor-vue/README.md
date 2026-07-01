@@ -54,14 +54,19 @@ editor**: a WYSIWYG view built from `@kungal/editor-core/preset`
 …), plus a markdown-source view, over one `v-model`. The prop/emit surface
 (`v-model`, `adapters`, `features`, `locale`, `readonly`) is stable.
 
+A **formatting toolbar** is wired: bold / italic / strikethrough / inline code,
+H1–H3, bullet & ordered lists, blockquote, code block, divider, spoiler, LaTeX —
+plus an image-upload button when `uploadImage` is supplied. It's self-contained
+(inline SVG, no `@kungal/ui-vue` dependency), themed through CSS variables so a
+KunUI host still gets matching colours.
+
 The **`@mention` autocomplete dropdown** is wired: type `@`, and — when the host
 supplies `searchMentionUsers` — a debounced, keyboard-navigable dropdown offers
 users and inserts a mention chip (`[@name](kungal-user:id)`). Without the adapter
 the mention schema still round-trips; there's just no autocomplete.
 
-Still to come in P3 (they build on `@kungal/ui-vue`, hence staged): the rich
-formatting toolbar, the sticker/emoji picker, and the CodeMirror markdown-source
-view (currently a `<textarea>`). See
+Still to come in P3: the sticker/emoji picker (over `stickerSource`) and the
+CodeMirror markdown-source view (currently a `<textarea>`). See
 [`../../docs/architecture.md`](../../docs/architecture.md) § migration.
 
 ## Build

@@ -135,10 +135,14 @@ KunEditor — no big-bang cutover.
   `activeTab` singleton. The `@mention` autocomplete dropdown is wired too — a
   slash view over the `searchMentionUsers` adapter, injected from `<KunEditor>`
   (an ancestor of the adapter provider, since @prosemirror-adapter/vue renders
-  plugin views as portal siblings of the editor). Verified end-to-end in a
-  browser via `apps/playground`. Still to port (they build on `@kungal/ui-vue`):
-  the formatting toolbar, the sticker/emoji picker, and the CodeMirror source
-  view (currently a `<textarea>`).
+  plugin views as portal siblings of the editor). The formatting toolbar is
+  ported too — a self-contained `EditorToolbar` (bold/italic/strike/code, H1–H3,
+  lists, quote, code block, divider, spoiler, LaTeX, + image upload when the
+  adapter is present) that reads the editor via `useInstance()` and fires
+  commands via `callCommand`; kept dependency-free (inline SVG, CSS-var themed)
+  rather than binding to `@kungal/ui-vue`. All verified end-to-end in a browser
+  via `apps/playground`. Still to port: the sticker/emoji picker (over
+  `stickerSource`) and the CodeMirror source view (currently a `<textarea>`).
 - **P4 — adopt in the forum.** Replace `components/kun/milkdown` with
   `@kungal/editor-nuxt`, passing the forum's real adapters (`/image/topic`
   upload, OAuth mention search, `useMessage` notify). Delete the in-repo copy

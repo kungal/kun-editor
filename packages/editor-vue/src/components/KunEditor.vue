@@ -21,6 +21,7 @@ import type {
   KunEditorLocale
 } from '@kungal/editor-core'
 import MilkdownEditor from './MilkdownEditor.vue'
+import EditorToolbar from './EditorToolbar.vue'
 import { KUN_EDITOR_CONTEXT } from '../context'
 
 const props = withDefaults(
@@ -103,9 +104,12 @@ const onSourceInput = (e: Event) =>
       </button>
     </div>
 
-    <!-- WYSIWYG stays mounted (v-show) so editor state survives a view switch. -->
+    <!-- WYSIWYG stays mounted (v-show) so editor state survives a view switch.
+         The format toolbar lives INSIDE the providers so it can useInstance()
+         to reach the editor; it's hidden in source mode and when read-only. -->
     <MilkdownProvider>
       <ProsemirrorAdapterProvider>
+        <EditorToolbar v-show="mode === 'wysiwyg' && !readonly" />
         <div v-show="mode === 'wysiwyg'" class="kun-editor__wysiwyg">
           <MilkdownEditor
             :model-value="modelValue"
@@ -168,6 +172,9 @@ const onSourceInput = (e: Event) =>
   border: 1px solid var(--color-default-200, #e4e4e7);
   border-radius: 0.5rem;
   outline: none;
+  /* ProseMirror requires a whitespace rule; pre-wrap keeps wrapping + spaces. */
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .kun-editor__source {
