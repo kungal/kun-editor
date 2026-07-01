@@ -1,0 +1,40 @@
+{
+  "KunEditor": {
+    "props": [
+      {
+        "name": "modelValue",
+        "type": "string",
+        "required": true,
+        "description": "Bound markdown (v-model)."
+      },
+      {
+        "name": "adapters",
+        "type": "KunEditorAdapters",
+        "required": false,
+        "default": "{}",
+        "description": "Policy: where uploads go, how mentions resolve, how toasts show."
+      },
+      {
+        "name": "features",
+        "type": "KunEditorFeatures",
+        "required": false,
+        "default": "{}",
+        "description": "Which optional plugins to enable (absent adapters win over `true`)."
+      },
+      {
+        "name": "locale",
+        "type": "KunEditorLocale",
+        "required": false,
+        "default": "\"zh-cn\"",
+        "description": "UI language for toolbar labels / placeholders."
+      },
+      {
+        "name": "readonly",
+        "type": "boolean",
+        "required": false,
+        "default": "false",
+        "description": "Read-only render (no editing)."
+      }
+    ]
+  }
+}

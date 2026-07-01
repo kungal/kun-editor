@@ -8,7 +8,8 @@
     "build": "nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "nuxt:prepare": "nuxt prepare"
+    "nuxt:prepare": "nuxt prepare",
+    "gen:meta": "node scripts/gen-meta.mjs"
   },
   "dependencies": {
     "@kungal/editor-core": "workspace:*",
@@ -38,6 +39,7 @@
     "@tailwindcss/vite": "^4.3.0",
     "nuxt": "^4.4.7",
     "tailwindcss": "^4.3.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vue-component-meta": "^3.3.3"
   }
 }

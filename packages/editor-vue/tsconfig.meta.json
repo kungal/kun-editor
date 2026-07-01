@@ -1,0 +1,11 @@
+{
+  "//": "Used only by apps/docs `gen:meta` (vue-component-meta). Maps the editor-core imports to SOURCE so prop types print with real names (KunEditorAdapters, …) instead of the aliases tsup emits in the bundled .d.ts.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@kungal/editor-core": ["../editor-core/src/index.ts"],
+      "@kungal/editor-core/preset": ["../editor-core/src/preset/index.ts"]
+    }
+  }
+}

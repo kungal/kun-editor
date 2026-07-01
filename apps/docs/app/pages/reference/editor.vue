@@ -1,11 +1,9 @@
 <script setup lang="ts">
-const props = [
-  { name: 'modelValue', type: 'string', required: true, description: 'v-model 绑定的 markdown 字符串。' },
-  { name: 'adapters', type: 'KunEditorAdapters', default: '{}', description: '宿主策略:uploadImage / searchMentionUsers / stickerSource / notify。' },
-  { name: 'features', type: 'KunEditorFeatures', default: '{}', description: '可选插件开关(见功能开关页)。' },
-  { name: 'locale', type: "'zh-cn' | 'en-us' | string", default: "'zh-cn'", description: '工具栏标签 / 占位文案的语言。' },
-  { name: 'readonly', type: 'boolean', default: 'false', description: '只读渲染:不可编辑、隐藏格式化工具栏。' }
-]
+// Props table is generated from <KunEditor>'s TypeScript types (see
+// scripts/gen-meta.mjs → app/generated/component-meta.json), so it can't drift.
+import meta from '~/generated/component-meta.json'
+
+const props = meta.KunEditor.props
 
 const emits = [
   { name: 'update:modelValue', type: '(markdown: string) => void', description: '内容变化时触发(v-model)。' }
