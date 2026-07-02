@@ -11,8 +11,15 @@
 // KunButton / KunIcon / KunTooltip / KunPopover chrome. It drives the editor
 // purely through the slot API props (KunEditorToolbarApi) — no useInstance.
 //
+// Headings are ONE "text size" KunPopover (Paragraph / H1–H6, each shown at its
+// own size — like the forum's header menu), driven by setHeadingCommand (absolute
+// set). There is deliberately NO math button — an empty inline-math atom is a
+// broken node; math is entered via the `$…$` / `$$` input rules.
+//
 // KunButton/KunIcon/KunTooltip/KunPopover are auto-imported by @kungal/ui-nuxt in
 // the consuming app; icons use the app's iconify set (e.g. lucide via @nuxt/icon).
+// The container/menu utility classes are generated via @kungal/editor-nuxt's
+// shipped tailwind.css (@source) — the consumer @imports it once.
 import { computed, ref } from 'vue'
 import {
   createCodeBlockCommand,
@@ -23,13 +30,12 @@ import {
   toggleStrongCommand,
   wrapInBlockquoteCommand,
   wrapInBulletListCommand,
-  wrapInHeadingCommand,
   wrapInOrderedListCommand
 } from '@milkdown/kit/preset/commonmark'
 import { toggleStrikethroughCommand } from '@milkdown/kit/preset/gfm'
 import {
   insertKunSpoilerCommand,
-  toggleLatexCommand
+  setHeadingCommand
 } from '@kungal/editor-core/preset'
 import { EMOJI } from '@kungal/editor-vue'
 import type { KunEditorToolbarApi, StickerPack } from '@kungal/editor-vue'
@@ -38,20 +44,17 @@ const props = defineProps<KunEditorToolbarApi>()
 
 const en = computed(() => props.locale.toLowerCase().startsWith('en'))
 const t = computed(() => ({
+  textSize: en.value ? 'Text size' : '文本大小',
   bold: en.value ? 'Bold' : '加粗',
   italic: en.value ? 'Italic' : '斜体',
   strike: en.value ? 'Strikethrough' : '删除线',
   code: en.value ? 'Inline code' : '行内代码',
-  h1: en.value ? 'Heading 1' : '一级标题',
-  h2: en.value ? 'Heading 2' : '二级标题',
-  h3: en.value ? 'Heading 3' : '三级标题',
   bulletList: en.value ? 'Bullet list' : '无序列表',
   orderedList: en.value ? 'Ordered list' : '有序列表',
   quote: en.value ? 'Blockquote' : '引用块',
   codeBlock: en.value ? 'Code block' : '代码块',
   hr: en.value ? 'Divider' : '分隔线',
   spoiler: en.value ? 'Spoiler' : '隐藏文本',
-  latex: en.value ? 'Math (LaTeX)' : '公式',
   image: en.value ? 'Upload image' : '上传图片',
   picker: en.value ? 'Emoji & stickers' : '表情与贴纸',
   emoji: en.value ? 'Emoji' : '表情',
@@ -60,25 +63,33 @@ const t = computed(() => ({
   failed: en.value ? 'Failed to load stickers' : '贴纸加载失败'
 }))
 
+// Paragraph (level 0) + H1–H6, each rendered at its own size in the menu.
+const headingOptions = computed(() => {
+  const labels = en.value
+    ? ['Paragraph', 'Heading 1', 'Heading 2', 'Heading 3', 'Heading 4', 'Heading 5', 'Heading 6']
+    : ['正文', '一级标题', '二级标题', '三级标题', '四级标题', '五级标题', '六级标题']
+  const sizes = ['1rem', '1.6rem', '1.4rem', '1.25rem', '1.1rem', '1rem', '0.9rem']
+  return labels.map((label, level) => ({ level, label, size: sizes[level] }))
+})
+const headingPopover = ref<{ close: () => void } | null>(null)
+const setHeading = (level: number) => {
+  props.run(setHeadingCommand.key, level)
+  headingPopover.value?.close()
+}
+
 interface Tool {
   icon: string
   title: string
   run: () => void
 }
 
-// Same command set + grouping as the default toolbar; `.key` is read at click
-// time via api.run (populated once the editor is created).
+// `.key` is read at click time via props.run (populated once the editor exists).
 const groups = computed<Tool[][]>(() => [
   [
     { icon: 'lucide:bold', title: t.value.bold, run: () => props.run(toggleStrongCommand.key) },
     { icon: 'lucide:italic', title: t.value.italic, run: () => props.run(toggleEmphasisCommand.key) },
     { icon: 'lucide:strikethrough', title: t.value.strike, run: () => props.run(toggleStrikethroughCommand.key) },
     { icon: 'lucide:code', title: t.value.code, run: () => props.run(toggleInlineCodeCommand.key) }
-  ],
-  [
-    { icon: 'lucide:heading-1', title: t.value.h1, run: () => props.run(wrapInHeadingCommand.key, 1) },
-    { icon: 'lucide:heading-2', title: t.value.h2, run: () => props.run(wrapInHeadingCommand.key, 2) },
-    { icon: 'lucide:heading-3', title: t.value.h3, run: () => props.run(wrapInHeadingCommand.key, 3) }
   ],
   [
     { icon: 'lucide:list', title: t.value.bulletList, run: () => props.run(wrapInBulletListCommand.key) },
@@ -88,8 +99,7 @@ const groups = computed<Tool[][]>(() => [
     { icon: 'lucide:minus', title: t.value.hr, run: () => props.run(insertHrCommand.key) }
   ],
   [
-    { icon: 'lucide:eye-off', title: t.value.spoiler, run: () => props.run(insertKunSpoilerCommand.key) },
-    { icon: 'lucide:sigma', title: t.value.latex, run: () => props.run(toggleLatexCommand.key) }
+    { icon: 'lucide:eye-off', title: t.value.spoiler, run: () => props.run(insertKunSpoilerCommand.key) }
   ]
 ])
 
@@ -136,8 +146,27 @@ const insertSticker = (src: string, name: string) =>
 
 <template>
   <div class="flex flex-wrap items-center gap-0.5">
+    <KunPopover ref="headingPopover" position="bottom-start" :opaque="true" inner-class="min-w-40 p-1">
+      <template #trigger>
+        <KunButton variant="light" size="sm" :aria-label="t.textSize">
+          {{ t.textSize }}
+          <KunIcon name="lucide:chevron-down" />
+        </KunButton>
+      </template>
+      <button
+        v-for="o in headingOptions"
+        :key="o.level"
+        type="button"
+        class="hover:bg-default-100 flex w-full items-center rounded px-3 py-1.5 text-left leading-tight"
+        :style="{ fontSize: o.size }"
+        @click="setHeading(o.level)"
+      >
+        {{ o.label }}
+      </button>
+    </KunPopover>
+
     <template v-for="(group, gi) in groups" :key="gi">
-      <span v-if="gi > 0" class="bg-default-200 mx-1 h-5 w-px" aria-hidden="true" />
+      <span class="bg-default-200 mx-1 h-5 w-px" aria-hidden="true" />
       <KunTooltip v-for="(b, bi) in group" :key="bi" :text="b.title" :delay-show="300">
         <KunButton
           variant="light"

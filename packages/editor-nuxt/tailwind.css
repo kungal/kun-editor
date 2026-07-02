@@ -1,0 +1,17 @@
+/*
+ * @kungal/editor-nuxt — Tailwind source registration.
+ *
+ * <KunEditorToolbar> / <KunEditorViewSwitch> are built with Tailwind utility
+ * classes (grids, aspect, sizes, dividers, menu items…). Tailwind v4 does NOT
+ * scan node_modules by default, so without this those classes aren't generated
+ * and the toolbar / sticker grid render broken (collapsed cells, huge stickers).
+ *
+ * `@source` resolves relative to THIS file, so it registers the layer's own
+ * components regardless of the consumer's node_modules layout (pnpm-safe). Import
+ * it ONCE in your Tailwind entry, next to `@import '@kungal/ui-vue/style.css'`:
+ *
+ *   @import 'tailwindcss';
+ *   @import '@kungal/ui-vue/style.css';
+ *   @import '@kungal/editor-nuxt/tailwind.css';
+ */
+@source "./runtime";

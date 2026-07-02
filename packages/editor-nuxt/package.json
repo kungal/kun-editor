@@ -27,6 +27,7 @@
     "CHANGELOG.md",
     "app",
     "runtime",
+    "tailwind.css",
     "nuxt.config.ts"
   ],
   "scripts": {

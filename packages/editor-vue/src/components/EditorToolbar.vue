@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // The formatting toolbar — the central WYSIWYG chrome. Ported from the forum's
-// Menu.vue + _buttonList.ts, made self-contained: plain buttons + inline SVG
+// Menu.vue + _buttonList.ts, made self-contained: plain controls + inline SVG
 // (no @kungal/ui-vue hard dep), themed via CSS vars so a KunUI host still gets
 // consistent colours.
 //
@@ -8,6 +8,11 @@
 // useInstance() to reach the editor created by <MilkdownEditor> and fires
 // commands via callCommand. Command `.key`s are populated once the editor is
 // created, so we read them at click time (never at module load).
+//
+// Headings are ONE "text size" <select> (Paragraph / H1–H6), not N buttons — the
+// modern standard — driven by setHeadingCommand (absolute set, so Paragraph
+// resets). There is deliberately NO math button: an empty inline-math atom is a
+// broken node; math is entered via the `$…$` / `$$` input rules instead.
 import { callCommand } from '@milkdown/kit/utils'
 import { useInstance } from '@milkdown/vue'
 import {
@@ -19,13 +24,12 @@ import {
   toggleStrongCommand,
   wrapInBlockquoteCommand,
   wrapInBulletListCommand,
-  wrapInHeadingCommand,
   wrapInOrderedListCommand
 } from '@milkdown/kit/preset/commonmark'
 import { toggleStrikethroughCommand } from '@milkdown/kit/preset/gfm'
 import {
   insertKunSpoilerCommand,
-  toggleLatexCommand
+  setHeadingCommand
 } from '@kungal/editor-core/preset'
 import type { CmdKey } from '@milkdown/kit/core'
 import { computed, inject, ref } from 'vue'
@@ -57,23 +61,35 @@ interface ToolButton {
 const t = computed(() => {
   const en = isEnglish.value
   return {
+    textSize: en ? 'Text size' : '文本大小',
     bold: en ? 'Bold' : '加粗',
     italic: en ? 'Italic' : '斜体',
     strike: en ? 'Strikethrough' : '删除线',
     code: en ? 'Inline code' : '行内代码',
-    h1: en ? 'Heading 1' : '一级标题',
-    h2: en ? 'Heading 2' : '二级标题',
-    h3: en ? 'Heading 3' : '三级标题',
     bulletList: en ? 'Bullet list' : '无序列表',
     orderedList: en ? 'Ordered list' : '有序列表',
     quote: en ? 'Blockquote' : '引用块',
     codeBlock: en ? 'Code block' : '代码块',
     hr: en ? 'Divider' : '分隔线',
     spoiler: en ? 'Spoiler' : '隐藏文本',
-    latex: en ? 'Math (LaTeX)' : '公式',
     image: en ? 'Upload image' : '上传图片'
   }
 })
+
+// Paragraph (level 0) + H1–H6, for the text-size <select>.
+const headingOptions = computed(() => {
+  const en = isEnglish.value
+  const cn = ['正文', '一级标题', '二级标题', '三级标题', '四级标题', '五级标题', '六级标题']
+  return cn.map((label, level) => ({
+    level,
+    label: en ? (level === 0 ? 'Paragraph' : `Heading ${level}`) : label
+  }))
+})
+const onHeadingSelect = (e: Event) => {
+  const el = e.target as HTMLSelectElement
+  call(setHeadingCommand.key, Number(el.value))
+  el.selectedIndex = 0 // reset to the placeholder (this is an action menu)
+}
 
 // Grouped for visual separation; each `run` reads the command `.key` lazily.
 const groups = computed<ToolButton[][]>(() => [
@@ -84,11 +100,6 @@ const groups = computed<ToolButton[][]>(() => [
     { svg: I.code, title: t.value.code, run: () => call(toggleInlineCodeCommand.key) }
   ],
   [
-    { svg: I.h1, title: t.value.h1, run: () => call(wrapInHeadingCommand.key, 1) },
-    { svg: I.h2, title: t.value.h2, run: () => call(wrapInHeadingCommand.key, 2) },
-    { svg: I.h3, title: t.value.h3, run: () => call(wrapInHeadingCommand.key, 3) }
-  ],
-  [
     { svg: I.bulletList, title: t.value.bulletList, run: () => call(wrapInBulletListCommand.key) },
     { svg: I.orderedList, title: t.value.orderedList, run: () => call(wrapInOrderedListCommand.key) },
     { svg: I.quote, title: t.value.quote, run: () => call(wrapInBlockquoteCommand.key) },
@@ -96,8 +107,7 @@ const groups = computed<ToolButton[][]>(() => [
     { svg: I.hr, title: t.value.hr, run: () => call(insertHrCommand.key) }
   ],
   [
-    { svg: I.spoiler, title: t.value.spoiler, run: () => call(insertKunSpoilerCommand.key) },
-    { svg: I.latex, title: t.value.latex, run: () => call(toggleLatexCommand.key) }
+    { svg: I.spoiler, title: t.value.spoiler, run: () => call(insertKunSpoilerCommand.key) }
   ]
 ])
 
@@ -124,8 +134,19 @@ const onFileChange = async (e: Event) => {
 
 <template>
   <div class="kun-editor__format-toolbar" role="toolbar">
+    <select
+      class="kun-editor__heading-select"
+      :aria-label="t.textSize"
+      @change="onHeadingSelect"
+    >
+      <option value="" disabled selected>{{ t.textSize }}</option>
+      <option v-for="o in headingOptions" :key="o.level" :value="o.level">
+        {{ o.label }}
+      </option>
+    </select>
+
     <template v-for="(group, gi) in groups" :key="gi">
-      <span v-if="gi > 0" class="kun-editor__toolbar-divider" aria-hidden="true" />
+      <span class="kun-editor__toolbar-divider" aria-hidden="true" />
       <button
         v-for="(btn, bi) in group"
         :key="bi"
@@ -165,4 +186,3 @@ const onFileChange = async (e: Event) => {
     </template>
   </div>
 </template>
-

@@ -29,6 +29,7 @@ import type {
 } from '../types'
 import { createSpoilerPlugin } from '../plugins/spoiler'
 import { createStopLinkPlugin } from '../plugins/stop-link'
+import { createHeadingPlugin } from '../plugins/heading'
 import { createKatexPlugins } from '../plugins/katex'
 import { createCodeBlockPlugins } from '../plugins/code-block'
 import { createMentionPlugin } from '../plugins/mention'
@@ -39,6 +40,7 @@ import { createUploadPlugin } from '../plugins/upload'
 // can compose their own bundle instead of using the preset.
 export * from '../plugins/spoiler'
 export * from '../plugins/stop-link'
+export * from '../plugins/heading'
 export * from '../plugins/katex'
 export * from '../plugins/code-block'
 export * from '../plugins/mention'
@@ -130,6 +132,8 @@ export const createKunEditorPlugins = (
   }
   // stop-link is pure chrome-free behaviour; always on.
   plugins.push(createStopLinkPlugin())
+  // setHeadingCommand (absolute block-type) — powers the "text size" dropdown.
+  plugins.push(createHeadingPlugin())
 
   return plugins.flat()
 }

@@ -64,9 +64,9 @@ export default defineNuxtConfig({
   }
 })
 
-// NOTE: this layer does NOT own a Tailwind entry or import editor styles. The
-// consuming app owns one stylesheet and adds `@kungal/editor-vue/style.css`
-// alongside its @kungal/ui-tokens + @kungal/ui-vue setup — the @source scan
-// path is node_modules-layout-specific, so only the app can write it. It also
-// assumes @kungal/ui-nuxt is already extended: <KunEditorToolbar> (and the
-// reference editor styles) render KunUI chrome. See this package's README.
+// NOTE: this layer assumes @kungal/ui-nuxt is already extended (its components
+// render KunUI chrome). For the KunUI toolbar/picker/tabs utility classes to be
+// generated, the consuming app @imports this package's shipped `tailwind.css`
+// (which `@source`s the layer's components, path-relative so it's pnpm-safe) in
+// its Tailwind entry — alongside `@import '@kungal/ui-vue/style.css'`. The
+// headless editor itself is still styled by the app's own stylesheet. See README.

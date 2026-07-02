@@ -1,6 +1,10 @@
 @import 'tailwindcss';
 @import '@kungal/ui-tokens';
 @import '@kungal/ui-vue/style.css';
+/* Generates the KunUI toolbar/picker/view-switch utility classes from
+ * @kungal/editor-nuxt (its @source is path-relative, so no node_modules path
+ * here). Without it the sticker/emoji grid collapses. */
+@import '@kungal/editor-nuxt/tailwind.css';
 /* The `.kun-prose` type system — used to render the changelog markdown. */
 @import '@kungal/ui-vue/prose.css';
 
