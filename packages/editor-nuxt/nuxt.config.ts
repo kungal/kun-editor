@@ -26,7 +26,36 @@ export default defineNuxtConfig({
         })
       }
     })
-  ]
+  ],
+
+  // Under `nuxt dev`, Milkdown's markdown tokenizer (micromark) resolves to its
+  // DEV build, which does `import debug from 'debug'`. `debug` is CommonJS, so
+  // unless Vite pre-bundles it, its browser.js is served raw with no `default`
+  // export and the editor throws at load:
+  //   SyntaxError: … 'debug' does not provide an export named 'default'
+  //   (create-tokenizer.js)
+  // which also aborts app init. Whether it fires is non-deterministic per app —
+  // it depends on whether Vite's dep scan reaches the editor before it evaluates
+  // (the docs happens to get auto-scanned; other consumers don't). So pin it
+  // HERE, in the layer: force-including the editor/milkdown ENTRY points makes
+  // esbuild pre-bundle their whole subgraph and resolve micromark's CJS `debug`
+  // INSIDE the bundle. Merged into every consumer that extends this layer, so no
+  // app configures it. Dev-only: the prod build strips micromark's debug calls.
+  //
+  // NB: include the resolvable ENTRY points, not `'debug'` — under pnpm's
+  // non-hoisted layout `debug` isn't resolvable from the app root, so Vite would
+  // silently skip it. Unresolvable entries below are skipped too (harmless).
+  vite: {
+    optimizeDeps: {
+      include: [
+        '@kungal/editor-vue',
+        '@kungal/editor-core',
+        '@kungal/editor-core/preset',
+        '@milkdown/kit/preset/commonmark',
+        '@milkdown/kit/preset/gfm'
+      ]
+    }
+  }
 })
 
 // NOTE: this layer does NOT own a Tailwind entry or import editor styles. The

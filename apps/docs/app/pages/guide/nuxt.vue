@@ -29,8 +29,22 @@ const css = `/* app 的 main.css */
     <Code :code="extend" lang="ts" />
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">直接用</h2>
-    <p class="text-default-600 mb-3">之后在任意组件里无需 import:</p>
+    <p class="text-default-600 mb-3">
+      之后在任意组件里无需 import(<code>&lt;KunEditor&gt;</code> 与 KunUI 版
+      <code>&lt;KunEditorToolbar&gt;</code> 都已自动注册):
+    </p>
     <Code :code="use" lang="vue" />
+
+    <h2 class="mt-8 mb-1 text-xl font-semibold">dev 依赖优化(自动)</h2>
+    <p class="text-default-600 mb-3">
+      在 <code>nuxt dev</code> 下,Milkdown 的分词器(micromark)会走 dev 构建、
+      <code>import debug from 'debug'</code>,而 <code>debug</code> 是 CommonJS ——
+      若 Vite 没预打包它,编辑器会在加载时抛
+      <code>'debug' does not provide an export named 'default'</code>。
+      <strong>这一层已经替你配好</strong> Vite 的 <code>optimizeDeps.include</code>
+      (预打包编辑器/Milkdown 子图,把 <code>debug</code> 的 CJS 解决在包内),
+      所以你<strong>无需在自己的 <code>nuxt.config</code> 里配任何东西</strong>。生产构建不受影响。
+    </p>
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">样式</h2>
     <p class="text-default-600 mb-3">
