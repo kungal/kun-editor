@@ -24,6 +24,8 @@ import MarkdownSource from './MarkdownSource.vue'
 import { KUN_EDITOR_CONTEXT } from '../context'
 import type { KunEditorExpose } from '../types'
 
+type ViewMode = 'wysiwyg' | 'source' | 'split'
+
 const props = withDefaults(
   defineProps<{
     /** Bound markdown (v-model). */
@@ -38,6 +40,12 @@ const props = withDefaults(
     readonly?: boolean
     /** Placeholder text shown while the editor is empty. */
     placeholder?: string
+    /**
+     * Which view modes to offer in the switch. Default all three. Drop `'split'`
+     * (or use just `['wysiwyg']`) for compact editors like a reply/comment box —
+     * a single-mode `views` hides the switch bar entirely.
+     */
+    views?: ViewMode[]
     /** Sync scrolling between the split panes. Default `true`; set `false` to
      * disable (or toggle it at runtime via the view-switch API). */
     scrollSync?: boolean
@@ -50,6 +58,7 @@ const props = withDefaults(
     locale: 'zh-cn',
     readonly: false,
     placeholder: '',
+    views: () => ['wysiwyg', 'source', 'split'],
     scrollSync: true,
     selectionToolbar: true
   }
@@ -78,12 +87,22 @@ provide(KUN_EDITOR_CONTEXT, {
 
 // Per-instance view mode — NOT a module-level singleton (the forum's atom.ts
 // shared one `activeTab` across every editor, which would cross-wire two editors
-// on the same page).
-type ViewMode = 'wysiwyg' | 'source' | 'split'
-const mode = ref<ViewMode>('wysiwyg')
+// on the same page). Start on the first offered view; if `views` later drops the
+// active mode, fall back to the first.
+const mode = ref<ViewMode>(
+  props.views.includes('wysiwyg') ? 'wysiwyg' : (props.views[0] ?? 'wysiwyg')
+)
 const setMode = (m: ViewMode) => {
   mode.value = m
 }
+watch(
+  () => props.views,
+  (v) => {
+    if (!v.includes(mode.value)) {
+      mode.value = v[0] ?? 'wysiwyg'
+    }
+  }
+)
 // Split-view left/right order (source ↔ preview).
 const swapped = ref(false)
 const swap = () => {
@@ -200,38 +219,24 @@ defineExpose<KunEditorExpose>({
       :mode="mode"
       :set-mode="setMode"
       :labels="labels"
+      :views="views"
       :swapped="swapped"
       :swap="swap"
       :scroll-sync="scrollSyncOn"
       :toggle-scroll-sync="toggleScrollSync"
     >
-      <div class="kun-editor__toolbar" role="tablist">
+      <!-- Hidden entirely when only one view is offered (e.g. a reply box). -->
+      <div v-if="views.length > 1" class="kun-editor__toolbar" role="tablist">
         <button
+          v-for="v in views"
+          :key="v"
           type="button"
           class="kun-editor__tab"
-          :aria-selected="mode === 'wysiwyg'"
-          :data-active="mode === 'wysiwyg'"
-          @click="setMode('wysiwyg')"
+          :aria-selected="mode === v"
+          :data-active="mode === v"
+          @click="setMode(v)"
         >
-          {{ labels.wysiwyg }}
-        </button>
-        <button
-          type="button"
-          class="kun-editor__tab"
-          :aria-selected="mode === 'source'"
-          :data-active="mode === 'source'"
-          @click="setMode('source')"
-        >
-          {{ labels.source }}
-        </button>
-        <button
-          type="button"
-          class="kun-editor__tab"
-          :aria-selected="mode === 'split'"
-          :data-active="mode === 'split'"
-          @click="setMode('split')"
-        >
-          {{ labels.split }}
+          {{ labels[v] }}
         </button>
         <template v-if="mode === 'split'">
           <button

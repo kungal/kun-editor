@@ -24,6 +24,8 @@ const props = withDefaults(
     kunuiToolbar?: boolean
     /** Custom button order for <KunEditorToolbar :items>. */
     toolbarItems?: KunToolbarItem[]
+    /** Which view modes to offer (forwards to <KunEditor :views>). */
+    views?: ('wysiwyg' | 'source' | 'split')[]
   }>(),
   {
     modelValue: '',
@@ -33,7 +35,8 @@ const props = withDefaults(
     readonly: false,
     output: true,
     kunuiToolbar: false,
-    toolbarItems: undefined
+    toolbarItems: undefined,
+    views: undefined
   }
 )
 
@@ -52,6 +55,7 @@ const md = ref(props.modelValue)
           :features="features"
           :locale="locale"
           :readonly="readonly"
+          :views="views"
         >
           <template v-if="kunuiToolbar" #view-switch="s">
             <KunEditorViewSwitch v-bind="s" />

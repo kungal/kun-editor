@@ -55,6 +55,13 @@
         "required": false,
         "default": "true",
         "description": "Show a floating format toolbar on text selection. Default `true`."
+      },
+      {
+        "name": "views",
+        "type": "ViewMode[]",
+        "required": false,
+        "default": "[\"wysiwyg\", \"source\", \"split\"]",
+        "description": "Which view modes to offer in the switch. Default all three. Drop `'split'` (or use just `['wysiwyg']`) for compact editors like a reply/comment box — a single-mode `views` hides the switch bar entirely."
       }
     ]
   }

@@ -15,11 +15,10 @@ import type { KunEditorViewSwitchApi } from '@kungal/editor-vue'
 
 const props = defineProps<KunEditorViewSwitchApi>()
 
-const items = computed(() => [
-  { value: 'wysiwyg', textValue: props.labels.wysiwyg },
-  { value: 'source', textValue: props.labels.source },
-  { value: 'split', textValue: props.labels.split }
-])
+// Only the offered views (from the `views` prop). Hidden entirely for one view.
+const items = computed(() =>
+  props.views.map((v) => ({ value: v, textValue: props.labels[v] }))
+)
 
 const onChange = (value: string) => {
   props.setMode(
@@ -29,7 +28,8 @@ const onChange = (value: string) => {
 </script>
 
 <template>
-  <div class="flex items-center gap-1">
+  <!-- Hidden entirely when only one view is offered (e.g. a reply box). -->
+  <div v-if="views.length > 1" class="flex items-center gap-1">
     <KunTab
       :model-value="mode"
       :items="items"

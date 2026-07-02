@@ -62,6 +62,8 @@ export interface KunEditorViewSwitchApi {
   mode: 'wysiwyg' | 'source' | 'split'
   /** Switch the active view. */
   setMode: (mode: 'wysiwyg' | 'source' | 'split') => void
+  /** The view modes offered (from the `views` prop) — render tabs for these. */
+  views: ('wysiwyg' | 'source' | 'split')[]
   /** Localized labels (respects the `locale` prop). */
   labels: {
     wysiwyg: string

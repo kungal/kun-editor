@@ -28,6 +28,12 @@ const itemsSrc = `<KunEditorToolbar
   :items="['picker', '|', 'bold', 'italic', 'code', '|', 'image', '|', 'heading']"
 />`
 
+// Compact editors (reply/comment) can drop 分栏 — or offer just WYSIWYG (no
+// switch bar at all) — via the `views` prop.
+const compactViews: ('wysiwyg' | 'source')[] = ['wysiwyg', 'source']
+const viewsSrc = `<!-- 回复/评论:去掉分栏(甚至只留 ['wysiwyg'] 就没有切换条了) -->
+<KunEditor v-model="md" :views="['wysiwyg', 'source']" />`
+
 const usage = `<script setup lang="ts">
 // nuxt.config: extends ['@kungal/ui-nuxt', '@kungal/editor-nuxt']
 // → <KunEditor> + <KunEditorToolbar> + <KunEditorViewSwitch> auto-import.
@@ -95,6 +101,22 @@ const adapters = { uploadImage, stickerSource, notify }
       />
     </ClientOnly>
     <Code :code="itemsSrc" lang="vue" />
+
+    <h2 class="mt-8 mb-1 text-xl font-semibold">限制视图(紧凑编辑器)</h2>
+    <p class="text-default-600 mb-2">
+      用 <code>:views</code> 控制切换条提供哪些模式。编辑话题页保留分栏,回复/评论框
+      去掉它(下面只有 预览/Markdown);只给 <code>['wysiwyg']</code> 则整条切换条都不显示。
+    </p>
+    <ClientOnly>
+      <DemoEditor
+        :kunui-toolbar="true"
+        :views="compactViews"
+        :adapters="adapters"
+        :output="false"
+        model-value="紧凑模式:没有「分栏」页签。"
+      />
+    </ClientOnly>
+    <Code :code="viewsSrc" lang="vue" />
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">用法</h2>
     <Code :code="usage" lang="vue" />
