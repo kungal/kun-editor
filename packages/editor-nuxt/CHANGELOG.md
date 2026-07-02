@@ -1,5 +1,19 @@
 # @kungal/editor-nuxt
 
+## 0.16.0
+
+### Minor Changes
+
+- 4e160ee: `<KunEditorToolbar>`: the emoji/sticker picker tabs are now a
+  `<KunTab variant="underlined" full-width>` instead of two `<KunButton>`s —
+  matching `<KunEditorViewSwitch>` and the forum's picker (keyboard nav, sliding
+  indicator, a11y). Only shown when a `stickerSource` adapter is present.
+
+### Patch Changes
+
+- @kungal/editor-core@0.16.0
+- @kungal/editor-vue@0.16.0
+
 ## 0.15.0
 
 ### Minor Changes
