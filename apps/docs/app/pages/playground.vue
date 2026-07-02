@@ -115,6 +115,7 @@ const editorKey = computed(() =>
             :features="features"
             :locale="locale"
             :readonly="readonly"
+            placeholder="写点什么…(清空内容看看 placeholder)"
           />
         </KunCard>
 

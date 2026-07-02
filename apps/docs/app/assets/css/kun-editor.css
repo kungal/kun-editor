@@ -54,6 +54,17 @@
   word-wrap: break-word;
 }
 
+/* Placeholder: the editor sets a `data-placeholder` attr + this class on the
+ * empty block (a decoration, not real content). Render the text via ::before so
+ * it never affects the doc / caret. */
+.kun-editor__placeholder::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  color: var(--color-default-400);
+  pointer-events: none;
+  height: 0;
+}
+
 /* ── Formatting toolbar ─────────────────────────────────────────────────── */
 .kun-editor__format-toolbar {
   display: flex;

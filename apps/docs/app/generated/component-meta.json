@@ -29,6 +29,13 @@
         "description": "UI language for toolbar labels / placeholders."
       },
       {
+        "name": "placeholder",
+        "type": "string",
+        "required": false,
+        "default": "\"\"",
+        "description": "Placeholder text shown while the editor is empty."
+      },
+      {
         "name": "readonly",
         "type": "boolean",
         "required": false,

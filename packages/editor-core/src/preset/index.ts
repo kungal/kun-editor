@@ -35,6 +35,7 @@ import { createCodeBlockPlugins } from '../plugins/code-block'
 import { createMentionPlugin } from '../plugins/mention'
 import { createQuotePlugin } from '../plugins/quote'
 import { createUploadPlugin } from '../plugins/upload'
+import { createPlaceholderPlugin } from '../plugins/placeholder'
 
 // Re-export the individual plugin factories + building blocks so advanced hosts
 // can compose their own bundle instead of using the preset.
@@ -46,6 +47,7 @@ export * from '../plugins/code-block'
 export * from '../plugins/mention'
 export * from '../plugins/quote'
 export * from '../plugins/upload'
+export * from '../plugins/placeholder'
 
 /** Extra, non-adapter options for the composed bundle. */
 export interface KunEditorPluginOptions {
@@ -53,6 +55,10 @@ export interface KunEditorPluginOptions {
   locale?: KunEditorLocale
   /** KaTeX options forwarded to the code-block `latex` preview. */
   katexOptions?: KatexOptions
+  /** Placeholder text shown when empty. Omit / empty string → no placeholder. */
+  placeholder?: string
+  /** `'block'` (default) shows on any empty block; `'doc'` only when empty. */
+  placeholderMode?: 'doc' | 'block'
 }
 
 /**
@@ -134,6 +140,15 @@ export const createKunEditorPlugins = (
   plugins.push(createStopLinkPlugin())
   // setHeadingCommand (absolute block-type) — powers the "text size" dropdown.
   plugins.push(createHeadingPlugin())
+  // Placeholder (empty-state text) — only when the host supplies text.
+  if (options.placeholder) {
+    plugins.push(
+      createPlaceholderPlugin({
+        text: options.placeholder,
+        mode: options.placeholderMode
+      })
+    )
+  }
 
   return plugins.flat()
 }

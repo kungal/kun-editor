@@ -36,12 +36,15 @@ const props = withDefaults(
     locale?: KunEditorLocale
     /** Read-only render (no editing). */
     readonly?: boolean
+    /** Placeholder text shown while the editor is empty. */
+    placeholder?: string
   }>(),
   {
     adapters: () => ({}),
     features: () => ({}),
     locale: 'zh-cn',
-    readonly: false
+    readonly: false,
+    placeholder: ''
   }
 )
 
@@ -143,6 +146,7 @@ defineExpose<KunEditorExpose>({
             :features="features"
             :locale="locale"
             :readonly="readonly"
+            :placeholder="placeholder"
             @update:model-value="onUpdate"
           />
         </div>

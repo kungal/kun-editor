@@ -41,6 +41,7 @@ const props = defineProps<{
   features: KunEditorFeatures
   locale: KunEditorLocale
   readonly: boolean
+  placeholder: string
 }>()
 
 const emit = defineEmits<{
@@ -90,7 +91,8 @@ const editorInfo = useEditor((root) => {
     })
     .use(
       createKunEditorPlugins(props.adapters, props.features, {
-        locale: props.locale
+        locale: props.locale,
+        placeholder: props.placeholder
       })
     )
 
