@@ -1,6 +1,6 @@
 {
   "name": "@kungal/editor-vue",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "KunEditor Vue 3 layer — the headless <KunEditor> component (dual WYSIWYG / markdown-source), toolbar and plugin views. Ships zero CSS and no UI-kit dependency; consumes @kungal/editor-core, and pairs with @kungal/editor-nuxt for optional KunUI chrome.",
   "type": "module",
   "keywords": [
