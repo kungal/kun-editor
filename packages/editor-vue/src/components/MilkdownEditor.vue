@@ -20,6 +20,7 @@ import { listenerCtx } from '@milkdown/kit/plugin/listener'
 import { slashFactory } from '@milkdown/kit/plugin/slash'
 import { tooltipFactory } from '@milkdown/kit/plugin/tooltip'
 import { callCommand, replaceAll } from '@milkdown/kit/utils'
+import { TextSelection } from '@milkdown/kit/prose/state'
 import { Milkdown, useEditor } from '@milkdown/vue'
 import { usePluginViewFactory } from '@prosemirror-adapter/vue'
 import {
@@ -191,7 +192,41 @@ const insertMention: KunEditorExpose['insertMention'] = (payload) => {
   focus()
 }
 
-defineExpose<KunEditorExpose>({ insertQuote, insertMention, focus })
+// Scroll the index-th TOP-LEVEL heading into view (order matches the parseHeadings
+// outline), and — when editable — place the caret in it so editing continues
+// there. WYSIWYG variant; the source pane has its own (line-based) one.
+const scrollToHeading: KunEditorExpose['scrollToHeading'] = (index) => {
+  editorInfo.get()?.action((ctx) => {
+    const view = ctx.get(editorViewCtx)
+    let i = 0
+    let target = -1
+    view.state.doc.forEach((node, offset) => {
+      if (node.type.name === 'heading') {
+        if (i === index) {
+          target = offset
+        }
+        i += 1
+      }
+    })
+    if (target < 0) {
+      return
+    }
+    const dom = view.nodeDOM(target) as HTMLElement | null
+    dom?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (view.editable) {
+      const sel = TextSelection.near(view.state.doc.resolve(target + 1))
+      view.dispatch(view.state.tr.setSelection(sel))
+      view.focus()
+    }
+  })
+}
+
+defineExpose<KunEditorExpose>({
+  insertQuote,
+  insertMention,
+  focus,
+  scrollToHeading
+})
 </script>
 
 <template>

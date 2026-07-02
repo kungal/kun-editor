@@ -118,4 +118,10 @@ export interface KunEditorExpose {
   insertMention(payload: { userId: number; name: string }): void
   /** Focus the WYSIWYG editor. */
   focus(): void
+  /**
+   * Scroll to the index-th heading (matching the `update:headings` outline order)
+   * in the active view, placing the caret there when editable. Powers a
+   * host-rendered table of contents.
+   */
+  scrollToHeading(index: number): void
 }

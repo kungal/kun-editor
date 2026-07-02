@@ -26,6 +26,11 @@ export type { KunEditorViewSwitchApi } from './types'
 // The built-in emoji set — handy when building a custom toolbar's emoji picker.
 export { EMOJI } from './emoji'
 
+// The heading outline item type emitted by `@update:headings` (for a TOC).
+export type { KunHeading } from '@kungal/editor-core'
+// `parseHeadings(markdown)` — build the same outline yourself if needed.
+export { parseHeadings } from '@kungal/editor-core'
+
 // Re-export the core types so hosts don't need a second import line.
 export type {
   KunEditorAdapters,

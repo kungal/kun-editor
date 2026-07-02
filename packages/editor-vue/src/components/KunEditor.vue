@@ -15,8 +15,10 @@ import { computed, nextTick, onBeforeUnmount, provide, ref, watch } from 'vue'
 import type {
   KunEditorAdapters,
   KunEditorFeatures,
-  KunEditorLocale
+  KunEditorLocale,
+  KunHeading
 } from '@kungal/editor-core'
+import { parseHeadings } from '@kungal/editor-core'
 import MilkdownEditor from './MilkdownEditor.vue'
 import EditorToolbar from './EditorToolbar.vue'
 import ToolbarHost from './ToolbarHost.vue'
@@ -86,7 +88,18 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   'update:modelValue': [markdown: string]
+  /** The heading outline (for a host-rendered TOC), whenever it changes. */
+  'update:headings': [headings: KunHeading[]]
 }>()
+
+// Derive the heading outline from the bound markdown and emit it on change, so a
+// host can render a table of contents. Cheap (a regex line scan); the host drives
+// navigation by calling `scrollToHeading(i)` with the clicked item's index.
+watch(
+  () => props.modelValue,
+  (md) => emit('update:headings', parseHeadings(md)),
+  { immediate: true }
+)
 
 // Provide the adapters + locale to the plugin VIEWS (the @mention dropdown, and
 // later the sticker picker). It MUST be provided here, not in <MilkdownEditor>:
@@ -235,10 +248,20 @@ const onUpdate = (markdown: string) => emit('update:modelValue', markdown)
 // Forward the WYSIWYG editor's imperative handle. The inner editor stays mounted
 // (v-show) in source mode too, so these work regardless of the active view.
 const inner = ref<InstanceType<typeof MilkdownEditor> | null>(null)
+const source = ref<InstanceType<typeof MarkdownSource> | null>(null)
 defineExpose<KunEditorExpose>({
   insertQuote: (payload) => inner.value?.insertQuote(payload),
   insertMention: (payload) => inner.value?.insertMention(payload),
-  focus: () => inner.value?.focus()
+  focus: () => inner.value?.focus(),
+  // Navigate to a heading in whichever pane the user edits: the CodeMirror source
+  // in source/split (mounted only then), else the WYSIWYG.
+  scrollToHeading: (index) => {
+    if (mode.value === 'source' || mode.value === 'split') {
+      source.value?.scrollToHeading(index)
+    } else {
+      inner.value?.scrollToHeading(index)
+    }
+  }
 })
 </script>
 
@@ -313,6 +336,7 @@ defineExpose<KunEditorExpose>({
           <!-- Source: editable + the source of truth. Mounted on demand (v-if):
                CodeMirror measures poorly while display:none. -->
           <MarkdownSource
+            ref="source"
             v-if="mode === 'source' || mode === 'split'"
             class="kun-editor__pane"
             :model-value="modelValue"

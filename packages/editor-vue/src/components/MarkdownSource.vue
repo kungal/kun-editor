@@ -62,6 +62,45 @@ onBeforeUnmount(() => {
   view = null
 })
 
+// Scroll to the index-th ATX heading LINE (order + code-fence handling match the
+// parseHeadings outline) and put the caret there. The source counterpart of the
+// WYSIWYG scrollToHeading — a host's TOC calls one or the other by view mode.
+const FENCE = /^\s{0,3}(?:```|~~~)/
+const ATX = /^ {0,3}#{1,6}\s+/
+const scrollToHeading = (index: number) => {
+  if (!view) {
+    return
+  }
+  const { doc } = view.state
+  let i = 0
+  let inFence = false
+  let targetFrom = -1
+  for (let ln = 1; ln <= doc.lines; ln += 1) {
+    const line = doc.line(ln)
+    if (FENCE.test(line.text)) {
+      inFence = !inFence
+      continue
+    }
+    if (inFence) {
+      continue
+    }
+    if (ATX.test(line.text)) {
+      if (i === index) {
+        targetFrom = line.from
+        break
+      }
+      i += 1
+    }
+  }
+  if (targetFrom < 0) {
+    return
+  }
+  view.dispatch({ selection: { anchor: targetFrom }, scrollIntoView: true })
+  view.focus()
+}
+
+defineExpose({ scrollToHeading })
+
 // External changes (a parent replacing the bound value) re-sync the doc. Apply
 // as a content-replacing TRANSACTION (not setState) so the editor keeps its
 // selection/undo history — the cursor is preserved (clamped to the new length)

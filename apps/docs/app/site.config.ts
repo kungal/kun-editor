@@ -93,6 +93,12 @@ export const pageMeta: Record<string, PageMeta> = {
     description:
       '用 #toolbar 具名插槽把手搓工具栏换成 KunUI 组件版(KunButton / KunIcon / KunTooltip / KunPopover)。核心保持 headless:插槽把命令 API 传出,editor-nuxt 提供 <KunEditorToolbar> 作默认实现。'
   },
+  '/examples/toc': {
+    title: 'Table of contents',
+    cn: '大纲 / TOC',
+    description:
+      '桌面版编辑器左侧的浅色大纲:<KunEditor> 的 @update:headings 派生标题列表,点击调 scrollToHeading(i) 在当前视图(所见即所得 / 源码 / 分栏)跳转并落光标。样式、布局(左侧留白)由宿主决定,编辑器只出能力。'
+  },
 
   // Plugins
   '/plugins/spoiler': {
