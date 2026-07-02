@@ -29,6 +29,7 @@ import type {
 } from '../types'
 import { createSpoilerPlugin } from '../plugins/spoiler'
 import { createStopLinkPlugin } from '../plugins/stop-link'
+import { createLinkPlugin } from '../plugins/link'
 import { createHeadingPlugin } from '../plugins/heading'
 import { createKatexPlugins } from '../plugins/katex'
 import { createCodeBlockPlugins } from '../plugins/code-block'
@@ -41,6 +42,7 @@ import { createPlaceholderPlugin } from '../plugins/placeholder'
 // can compose their own bundle instead of using the preset.
 export * from '../plugins/spoiler'
 export * from '../plugins/stop-link'
+export * from '../plugins/link'
 export * from '../plugins/heading'
 export * from '../plugins/katex'
 export * from '../plugins/code-block'
@@ -142,6 +144,8 @@ export const createKunEditorPlugins = (
   }
   // stop-link is pure chrome-free behaviour; always on.
   plugins.push(createStopLinkPlugin())
+  // insert-link command (click-to-link over the commonmark link mark); always on.
+  plugins.push(createLinkPlugin())
   // setHeadingCommand (absolute block-type) — powers the "text size" dropdown.
   plugins.push(createHeadingPlugin())
   // Placeholder (empty-state text) — only when the host supplies text.

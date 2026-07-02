@@ -28,7 +28,8 @@ const DEFAULT_SELECTION_ITEMS: KunSelectionItem[] = [
   'bold',
   'italic',
   'strike',
-  'code'
+  'code',
+  'link'
 ]
 
 type ViewMode = 'wysiwyg' | 'source' | 'split'

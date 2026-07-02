@@ -20,6 +20,7 @@ import {
   toggleStrongCommand
 } from '@milkdown/kit/preset/commonmark'
 import { toggleStrikethroughCommand } from '@milkdown/kit/preset/gfm'
+import { insertLinkCommand } from '@kungal/editor-core/preset'
 import type { CmdKey } from '@milkdown/kit/core'
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { KUN_EDITOR_CONTEXT } from '../context'
@@ -39,6 +40,15 @@ const call = <T,>(key: CmdKey<T>, payload?: T) => {
   getEditor()?.action(callCommand(key, payload))
 }
 
+// Link needs a URL. The bubble only shows on a non-empty selection, so this wraps
+// the selected text. Headless: a native prompt (the KunUI toolbar uses a popover).
+const promptLink = () => {
+  const url = window.prompt(isEnglish.value ? 'Link URL' : '链接 URL')?.trim()
+  if (url) {
+    call(insertLinkCommand.key, { href: url })
+  }
+}
+
 interface BubbleButton {
   svg: string
   title: string
@@ -53,7 +63,8 @@ const commandMap = computed<Record<string, BubbleButton>>(() => {
     bold: { svg: I.bold, title: en ? 'Bold' : '加粗', run: () => call(toggleStrongCommand.key) },
     italic: { svg: I.italic, title: en ? 'Italic' : '斜体', run: () => call(toggleEmphasisCommand.key) },
     strike: { svg: I.strike, title: en ? 'Strikethrough' : '删除线', run: () => call(toggleStrikethroughCommand.key) },
-    code: { svg: I.code, title: en ? 'Inline code' : '行内代码', run: () => call(toggleInlineCodeCommand.key) }
+    code: { svg: I.code, title: en ? 'Inline code' : '行内代码', run: () => call(toggleInlineCodeCommand.key) },
+    link: { svg: I.link, title: en ? 'Link' : '链接', run: promptLink }
   }
 })
 
@@ -61,7 +72,7 @@ const commandMap = computed<Record<string, BubbleButton>>(() => {
 // dividers collapsed around any unknown/removed item.
 const items = computed<BubbleItem[]>(() => {
   const map = commandMap.value
-  const configured = ctx?.selectionToolbarItems ?? ['bold', 'italic', 'strike', 'code']
+  const configured = ctx?.selectionToolbarItems ?? ['bold', 'italic', 'strike', 'code', 'link']
   const mapped = configured
     .map<BubbleItem | null>((it) =>
       it === '|'

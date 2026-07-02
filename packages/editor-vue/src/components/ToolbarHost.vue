@@ -10,6 +10,7 @@ import { callCommand } from '@milkdown/kit/utils'
 import { useInstance } from '@milkdown/vue'
 import { inject } from 'vue'
 import {
+  insertLinkCommand,
   insertMentionCommand,
   insertQuoteCommand,
   startImageUpload
@@ -31,6 +32,10 @@ const insertText = (text: string): void => {
     const view = c.get(editorViewCtx)
     view.dispatch(view.state.tr.insertText(text))
   })
+  focus()
+}
+const insertLink: KunEditorToolbarApi['insertLink'] = (payload) => {
+  run(insertLinkCommand.key, payload)
   focus()
 }
 const insertQuote: KunEditorToolbarApi['insertQuote'] = (payload) => {
@@ -60,6 +65,7 @@ const api: KunEditorToolbarApi = {
   run,
   insertText,
   uploadImage,
+  insertLink,
   insertQuote,
   insertMention,
   focus,

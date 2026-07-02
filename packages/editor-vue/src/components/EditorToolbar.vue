@@ -28,6 +28,7 @@ import {
 import { toggleStrikethroughCommand } from '@milkdown/kit/preset/gfm'
 import {
   insertKunSpoilerCommand,
+  insertLinkCommand,
   setHeadingCommand,
   startImageUpload
 } from '@kungal/editor-core/preset'
@@ -52,6 +53,15 @@ const call = <T,>(key: CmdKey<T>, payload?: T) => {
   getEditor()?.action(callCommand(key, payload))
 }
 
+// Link: prompt for a URL, then wrap the selection (or insert the URL as linked
+// text). Headless → a native prompt; the KunUI toolbar uses a popover input.
+const promptLink = () => {
+  const url = window.prompt(isEnglish.value ? 'Link URL' : '链接 URL')?.trim()
+  if (url) {
+    call(insertLinkCommand.key, { href: url })
+  }
+}
+
 interface ToolButton {
   svg: string
   title: string
@@ -66,6 +76,7 @@ const t = computed(() => {
     italic: en ? 'Italic' : '斜体',
     strike: en ? 'Strikethrough' : '删除线',
     code: en ? 'Inline code' : '行内代码',
+    link: en ? 'Link' : '链接',
     bulletList: en ? 'Bullet list' : '无序列表',
     orderedList: en ? 'Ordered list' : '有序列表',
     quote: en ? 'Blockquote' : '引用块',
@@ -97,7 +108,8 @@ const groups = computed<ToolButton[][]>(() => [
     { svg: I.bold, title: t.value.bold, run: () => call(toggleStrongCommand.key) },
     { svg: I.italic, title: t.value.italic, run: () => call(toggleEmphasisCommand.key) },
     { svg: I.strike, title: t.value.strike, run: () => call(toggleStrikethroughCommand.key) },
-    { svg: I.code, title: t.value.code, run: () => call(toggleInlineCodeCommand.key) }
+    { svg: I.code, title: t.value.code, run: () => call(toggleInlineCodeCommand.key) },
+    { svg: I.link, title: t.value.link, run: promptLink }
   ],
   [
     { svg: I.bulletList, title: t.value.bulletList, run: () => call(wrapInBulletListCommand.key) },

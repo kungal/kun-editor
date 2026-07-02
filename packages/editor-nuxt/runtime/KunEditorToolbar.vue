@@ -58,6 +58,7 @@ const DEFAULT_ITEMS: KunToolbarItem[] = [
   'italic',
   'strike',
   'code',
+  'link',
   '|',
   'bulletList',
   'orderedList',
@@ -79,6 +80,9 @@ const t = computed(() => ({
   italic: en.value ? 'Italic' : '斜体',
   strike: en.value ? 'Strikethrough' : '删除线',
   code: en.value ? 'Inline code' : '行内代码',
+  link: en.value ? 'Link' : '链接',
+  linkPlaceholder: en.value ? 'https://…' : 'https://…',
+  linkApply: en.value ? 'Apply' : '确定',
   bulletList: en.value ? 'Bullet list' : '无序列表',
   orderedList: en.value ? 'Ordered list' : '有序列表',
   quote: en.value ? 'Blockquote' : '引用块',
@@ -117,6 +121,7 @@ const commandButtons = computed<Record<string, Tool>>(() => ({
 type RenderItem =
   | { kind: 'divider' }
   | { kind: 'heading' }
+  | { kind: 'link' }
   | { kind: 'image' }
   | { kind: 'picker' }
   | { kind: 'button'; tool: Tool }
@@ -133,6 +138,7 @@ const resolvedItems = computed<RenderItem[]>(() => {
     .map<RenderItem | null>((it) => {
       if (it === '|') return { kind: 'divider' }
       if (it === 'heading') return { kind: 'heading' }
+      if (it === 'link') return { kind: 'link' }
       if (it === 'image') return { kind: 'image' }
       if (it === 'picker') return { kind: 'picker' }
       const tool = buttons[it]
@@ -170,6 +176,23 @@ const setHeadingPopover = (el: unknown) => {
 const setHeading = (level: number) => {
   props.run(setHeadingCommand.key, level)
   headingPopoverEl?.close()
+}
+
+// Link — a KunPopover with a URL input. Applies to the current selection (or
+// inserts the URL as linked text when nothing is selected). The editor keeps its
+// selection while the popover input is focused, so api.insertLink wraps it.
+const linkUrl = ref('')
+let linkPopoverEl: { close: () => void } | null = null
+const setLinkPopover = (el: unknown) => {
+  linkPopoverEl = el as { close: () => void } | null
+}
+const applyLink = () => {
+  const href = linkUrl.value.trim()
+  if (href) {
+    props.insertLink({ href })
+  }
+  linkUrl.value = ''
+  linkPopoverEl?.close()
 }
 
 // Image upload — via api.uploadImage (shows the in-document "uploading…"
@@ -243,6 +266,40 @@ const insertSticker = (src: string, name: string) =>
         >
           {{ o.label }}
         </button>
+      </KunPopover>
+
+      <KunPopover
+        v-else-if="item.kind === 'link'"
+        :ref="setLinkPopover"
+        position="bottom-start"
+        :opaque="true"
+        inner-class="w-64 p-2"
+      >
+        <template #trigger>
+          <KunTooltip :text="t.link" :delay-show="300">
+            <KunButton
+              variant="light"
+              size="sm"
+              :is-icon-only="true"
+              :aria-label="t.link"
+            >
+              <KunIcon name="lucide:link" />
+            </KunButton>
+          </KunTooltip>
+        </template>
+        <form class="flex items-center gap-1" @submit.prevent="applyLink">
+          <KunInput
+            v-model="linkUrl"
+            type="url"
+            size="sm"
+            :placeholder="t.linkPlaceholder"
+            :autofocus="true"
+            class="flex-1"
+          />
+          <KunButton type="submit" variant="flat" color="primary" size="sm">
+            {{ t.linkApply }}
+          </KunButton>
+        </form>
       </KunPopover>
 
       <template v-else-if="item.kind === 'image'">

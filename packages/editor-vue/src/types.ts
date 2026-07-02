@@ -20,13 +20,20 @@ export type KunToolbarItem =
   | 'codeBlock'
   | 'hr'
   | 'spoiler'
+  | 'link'
   | 'image'
   | 'picker'
   | '|'
 
 // A button id for the selection bubble toolbar (`<KunEditor :selection-toolbar>`),
 // `'|'` is a divider. Pass an ordered list to reorder / subset the bubble buttons.
-export type KunSelectionItem = 'bold' | 'italic' | 'strike' | 'code' | '|'
+export type KunSelectionItem =
+  | 'bold'
+  | 'italic'
+  | 'strike'
+  | 'code'
+  | 'link'
+  | '|'
 
 // The scoped-slot props `<KunEditor #toolbar="api">` hands to a custom toolbar.
 // The core stays headless: this is the command API a UI (the default hand-rolled
@@ -43,6 +50,11 @@ export interface KunEditorToolbarApi {
    * removing it + notifying on failure. No-op without an `uploadImage` adapter.
    */
   uploadImage: (file: File) => void
+  /**
+   * Apply a link to the selection, or (empty selection) insert linked text.
+   * `text` defaults to the href. Standard markdown `[text](href)`.
+   */
+  insertLink: (payload: { href: string; text?: string }) => void
   /** Insert a reference atom at the cursor (requires the quote feature). */
   insertQuote: (payload: { refId: string; label: string }) => void
   /** Insert an @mention atom at the cursor. */
