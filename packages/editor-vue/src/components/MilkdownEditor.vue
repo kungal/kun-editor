@@ -117,6 +117,20 @@ watch(
   }
 )
 
+// `editable` reads props.readonly lazily, but ProseMirror only re-evaluates it on
+// a view update — so toggling readonly (e.g. entering split mode, where the
+// WYSIWYG becomes a read-only preview) needs a nudge. Dispatch an empty
+// transaction to force the recompute.
+watch(
+  () => props.readonly,
+  () => {
+    editorInfo.get()?.action((ctx) => {
+      const view = ctx.get(editorViewCtx)
+      view.dispatch(view.state.tr)
+    })
+  }
+)
+
 // Imperative handle — cursor-level inserts (the forum's 「引用」 flow) + focus.
 // Each command inserts at the current selection with a trailing space, so
 // calling insertMention then insertQuote yields "@author #floor " at the caret.

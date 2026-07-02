@@ -38,6 +38,34 @@
   color: var(--color-primary-foreground, #fff);
 }
 
+/* Swap-sides button (split mode) — pushed to the end of the tab row. */
+.kun-editor__swap {
+  margin-left: auto;
+}
+
+/* ── Split view — editable source + read-only WYSIWYG preview ────────────── */
+/* Stacked on narrow screens; side-by-side (swappable) from md up. The panes
+   div is a plain block in non-split modes, so this only affects split. */
+.kun-editor[data-mode='split'] .kun-editor__panes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+.kun-editor[data-mode='split'] .kun-editor__pane {
+  flex: 1 1 0;
+  min-width: 0;
+}
+@media (min-width: 48rem) {
+  .kun-editor[data-mode='split'] .kun-editor__panes {
+    flex-direction: row;
+    align-items: stretch;
+  }
+  .kun-editor[data-mode='split'] .kun-editor__panes[data-swap='true'] {
+    flex-direction: row-reverse;
+  }
+}
+
 /* ── WYSIWYG surface (ProseMirror) ──────────────────────────────────────── */
 .kun-editor__wysiwyg .milkdown {
   outline: none;

@@ -39,12 +39,16 @@ export interface KunEditorToolbarApi {
 // switch is a swappable layer, so a host can render a real <KunTab> (or anything)
 // instead of the default hand-rolled tabs — driving the editor via `setMode`.
 export interface KunEditorViewSwitchApi {
-  /** The active view. */
-  mode: 'wysiwyg' | 'source'
+  /** The active view: WYSIWYG, markdown source, or the desktop split. */
+  mode: 'wysiwyg' | 'source' | 'split'
   /** Switch the active view. */
-  setMode: (mode: 'wysiwyg' | 'source') => void
-  /** Localized labels for the two views (respects the `locale` prop). */
-  labels: { wysiwyg: string; source: string }
+  setMode: (mode: 'wysiwyg' | 'source' | 'split') => void
+  /** Localized labels (respects the `locale` prop). */
+  labels: { wysiwyg: string; source: string; split: string; swap: string }
+  /** Whether the split panes are swapped (source on the right). */
+  swapped: boolean
+  /** Toggle the split panes' left/right order. */
+  swap: () => void
 }
 
 // The imperative handle a host gets from a `<KunEditor>` template ref:

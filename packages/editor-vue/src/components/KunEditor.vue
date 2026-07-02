@@ -1,14 +1,14 @@
 <script setup lang="ts">
-// <KunEditor> — the dual-mode editor: a Milkdown WYSIWYG view plus a raw
-// markdown-source view, over one bound `v-model` markdown string. The public
-// face of KunEditor.
+// <KunEditor> — the multi-view editor over one bound `v-model` markdown string:
+// a Milkdown WYSIWYG view, a CodeMirror markdown-source view, and a desktop
+// SPLIT view (editable source + live read-only WYSIWYG preview, left/right
+// swappable). The markdown string is the single source of truth — the split's
+// preview is derived (the industry-standard model: VS Code / StackEdit /
+// Dillinger), so there's no two-editor bidirectional-sync problem.
 //
-// This wraps the Milkdown/ProseMirror providers and delegates the actual editor
-// to <MilkdownEditor> (which must live inside the providers). It composes the
-// WYSIWYG view, the formatting toolbar, the @mention dropdown / sticker picker,
-// and the CodeMirror markdown-source view — over one `v-model`. It also forwards
-// <MilkdownEditor>'s imperative handle (insertQuote / insertMention / focus) so a
-// host can insert references at the caret via a template ref.
+// Wraps the Milkdown/ProseMirror providers and delegates to <MilkdownEditor>
+// (which must live inside them). Also forwards <MilkdownEditor>'s imperative
+// handle (insertQuote / insertMention / focus).
 import { MilkdownProvider } from '@milkdown/vue'
 import { ProsemirrorAdapterProvider } from '@prosemirror-adapter/vue'
 import { computed, provide, ref } from 'vue'
@@ -72,18 +72,26 @@ provide(KUN_EDITOR_CONTEXT, {
 // Per-instance view mode — NOT a module-level singleton (the forum's atom.ts
 // shared one `activeTab` across every editor, which would cross-wire two editors
 // on the same page).
-type ViewMode = 'wysiwyg' | 'source'
+type ViewMode = 'wysiwyg' | 'source' | 'split'
 const mode = ref<ViewMode>('wysiwyg')
 const setMode = (m: ViewMode) => {
   mode.value = m
+}
+// Split-view left/right order (source ↔ preview).
+const swapped = ref(false)
+const swap = () => {
+  swapped.value = !swapped.value
 }
 
 const isEnglish = computed(() => props.locale.toLowerCase().startsWith('en'))
 const labels = computed(() =>
   isEnglish.value
-    ? { wysiwyg: 'Preview', source: 'Markdown' }
-    : { wysiwyg: '预览', source: 'Markdown' }
+    ? { wysiwyg: 'Preview', source: 'Markdown', split: 'Split', swap: 'Swap sides' }
+    : { wysiwyg: '预览', source: 'Markdown', split: '分栏', swap: '左右互换' }
 )
+
+// The WYSIWYG is a read-only live preview in split mode (source is the editor).
+const wysiwygReadonly = computed(() => props.readonly || mode.value === 'split')
 
 const onUpdate = (markdown: string) => emit('update:modelValue', markdown)
 
@@ -98,10 +106,17 @@ defineExpose<KunEditorExpose>({
 </script>
 
 <template>
-  <div class="kun-editor" data-kun-editor>
-    <!-- The Preview/Markdown view switch. Override the #view-switch slot to swap
-         the hand-rolled tabs for e.g. a KunUI <KunTab>, driving it via setMode. -->
-    <slot name="view-switch" :mode="mode" :set-mode="setMode" :labels="labels">
+  <div class="kun-editor" data-kun-editor :data-mode="mode">
+    <!-- The view switch (预览 / Markdown / 分栏 + swap). Override the #view-switch
+         slot to swap the hand-rolled tabs for e.g. a KunUI <KunTab>. -->
+    <slot
+      name="view-switch"
+      :mode="mode"
+      :set-mode="setMode"
+      :labels="labels"
+      :swapped="swapped"
+      :swap="swap"
+    >
       <div class="kun-editor__toolbar" role="tablist">
         <button
           type="button"
@@ -121,14 +136,31 @@ defineExpose<KunEditorExpose>({
         >
           {{ labels.source }}
         </button>
+        <button
+          type="button"
+          class="kun-editor__tab"
+          :aria-selected="mode === 'split'"
+          :data-active="mode === 'split'"
+          @click="setMode('split')"
+        >
+          {{ labels.split }}
+        </button>
+        <button
+          v-if="mode === 'split'"
+          type="button"
+          class="kun-editor__tab kun-editor__swap"
+          :title="labels.swap"
+          :aria-label="labels.swap"
+          @click="swap()"
+        >
+          ⇄
+        </button>
       </div>
     </slot>
 
     <!-- WYSIWYG stays mounted (v-show) so editor state survives a view switch.
-         The format toolbar lives INSIDE the providers so it can useInstance()
-         to reach the editor; it's hidden in source mode and when read-only.
-         <ToolbarHost> exposes the command API to the #toolbar slot — override it
-         to swap the hand-rolled default for e.g. a KunUI toolbar. -->
+         The format toolbar edits the WYSIWYG, so it's hidden in source/split
+         (where the WYSIWYG is a read-only preview) and when read-only. -->
     <MilkdownProvider>
       <ProsemirrorAdapterProvider>
         <div v-show="mode === 'wysiwyg' && !readonly">
@@ -138,29 +170,36 @@ defineExpose<KunEditorExpose>({
             </template>
           </ToolbarHost>
         </div>
-        <div v-show="mode === 'wysiwyg'" class="kun-editor__wysiwyg">
-          <MilkdownEditor
-            ref="inner"
+
+        <!-- Panes: a single column normally, a flex row in split mode (styled by
+             the host stylesheet via .kun-editor__panes / [data-mode='split']). -->
+        <div class="kun-editor__panes" :data-swap="swapped">
+          <!-- Source: editable + the source of truth. Mounted on demand (v-if):
+               CodeMirror measures poorly while display:none. -->
+          <MarkdownSource
+            v-if="mode === 'source' || mode === 'split'"
+            class="kun-editor__pane"
             :model-value="modelValue"
-            :adapters="adapters"
-            :features="features"
-            :locale="locale"
             :readonly="readonly"
-            :placeholder="placeholder"
             @update:model-value="onUpdate"
           />
+          <div
+            v-show="mode === 'wysiwyg' || mode === 'split'"
+            class="kun-editor__wysiwyg kun-editor__pane"
+          >
+            <MilkdownEditor
+              ref="inner"
+              :model-value="modelValue"
+              :adapters="adapters"
+              :features="features"
+              :locale="locale"
+              :readonly="wysiwygReadonly"
+              :placeholder="placeholder"
+              @update:model-value="onUpdate"
+            />
+          </div>
         </div>
       </ProsemirrorAdapterProvider>
     </MilkdownProvider>
-
-    <!-- Source view is mounted on demand (v-if): CodeMirror measures poorly
-         while display:none, so build it fresh each time source mode opens. -->
-    <MarkdownSource
-      v-if="mode === 'source'"
-      :model-value="modelValue"
-      :readonly="readonly"
-      @update:model-value="onUpdate"
-    />
   </div>
 </template>
-
