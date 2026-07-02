@@ -18,7 +18,6 @@ import { useInstance } from '@milkdown/vue'
 import {
   createCodeBlockCommand,
   insertHrCommand,
-  insertImageCommand,
   toggleEmphasisCommand,
   toggleInlineCodeCommand,
   toggleStrongCommand,
@@ -29,8 +28,10 @@ import {
 import { toggleStrikethroughCommand } from '@milkdown/kit/preset/gfm'
 import {
   insertKunSpoilerCommand,
-  setHeadingCommand
+  setHeadingCommand,
+  startImageUpload
 } from '@kungal/editor-core/preset'
+import { editorViewCtx } from '@milkdown/kit/core'
 import type { CmdKey } from '@milkdown/kit/core'
 import { computed, inject, ref } from 'vue'
 import { KUN_EDITOR_CONTEXT } from '../context'
@@ -40,7 +41,6 @@ import StickerPicker from './StickerPicker.vue'
 const [, getEditor] = useInstance()
 const ctx = inject(KUN_EDITOR_CONTEXT)
 const uploadImage = computed(() => ctx?.adapters.uploadImage)
-const notify = () => ctx?.adapters.notify
 // The emoji/sticker picker (emoji is built-in; the sticker tab needs the
 // adapter). Shown unless the host turns the feature off.
 const showPicker = computed(() => ctx?.features.sticker !== false)
@@ -115,7 +115,7 @@ const groups = computed<ToolButton[][]>(() => [
 // adapter as paste/drop; on success inserts an image node at the cursor.
 const fileInput = ref<HTMLInputElement | null>(null)
 const pickImage = () => fileInput.value?.click()
-const onFileChange = async (e: Event) => {
+const onFileChange = (e: Event) => {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
   input.value = ''
@@ -123,12 +123,15 @@ const onFileChange = async (e: Event) => {
   if (!file || !upload) {
     return
   }
-  try {
-    const src = await upload(file)
-    call(insertImageCommand.key, { src, title: file.name, alt: file.name })
-  } catch {
-    notify()?.(isEnglish.value ? 'Image upload failed' : '图片上传失败', 'error')
-  }
+  // In-document "uploading…" placeholder at the caret, then the image (or a
+  // notify on failure) — same UX as paste/drop.
+  getEditor()?.action((c) => {
+    void startImageUpload(c.get(editorViewCtx), file, {
+      uploadImage: upload,
+      notify: ctx?.adapters.notify,
+      locale: ctx?.locale
+    })
+  })
 }
 </script>
 

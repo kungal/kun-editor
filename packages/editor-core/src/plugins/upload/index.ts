@@ -12,8 +12,11 @@
 import type { Ctx, MilkdownPlugin } from '@milkdown/kit/ctx'
 import { upload, uploadConfig } from '@milkdown/kit/plugin/upload'
 import type { Uploader } from '@milkdown/kit/plugin/upload'
-import { Decoration } from '@milkdown/kit/prose/view'
+import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
+import { Decoration, DecorationSet } from '@milkdown/kit/prose/view'
+import type { EditorView } from '@milkdown/kit/prose/view'
 import type { Node } from '@milkdown/kit/prose/model'
+import { $prose } from '@milkdown/kit/utils'
 
 import type { KunEditorLocale, Notify, UploadImage } from '../../types'
 
@@ -72,13 +75,21 @@ export const createUploader = (
   }
 }
 
-/** The in-flight "uploading…" placeholder shown at the drop position. */
+/** Build the in-flight "uploading…" placeholder DOM — a `.kun-editor__uploading`
+ * span (class hook, styled by the host stylesheet — headless). Shared by the
+ * paste/drop path and the toolbar path so they look identical. */
+const uploadingWidget = (locale: KunEditorLocale | undefined): HTMLElement => {
+  const el = document.createElement('span')
+  el.className = 'kun-editor__uploading'
+  el.textContent = uploadingLabel(locale)
+  return el
+}
+
+/** The in-flight "uploading…" placeholder shown at the drop position (paste/drop
+ * path — Milkdown's `upload` plugin calls this). */
 export const createUploadWidgetFactory = (options: UploadPluginOptions = {}) => {
   return (pos: number, spec: Parameters<typeof Decoration.widget>[2]) => {
-    const widgetDOM = document.createElement('span')
-    widgetDOM.textContent = uploadingLabel(options.locale)
-    widgetDOM.style.color = 'var(--color-primary)'
-    return Decoration.widget(pos, widgetDOM, spec)
+    return Decoration.widget(pos, uploadingWidget(options.locale), spec)
   }
 }
 
@@ -113,3 +124,110 @@ export const createUploadPlugin = (
   uploadImage: UploadImage,
   options: UploadPluginOptions = {}
 ): MilkdownPlugin[] => [...upload, uploadConfigPlugin(uploadImage, options)]
+
+// ── Toolbar / programmatic upload (in-document placeholder) ─────────────────
+//
+// Milkdown's `upload` plugin only shows the in-flight placeholder for paste/drop
+// (it intercepts those DOM events). The toolbar's image button uploads a File
+// programmatically, so it gets no placeholder — the image just pops in when the
+// upload resolves. This mirrors ProseMirror's official "upload" example: a
+// DecorationSet plugin holds a widget placeholder (keyed by a unique id) that
+// maps through edits; `startImageUpload` inserts it, awaits the adapter, then
+// replaces the placeholder with the image (or removes it on failure). Same
+// `.kun-editor__uploading` widget as paste/drop, so both look identical.
+
+interface PlaceholderMeta {
+  add?: { id: object; pos: number; locale: KunEditorLocale | undefined }
+  remove?: { id: object }
+}
+
+const placeholderKey = new PluginKey<DecorationSet>('KUN_IMAGE_UPLOAD_PLACEHOLDER')
+
+/** The placeholder DecorationSet plugin — add it when uploads are enabled. */
+export const imageUploadPlaceholder: MilkdownPlugin = $prose(
+  () =>
+    new Plugin<DecorationSet>({
+      key: placeholderKey,
+      state: {
+        init: () => DecorationSet.empty,
+        apply(tr, set) {
+          let next = set.map(tr.mapping, tr.doc)
+          const meta = tr.getMeta(placeholderKey) as PlaceholderMeta | undefined
+          if (meta?.add) {
+            const deco = Decoration.widget(
+              meta.add.pos,
+              uploadingWidget(meta.add.locale),
+              { id: meta.add.id } as Parameters<typeof Decoration.widget>[2]
+            )
+            next = next.add(tr.doc, [deco])
+          } else if (meta?.remove) {
+            const { id } = meta.remove
+            next = next.remove(
+              next.find(undefined, undefined, (spec) => spec.id === id)
+            )
+          }
+          return next
+        }
+      },
+      props: {
+        decorations: (state) => placeholderKey.getState(state)
+      }
+    })
+)
+
+const findPlaceholder = (view: EditorView, id: object): number | null => {
+  const set = placeholderKey.getState(view.state)
+  const found = set?.find(undefined, undefined, (spec) => spec.id === id)
+  return found && found.length ? found[0]!.from : null
+}
+
+/**
+ * Upload a File and show an in-document "uploading…" placeholder at the caret
+ * until it resolves, then replace it with the image (or remove it + notify on
+ * failure). The placeholder isn't an undo step (`addToHistory: false`), so undo
+ * removes the inserted image cleanly. Used by the toolbar image button.
+ */
+export const startImageUpload = async (
+  view: EditorView,
+  file: File,
+  options: { uploadImage: UploadImage; notify?: Notify; locale?: KunEditorLocale }
+): Promise<void> => {
+  if (!file.type.startsWith('image/')) {
+    return
+  }
+  const id = {}
+  const tr = view.state.tr
+  if (!tr.selection.empty) {
+    tr.deleteSelection()
+  }
+  tr.setMeta(placeholderKey, {
+    add: { id, pos: tr.selection.from, locale: options.locale }
+  } satisfies PlaceholderMeta)
+  tr.setMeta('addToHistory', false)
+  view.dispatch(tr)
+
+  try {
+    const src = await options.uploadImage(file)
+    const pos = findPlaceholder(view, id)
+    if (pos === null) {
+      return // placeholder gone (e.g. user undid) — drop the result
+    }
+    const imageType = view.state.schema.nodes.image
+    const node = imageType?.createAndFill({ src, alt: file.name })
+    if (!node) {
+      return
+    }
+    view.dispatch(
+      view.state.tr
+        .replaceWith(pos, pos, node)
+        .setMeta(placeholderKey, { remove: { id } } satisfies PlaceholderMeta)
+    )
+  } catch {
+    view.dispatch(
+      view.state.tr
+        .setMeta(placeholderKey, { remove: { id } } satisfies PlaceholderMeta)
+        .setMeta('addToHistory', false)
+    )
+    options.notify?.(uploadFailedLabel(options.locale), 'error')
+  }
+}

@@ -11,7 +11,8 @@ import { useInstance } from '@milkdown/vue'
 import { inject } from 'vue'
 import {
   insertMentionCommand,
-  insertQuoteCommand
+  insertQuoteCommand,
+  startImageUpload
 } from '@kungal/editor-core/preset'
 import { KUN_EDITOR_CONTEXT } from '../context'
 import type { KunEditorToolbarApi } from '../types'
@@ -40,10 +41,25 @@ const insertMention: KunEditorToolbarApi['insertMention'] = (payload) => {
   run(insertMentionCommand.key, payload)
   focus()
 }
+const uploadImage: KunEditorToolbarApi['uploadImage'] = (file) => {
+  const adapter = ctx?.adapters.uploadImage
+  const editor = getEditor()
+  if (!adapter || !editor) {
+    return
+  }
+  editor.action((c) => {
+    void startImageUpload(c.get(editorViewCtx), file, {
+      uploadImage: adapter,
+      notify: ctx?.adapters.notify,
+      locale: ctx?.locale
+    })
+  })
+}
 
 const api: KunEditorToolbarApi = {
   run,
   insertText,
+  uploadImage,
   insertQuote,
   insertMention,
   focus,

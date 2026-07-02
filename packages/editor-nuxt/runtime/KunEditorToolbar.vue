@@ -106,22 +106,18 @@ const groups = computed<Tool[][]>(() => [
   ]
 ])
 
-// Image upload — only when the host supplies uploadImage. Same adapter as
-// paste/drop; on success inserts an image node at the cursor.
-const uploadImage = computed(() => props.adapters.uploadImage)
+// Image upload button — shown only when the host supplies uploadImage. The
+// upload itself goes through api.uploadImage, which shows an in-document
+// "uploading…" placeholder at the caret (same UX as paste/drop).
+const canUpload = computed(() => !!props.adapters.uploadImage)
 const fileInput = ref<HTMLInputElement | null>(null)
 const pickImage = () => fileInput.value?.click()
-const onFileChange = async (e: Event) => {
+const onFileChange = (e: Event) => {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
   input.value = ''
-  const upload = uploadImage.value
-  if (!file || !upload) return
-  try {
-    const src = await upload(file)
-    props.run(insertImageCommand.key, { src, title: file.name, alt: file.name })
-  } catch {
-    props.adapters.notify?.(en.value ? 'Image upload failed' : '图片上传失败', 'error')
+  if (file) {
+    props.uploadImage(file)
   }
 }
 
@@ -183,7 +179,7 @@ const insertSticker = (src: string, name: string) =>
       </KunTooltip>
     </template>
 
-    <template v-if="uploadImage">
+    <template v-if="canUpload">
       <span class="bg-default-200 mx-1 h-5 w-px" aria-hidden="true" />
       <KunTooltip :text="t.image" :delay-show="300">
         <KunButton

@@ -65,6 +65,15 @@
   height: 0;
 }
 
+/* In-flight "uploading…" placeholder — a decoration widget the editor drops at
+ * the caret while `uploadImage` runs (paste / drop / toolbar), replaced by the
+ * image when it resolves. */
+.kun-editor__uploading {
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  user-select: none;
+}
+
 /* ── Formatting toolbar ─────────────────────────────────────────────────── */
 .kun-editor__format-toolbar {
   display: flex;

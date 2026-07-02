@@ -14,6 +14,12 @@ export interface KunEditorToolbarApi {
   run: <T>(key: CmdKey<T>, payload?: T) => void
   /** Insert plain text at the cursor (e.g. an emoji). */
   insertText: (text: string) => void
+  /**
+   * Upload an image File via the `uploadImage` adapter, showing an in-document
+   * "uploading…" placeholder at the caret until it resolves (then the image), or
+   * removing it + notifying on failure. No-op without an `uploadImage` adapter.
+   */
+  uploadImage: (file: File) => void
   /** Insert a reference atom at the cursor (requires the quote feature). */
   insertQuote: (payload: { refId: string; label: string }) => void
   /** Insert an @mention atom at the cursor. */

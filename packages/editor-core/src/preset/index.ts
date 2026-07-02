@@ -34,7 +34,7 @@ import { createKatexPlugins } from '../plugins/katex'
 import { createCodeBlockPlugins } from '../plugins/code-block'
 import { createMentionPlugin } from '../plugins/mention'
 import { createQuotePlugin } from '../plugins/quote'
-import { createUploadPlugin } from '../plugins/upload'
+import { createUploadPlugin, imageUploadPlaceholder } from '../plugins/upload'
 import { createPlaceholderPlugin } from '../plugins/placeholder'
 
 // Re-export the individual plugin factories + building blocks so advanced hosts
@@ -135,6 +135,10 @@ export const createKunEditorPlugins = (
         notify: adapters.notify
       })
     )
+    // The in-document placeholder for the TOOLBAR upload path (paste/drop already
+    // gets one from Milkdown's upload plugin above). Both render the same
+    // `.kun-editor__uploading` widget. Driven by startImageUpload().
+    plugins.push(imageUploadPlaceholder)
   }
   // stop-link is pure chrome-free behaviour; always on.
   plugins.push(createStopLinkPlugin())
