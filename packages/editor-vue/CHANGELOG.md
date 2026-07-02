@@ -1,5 +1,11 @@
 # @kungal/editor-vue
 
+## 0.13.0
+
+### Patch Changes
+
+- @kungal/editor-core@0.13.0
+
 ## 0.12.0
 
 ### Minor Changes
