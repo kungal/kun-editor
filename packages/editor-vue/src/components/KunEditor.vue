@@ -331,6 +331,7 @@ defineExpose<KunEditorExpose>({
               :readonly="wysiwygReadonly"
               :placeholder="placeholder"
               :placeholder-mode="placeholderMode"
+              :active="mode === 'wysiwyg' && !readonly"
               :selection-toolbar="selectionToolbarEnabled"
               @update:model-value="onUpdate"
             />

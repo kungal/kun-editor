@@ -46,6 +46,12 @@ const props = defineProps<{
   placeholder: string
   placeholderMode: 'doc' | 'block'
   selectionToolbar: boolean
+  /**
+   * Whether this WYSIWYG is the ACTIVE editor (source of truth). False in
+   * source/split mode, where the CodeMirror source owns the raw markdown and this
+   * is only a derived preview — so it must NOT emit its re-serialized markdown.
+   */
+  active: boolean
 }>()
 
 const emit = defineEmits<{
@@ -89,7 +95,12 @@ const editorInfo = useEditor((root) => {
       ctx.set(defaultValueCtx, props.modelValue)
 
       ctx.get(listenerCtx).markdownUpdated((_ctx, markdown, prevMarkdown) => {
-        if (applyingExternal || markdown === prevMarkdown) {
+        // Only the ACTIVE wysiwyg editor is a source of truth. In source/split
+        // mode the CodeMirror source owns the raw markdown; this Milkdown is a
+        // derived preview, and its normalizing/escaping re-serialization must not
+        // overwrite that raw text — that's what turned `>` into `> <br />` and
+        // `~~`/`**` into `\~\~`/`\*\*`.
+        if (!props.active || applyingExternal || markdown === prevMarkdown) {
           return
         }
         lastEmitted = markdown
