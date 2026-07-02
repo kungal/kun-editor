@@ -1,6 +1,6 @@
 {
   "name": "@kungal/editor-core",
-  "version": "0.22.0",
+  "version": "0.23.0",
   "description": "KunEditor framework-agnostic core — the Milkdown plugin bundle (spoiler / mention / quote / katex / upload / code-block) plus the adapter contracts. No Vue/React.",
   "type": "module",
   "keywords": [
