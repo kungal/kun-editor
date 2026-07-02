@@ -39,14 +39,46 @@ const call = <T,>(key: CmdKey<T>, payload?: T) => {
   getEditor()?.action(callCommand(key, payload))
 }
 
-const buttons = computed(() => {
+interface BubbleButton {
+  svg: string
+  title: string
+  run: () => void
+}
+type BubbleItem = { divider: true } | ({ divider: false } & BubbleButton)
+
+// The available bubble buttons, keyed by KunSelectionItem id.
+const commandMap = computed<Record<string, BubbleButton>>(() => {
   const en = isEnglish.value
-  return [
-    { svg: I.bold, title: en ? 'Bold' : '加粗', run: () => call(toggleStrongCommand.key) },
-    { svg: I.italic, title: en ? 'Italic' : '斜体', run: () => call(toggleEmphasisCommand.key) },
-    { svg: I.strike, title: en ? 'Strikethrough' : '删除线', run: () => call(toggleStrikethroughCommand.key) },
-    { svg: I.code, title: en ? 'Inline code' : '行内代码', run: () => call(toggleInlineCodeCommand.key) }
-  ]
+  return {
+    bold: { svg: I.bold, title: en ? 'Bold' : '加粗', run: () => call(toggleStrongCommand.key) },
+    italic: { svg: I.italic, title: en ? 'Italic' : '斜体', run: () => call(toggleEmphasisCommand.key) },
+    strike: { svg: I.strike, title: en ? 'Strikethrough' : '删除线', run: () => call(toggleStrikethroughCommand.key) },
+    code: { svg: I.code, title: en ? 'Inline code' : '行内代码', run: () => call(toggleInlineCodeCommand.key) }
+  }
+})
+
+// Resolve the configured items (from the KunEditor context) → renderables, with
+// dividers collapsed around any unknown/removed item.
+const items = computed<BubbleItem[]>(() => {
+  const map = commandMap.value
+  const configured = ctx?.selectionToolbarItems ?? ['bold', 'italic', 'strike', 'code']
+  const mapped = configured
+    .map<BubbleItem | null>((it) =>
+      it === '|'
+        ? { divider: true }
+        : map[it]
+          ? { divider: false, ...map[it] }
+          : null
+    )
+    .filter((x): x is BubbleItem => x !== null)
+
+  const out: BubbleItem[] = []
+  for (const it of mapped) {
+    if (it.divider && (out.length === 0 || out[out.length - 1]?.divider)) continue
+    out.push(it)
+  }
+  while (out.length && out[out.length - 1]?.divider) out.pop()
+  return out
 })
 
 onMounted(() => {
@@ -69,16 +101,22 @@ onBeforeUnmount(() => {
 <template>
   <!-- Appended out of Vue's tree by TooltipProvider; visibility via data-show. -->
   <div ref="divRef" class="kun-editor__bubble" data-show="false">
-    <button
-      v-for="(b, i) in buttons"
-      :key="i"
-      type="button"
-      class="kun-editor__bubble-btn"
-      :title="b.title"
-      :aria-label="b.title"
-      @mousedown.prevent="b.run()"
-    >
-      <span class="kun-editor__icon" v-html="b.svg" />
-    </button>
+    <template v-for="(it, i) in items" :key="i">
+      <span
+        v-if="it.divider"
+        class="kun-editor__toolbar-divider"
+        aria-hidden="true"
+      />
+      <button
+        v-else
+        type="button"
+        class="kun-editor__bubble-btn"
+        :title="it.title"
+        :aria-label="it.title"
+        @mousedown.prevent="it.run()"
+      >
+        <span class="kun-editor__icon" v-html="it.svg" />
+      </button>
+    </template>
   </div>
 </template>

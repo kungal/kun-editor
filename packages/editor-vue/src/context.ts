@@ -12,6 +12,7 @@ import type {
   KunEditorFeatures,
   KunEditorLocale
 } from '@kungal/editor-core'
+import type { KunSelectionItem } from './types'
 
 export interface KunEditorContext {
   /** The host policy bundle (searchMentionUsers, stickerSource, notify, …). */
@@ -20,6 +21,8 @@ export interface KunEditorContext {
   readonly features: KunEditorFeatures
   /** UI language, for view chrome (dropdown hints, picker tabs, etc.). */
   readonly locale: KunEditorLocale
+  /** Ordered buttons for the selection bubble toolbar (a plugin view reads it). */
+  readonly selectionToolbarItems: KunSelectionItem[]
 }
 
 export const KUN_EDITOR_CONTEXT: InjectionKey<KunEditorContext> =

@@ -22,7 +22,14 @@ import EditorToolbar from './EditorToolbar.vue'
 import ToolbarHost from './ToolbarHost.vue'
 import MarkdownSource from './MarkdownSource.vue'
 import { KUN_EDITOR_CONTEXT } from '../context'
-import type { KunEditorExpose } from '../types'
+import type { KunEditorExpose, KunSelectionItem } from '../types'
+
+const DEFAULT_SELECTION_ITEMS: KunSelectionItem[] = [
+  'bold',
+  'italic',
+  'strike',
+  'code'
+]
 
 type ViewMode = 'wysiwyg' | 'source' | 'split'
 
@@ -49,8 +56,13 @@ const props = withDefaults(
     /** Sync scrolling between the split panes. Default `true`; set `false` to
      * disable (or toggle it at runtime via the view-switch API). */
     scrollSync?: boolean
-    /** Show a floating format toolbar on text selection. Default `true`. */
-    selectionToolbar?: boolean
+    /**
+     * The floating toolbar shown on text selection. `true` (default) = the
+     * standard buttons; `false` = off; or pass an ordered `KunSelectionItem[]`
+     * to reorder / subset them (`'|'` is a divider). Its look is styled via the
+     * `.kun-editor__bubble` / `.kun-editor__bubble-btn` class hooks.
+     */
+    selectionToolbar?: boolean | KunSelectionItem[]
   }>(),
   {
     adapters: () => ({}),
@@ -82,8 +94,20 @@ provide(KUN_EDITOR_CONTEXT, {
   },
   get locale() {
     return props.locale
+  },
+  // The selection bubble is a plugin view (a portal sibling), so its item config
+  // reaches it through this context, not props.
+  get selectionToolbarItems() {
+    return Array.isArray(props.selectionToolbar)
+      ? props.selectionToolbar
+      : DEFAULT_SELECTION_ITEMS
   }
 })
+
+// Whether to wire the selection bubble at all (false = off; true / array = on).
+const selectionToolbarEnabled = computed(
+  () => props.selectionToolbar !== false
+)
 
 // Per-instance view mode — NOT a module-level singleton (the forum's atom.ts
 // shared one `activeTab` across every editor, which would cross-wire two editors
@@ -299,7 +323,7 @@ defineExpose<KunEditorExpose>({
               :locale="locale"
               :readonly="wysiwygReadonly"
               :placeholder="placeholder"
-              :selection-toolbar="selectionToolbar"
+              :selection-toolbar="selectionToolbarEnabled"
               @update:model-value="onUpdate"
             />
           </div>

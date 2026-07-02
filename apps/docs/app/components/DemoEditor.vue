@@ -9,7 +9,7 @@ import type {
   KunEditorFeatures,
   KunEditorLocale
 } from '@kungal/editor-core'
-import type { KunToolbarItem } from '@kungal/editor-vue'
+import type { KunSelectionItem, KunToolbarItem } from '@kungal/editor-vue'
 
 const props = withDefaults(
   defineProps<{
@@ -26,6 +26,8 @@ const props = withDefaults(
     toolbarItems?: KunToolbarItem[]
     /** Which view modes to offer (forwards to <KunEditor :views>). */
     views?: ('wysiwyg' | 'source' | 'split')[]
+    /** Selection bubble config (forwards to <KunEditor :selection-toolbar>). */
+    selectionToolbar?: boolean | KunSelectionItem[]
   }>(),
   {
     modelValue: '',
@@ -36,7 +38,8 @@ const props = withDefaults(
     output: true,
     kunuiToolbar: false,
     toolbarItems: undefined,
-    views: undefined
+    views: undefined,
+    selectionToolbar: undefined
   }
 )
 
@@ -56,6 +59,7 @@ const md = ref(props.modelValue)
           :locale="locale"
           :readonly="readonly"
           :views="views"
+          :selection-toolbar="selectionToolbar"
         >
           <template v-if="kunuiToolbar" #view-switch="s">
             <KunEditorViewSwitch v-bind="s" />

@@ -51,10 +51,10 @@
       },
       {
         "name": "selectionToolbar",
-        "type": "boolean",
+        "type": "boolean | KunSelectionItem[]",
         "required": false,
         "default": "true",
-        "description": "Show a floating format toolbar on text selection. Default `true`."
+        "description": "The floating toolbar shown on text selection. `true` (default) = the standard buttons; `false` = off; or pass an ordered `KunSelectionItem[]` to reorder / subset them (`'|'` is a divider). Its look is styled via the `.kun-editor__bubble` / `.kun-editor__bubble-btn` class hooks."
       },
       {
         "name": "views",

@@ -17,6 +17,9 @@ export type { KunEditorToolbarApi } from './types'
 // A toolbar button id for <KunEditorToolbar :items> (reorder / subset buttons).
 export type { KunToolbarItem } from './types'
 
+// A button id for the selection bubble (<KunEditor :selection-toolbar>).
+export type { KunSelectionItem } from './types'
+
 // The API the #view-switch scoped slot exposes (build a custom view switch).
 export type { KunEditorViewSwitchApi } from './types'
 

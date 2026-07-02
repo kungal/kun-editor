@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { mockNotify, mockStickerSource, mockUploadImage } from '~/utils/mockAdapters'
 import type { KunEditorAdapters } from '@kungal/editor-core'
-import type { KunToolbarItem } from '@kungal/editor-vue'
+import type { KunSelectionItem, KunToolbarItem } from '@kungal/editor-vue'
 
 const adapters: KunEditorAdapters = {
   uploadImage: mockUploadImage,
@@ -33,6 +33,14 @@ const itemsSrc = `<KunEditorToolbar
 const compactViews: ('wysiwyg' | 'source')[] = ['wysiwyg', 'source']
 const viewsSrc = `<!-- 回复/评论:去掉分栏(甚至只留 ['wysiwyg'] 就没有切换条了) -->
 <KunEditor v-model="md" :views="['wysiwyg', 'source']" />`
+
+// The selection bubble: reorder / subset via an array, false to disable; style
+// via the .kun-editor__bubble* class hooks.
+const bubbleItems: KunSelectionItem[] = ['bold', 'italic']
+const bubbleSrc = `<!-- 选区浮动菜单只留加粗/斜体;false 关闭 -->
+<KunEditor v-model="md" :selection-toolbar="['bold', 'italic']" />
+
+/* 样式(参考 kun-editor.css):.kun-editor__bubble / .kun-editor__bubble-btn */`
 
 const usage = `<script setup lang="ts">
 // nuxt.config: extends ['@kungal/ui-nuxt', '@kungal/editor-nuxt']
@@ -117,6 +125,22 @@ const adapters = { uploadImage, stickerSource, notify }
       />
     </ClientOnly>
     <Code :code="viewsSrc" lang="vue" />
+
+    <h2 class="mt-8 mb-1 text-xl font-semibold">选区浮动工具栏(定制)</h2>
+    <p class="text-default-600 mb-2">
+      选中文本会浮出格式菜单。<code>selectionToolbar</code> 传项目数组可重排/增减
+      (<code>'|'</code> 分隔),传 <code>false</code> 关闭;样式改参考 CSS 的
+      <code>.kun-editor__bubble</code> / <code>.kun-editor__bubble-btn</code>。下面这个只保留
+      加粗/斜体 —— 选中下方文字试试:
+    </p>
+    <ClientOnly>
+      <DemoEditor
+        :selection-toolbar="bubbleItems"
+        :output="false"
+        model-value="选中这段文字,浮动菜单里只有加粗 / 斜体两项。"
+      />
+    </ClientOnly>
+    <Code :code="bubbleSrc" lang="vue" />
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">用法</h2>
     <Code :code="usage" lang="vue" />

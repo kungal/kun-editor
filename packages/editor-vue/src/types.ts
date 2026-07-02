@@ -24,6 +24,10 @@ export type KunToolbarItem =
   | 'picker'
   | '|'
 
+// A button id for the selection bubble toolbar (`<KunEditor :selection-toolbar>`),
+// `'|'` is a divider. Pass an ordered list to reorder / subset the bubble buttons.
+export type KunSelectionItem = 'bold' | 'italic' | 'strike' | 'code' | '|'
+
 // The scoped-slot props `<KunEditor #toolbar="api">` hands to a custom toolbar.
 // The core stays headless: this is the command API a UI (the default hand-rolled
 // toolbar, or a KunUI one, or your own) builds buttons on top of — the same shape
