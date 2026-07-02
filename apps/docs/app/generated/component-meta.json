@@ -33,7 +33,14 @@
         "type": "string",
         "required": false,
         "default": "\"\"",
-        "description": "Placeholder text shown while the editor is empty."
+        "description": "Placeholder text shown while empty."
+      },
+      {
+        "name": "placeholderMode",
+        "type": "\"doc\" | \"block\"",
+        "required": false,
+        "default": "\"doc\"",
+        "description": "When the placeholder shows: `'doc'` (default) only while the whole editor is empty (the conventional empty-state hint); `'block'` on any empty block at the cursor (Notion style — a hint on every new empty line)."
       },
       {
         "name": "readonly",

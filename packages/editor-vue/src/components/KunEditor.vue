@@ -45,8 +45,14 @@ const props = withDefaults(
     locale?: KunEditorLocale
     /** Read-only render (no editing). */
     readonly?: boolean
-    /** Placeholder text shown while the editor is empty. */
+    /** Placeholder text shown while empty. */
     placeholder?: string
+    /**
+     * When the placeholder shows: `'doc'` (default) only while the whole editor
+     * is empty (the conventional empty-state hint); `'block'` on any empty block
+     * at the cursor (Notion style — a hint on every new empty line).
+     */
+    placeholderMode?: 'doc' | 'block'
     /**
      * Which view modes to offer in the switch. Default all three. Drop `'split'`
      * (or use just `['wysiwyg']`) for compact editors like a reply/comment box —
@@ -70,6 +76,7 @@ const props = withDefaults(
     locale: 'zh-cn',
     readonly: false,
     placeholder: '',
+    placeholderMode: 'doc',
     views: () => ['wysiwyg', 'source', 'split'],
     scrollSync: true,
     selectionToolbar: true
@@ -323,6 +330,7 @@ defineExpose<KunEditorExpose>({
               :locale="locale"
               :readonly="wysiwygReadonly"
               :placeholder="placeholder"
+              :placeholder-mode="placeholderMode"
               :selection-toolbar="selectionToolbarEnabled"
               @update:model-value="onUpdate"
             />

@@ -44,6 +44,7 @@ const props = defineProps<{
   locale: KunEditorLocale
   readonly: boolean
   placeholder: string
+  placeholderMode: 'doc' | 'block'
   selectionToolbar: boolean
 }>()
 
@@ -108,7 +109,8 @@ const editorInfo = useEditor((root) => {
     .use(
       createKunEditorPlugins(props.adapters, props.features, {
         locale: props.locale,
-        placeholder: props.placeholder
+        placeholder: props.placeholder,
+        placeholderMode: props.placeholderMode
       })
     )
 
