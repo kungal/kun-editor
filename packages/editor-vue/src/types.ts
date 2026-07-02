@@ -28,6 +28,19 @@ export interface KunEditorToolbarApi {
   readonly locale: KunEditorLocale
 }
 
+// The scoped-slot props `<KunEditor #view-switch="api">` hands to a custom view
+// switch. Like #toolbar, this keeps the core headless: the Preview/Markdown
+// switch is a swappable layer, so a host can render a real <KunTab> (or anything)
+// instead of the default hand-rolled tabs — driving the editor via `setMode`.
+export interface KunEditorViewSwitchApi {
+  /** The active view. */
+  mode: 'wysiwyg' | 'source'
+  /** Switch the active view. */
+  setMode: (mode: 'wysiwyg' | 'source') => void
+  /** Localized labels for the two views (respects the `locale` prop). */
+  labels: { wysiwyg: string; source: string }
+}
+
 // The imperative handle a host gets from a `<KunEditor>` template ref:
 //
 //   const editor = ref<InstanceType<typeof KunEditor>>()

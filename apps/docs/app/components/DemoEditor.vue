@@ -49,6 +49,9 @@ const md = ref(props.modelValue)
           :locale="locale"
           :readonly="readonly"
         >
+          <template v-if="kunuiToolbar" #view-switch="s">
+            <KunEditorViewSwitch v-bind="s" />
+          </template>
           <template v-if="kunuiToolbar" #toolbar="api">
             <KunEditorToolbar v-bind="api" />
           </template>

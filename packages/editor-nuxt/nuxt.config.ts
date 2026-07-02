@@ -5,10 +5,12 @@ import { defineNuxtModule, addComponent, createResolver } from '@nuxt/kit'
 // downstream templates use `<KunEditor>` with no import (and Nuxt generates its
 // types, keeping the tag type-checked in consumer templates).
 //
-// It also ships <KunEditorToolbar>: the KunUI-built toolbar for <KunEditor>'s
-// #toolbar slot. It belongs HERE (this layer already assumes @kungal/ui-nuxt),
-// not in headless @kungal/editor-vue — so editor-vue stays UI-kit-free while the
-// KunUI ecosystem gets native chrome. Same shape as TipTap's optional UI pkg.
+// It also ships the KunUI chrome for <KunEditor>'s slots — <KunEditorToolbar>
+// (#toolbar) and <KunEditorViewSwitch> (#view-switch, the Preview/Markdown tabs
+// as a real <KunTab>). They belong HERE (this layer already assumes
+// @kungal/ui-nuxt), not in headless @kungal/editor-vue — so editor-vue stays
+// UI-kit-free while the KunUI ecosystem gets native chrome. Same shape as
+// TipTap's optional UI package.
 export default defineNuxtConfig({
   modules: [
     defineNuxtModule({
@@ -23,6 +25,10 @@ export default defineNuxtConfig({
         addComponent({
           name: 'KunEditorToolbar',
           filePath: resolve('./runtime/KunEditorToolbar.vue')
+        })
+        addComponent({
+          name: 'KunEditorViewSwitch',
+          filePath: resolve('./runtime/KunEditorViewSwitch.vue')
         })
       }
     })

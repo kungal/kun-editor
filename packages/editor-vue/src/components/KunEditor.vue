@@ -71,6 +71,9 @@ provide(KUN_EDITOR_CONTEXT, {
 // on the same page).
 type ViewMode = 'wysiwyg' | 'source'
 const mode = ref<ViewMode>('wysiwyg')
+const setMode = (m: ViewMode) => {
+  mode.value = m
+}
 
 const isEnglish = computed(() => props.locale.toLowerCase().startsWith('en'))
 const labels = computed(() =>
@@ -93,26 +96,30 @@ defineExpose<KunEditorExpose>({
 
 <template>
   <div class="kun-editor" data-kun-editor>
-    <div class="kun-editor__toolbar" role="tablist">
-      <button
-        type="button"
-        class="kun-editor__tab"
-        :aria-selected="mode === 'wysiwyg'"
-        :data-active="mode === 'wysiwyg'"
-        @click="mode = 'wysiwyg'"
-      >
-        {{ labels.wysiwyg }}
-      </button>
-      <button
-        type="button"
-        class="kun-editor__tab"
-        :aria-selected="mode === 'source'"
-        :data-active="mode === 'source'"
-        @click="mode = 'source'"
-      >
-        {{ labels.source }}
-      </button>
-    </div>
+    <!-- The Preview/Markdown view switch. Override the #view-switch slot to swap
+         the hand-rolled tabs for e.g. a KunUI <KunTab>, driving it via setMode. -->
+    <slot name="view-switch" :mode="mode" :set-mode="setMode" :labels="labels">
+      <div class="kun-editor__toolbar" role="tablist">
+        <button
+          type="button"
+          class="kun-editor__tab"
+          :aria-selected="mode === 'wysiwyg'"
+          :data-active="mode === 'wysiwyg'"
+          @click="setMode('wysiwyg')"
+        >
+          {{ labels.wysiwyg }}
+        </button>
+        <button
+          type="button"
+          class="kun-editor__tab"
+          :aria-selected="mode === 'source'"
+          :data-active="mode === 'source'"
+          @click="setMode('source')"
+        >
+          {{ labels.source }}
+        </button>
+      </div>
+    </slot>
 
     <!-- WYSIWYG stays mounted (v-show) so editor state survives a view switch.
          The format toolbar lives INSIDE the providers so it can useInstance()

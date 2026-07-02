@@ -10,13 +10,18 @@ const adapters: KunEditorAdapters = {
 
 const usage = `<script setup lang="ts">
 // nuxt.config: extends ['@kungal/ui-nuxt', '@kungal/editor-nuxt']
-// → both <KunEditor> and <KunEditorToolbar> auto-import.
+// → <KunEditor> + <KunEditorToolbar> + <KunEditorViewSwitch> auto-import.
 const md = ref('')
 const adapters = { uploadImage, stickerSource, notify }
 <\/script>
 
 <template>
   <KunEditor v-model="md" :adapters="adapters">
+    <!-- 预览/Markdown 切换 → 真正的 KunTab(underline) -->
+    <template #view-switch="s">
+      <KunEditorViewSwitch v-bind="s" />
+    </template>
+    <!-- 格式工具栏 → KunButton / KunIcon / KunTooltip / KunPopover -->
     <template #toolbar="api">
       <KunEditorToolbar v-bind="api" />
     </template>
@@ -42,7 +47,9 @@ const adapters = { uploadImage, stickerSource, notify }
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">演示</h2>
     <p class="text-default-600 mb-2">
-      下面这条工具栏全是 KunUI 组件(悬停看 tooltip、点表情按钮看 KunPopover):
+      预览/Markdown 切换是真正的 <code>&lt;KunTab variant="underlined"&gt;</code>(经
+      <code>#view-switch</code> 插槽),工具栏全是 KunUI 组件(悬停看 tooltip、点表情看
+      KunPopover):
     </p>
     <ClientOnly>
       <DemoEditor

@@ -14,6 +14,9 @@ export type { KunEditorExpose } from './types'
 // The command API the #toolbar scoped slot exposes (build a custom toolbar).
 export type { KunEditorToolbarApi } from './types'
 
+// The API the #view-switch scoped slot exposes (build a custom view switch).
+export type { KunEditorViewSwitchApi } from './types'
+
 // The built-in emoji set — handy when building a custom toolbar's emoji picker.
 export { EMOJI } from './emoji'
 

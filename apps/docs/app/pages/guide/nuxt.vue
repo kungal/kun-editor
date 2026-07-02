@@ -31,7 +31,8 @@ const css = `/* app 的 main.css */
     <h2 class="mt-8 mb-1 text-xl font-semibold">直接用</h2>
     <p class="text-default-600 mb-3">
       之后在任意组件里无需 import(<code>&lt;KunEditor&gt;</code> 与 KunUI 版
-      <code>&lt;KunEditorToolbar&gt;</code> 都已自动注册):
+      <code>&lt;KunEditorToolbar&gt;</code> / <code>&lt;KunEditorViewSwitch&gt;</code>
+      都已自动注册):
     </p>
     <Code :code="use" lang="vue" />
 
