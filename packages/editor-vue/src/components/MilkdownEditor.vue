@@ -57,6 +57,12 @@ const emit = defineEmits<{
 // edits, so only the former triggers a replaceAll — the latter would reset the
 // cursor on every keystroke.
 let lastEmitted = props.modelValue
+// True while we're applying an EXTERNAL value via replaceAll. Milkdown's
+// markdownUpdated fires synchronously during that, with its own (re-serialized,
+// possibly normalized) markdown — echoing it back would clobber whoever owns the
+// value (notably the split source pane, resetting its cursor). So we suppress the
+// emit for external applies; only genuine user edits emit.
+let applyingExternal = false
 
 // The @mention dropdown is a render-layer VIEW: wire it only when the mention
 // feature is on AND the host supplies searchMentionUsers (no adapter → the
@@ -83,10 +89,11 @@ const editorInfo = useEditor((root) => {
       ctx.set(defaultValueCtx, props.modelValue)
 
       ctx.get(listenerCtx).markdownUpdated((_ctx, markdown, prevMarkdown) => {
-        if (markdown !== prevMarkdown) {
-          lastEmitted = markdown
-          emit('update:modelValue', markdown)
+        if (applyingExternal || markdown === prevMarkdown) {
+          return
         }
+        lastEmitted = markdown
+        emit('update:modelValue', markdown)
       })
 
       ctx.update(editorViewOptionsCtx, (prev) => ({
@@ -134,7 +141,13 @@ watch(
       return
     }
     lastEmitted = val
-    editorInfo.get()?.action(replaceAll(val))
+    const editor = editorInfo.get()
+    if (!editor) {
+      return
+    }
+    applyingExternal = true
+    editor.action(replaceAll(val))
+    applyingExternal = false
   }
 )
 
