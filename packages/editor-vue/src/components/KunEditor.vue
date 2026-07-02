@@ -41,6 +41,8 @@ const props = withDefaults(
     /** Sync scrolling between the split panes. Default `true`; set `false` to
      * disable (or toggle it at runtime via the view-switch API). */
     scrollSync?: boolean
+    /** Show a floating format toolbar on text selection. Default `true`. */
+    selectionToolbar?: boolean
   }>(),
   {
     adapters: () => ({}),
@@ -48,7 +50,8 @@ const props = withDefaults(
     locale: 'zh-cn',
     readonly: false,
     placeholder: '',
-    scrollSync: true
+    scrollSync: true,
+    selectionToolbar: true
   }
 )
 
@@ -291,6 +294,7 @@ defineExpose<KunEditorExpose>({
               :locale="locale"
               :readonly="wysiwygReadonly"
               :placeholder="placeholder"
+              :selection-toolbar="selectionToolbar"
               @update:model-value="onUpdate"
             />
           </div>

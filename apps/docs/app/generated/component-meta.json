@@ -41,6 +41,20 @@
         "required": false,
         "default": "false",
         "description": "Read-only render (no editing)."
+      },
+      {
+        "name": "scrollSync",
+        "type": "boolean",
+        "required": false,
+        "default": "true",
+        "description": "Sync scrolling between the split panes. Default `true`; set `false` to disable (or toggle it at runtime via the view-switch API)."
+      },
+      {
+        "name": "selectionToolbar",
+        "type": "boolean",
+        "required": false,
+        "default": "true",
+        "description": "Show a floating format toolbar on text selection. Default `true`."
       }
     ]
   }

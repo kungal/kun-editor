@@ -18,6 +18,7 @@ import {
 } from '@milkdown/kit/core'
 import { listenerCtx } from '@milkdown/kit/plugin/listener'
 import { slashFactory } from '@milkdown/kit/plugin/slash'
+import { tooltipFactory } from '@milkdown/kit/plugin/tooltip'
 import { callCommand, replaceAll } from '@milkdown/kit/utils'
 import { Milkdown, useEditor } from '@milkdown/vue'
 import { usePluginViewFactory } from '@prosemirror-adapter/vue'
@@ -33,6 +34,7 @@ import type {
 } from '@kungal/editor-core'
 import { watch } from 'vue'
 import MentionDropdown from './MentionDropdown.vue'
+import SelectionTooltip from './SelectionTooltip.vue'
 import type { KunEditorExpose } from '../types'
 
 const props = defineProps<{
@@ -42,6 +44,7 @@ const props = defineProps<{
   locale: KunEditorLocale
   readonly: boolean
   placeholder: string
+  selectionToolbar: boolean
 }>()
 
 const emit = defineEmits<{
@@ -64,6 +67,13 @@ const mentionEnabled =
   props.features.mention !== false &&
   !!props.adapters.searchMentionUsers &&
   !!pluginViewFactory
+
+// The selection bubble toolbar — a tooltip VIEW (same plugin-view mechanism as
+// the mention dropdown). Wired when enabled; TooltipProvider itself only shows it
+// on a non-empty selection while focused + editable (so it's inert when readonly
+// / in the split preview).
+const selectionTooltip = tooltipFactory('kunSelectionTooltip')
+const tooltipEnabled = props.selectionToolbar && !!pluginViewFactory
 
 const editorInfo = useEditor((root) => {
   const editor = Editor.make()
@@ -88,6 +98,12 @@ const editorInfo = useEditor((root) => {
           view: pluginViewFactory!({ component: MentionDropdown })
         })
       }
+
+      if (tooltipEnabled) {
+        ctx.set(selectionTooltip.key, {
+          view: pluginViewFactory!({ component: SelectionTooltip })
+        })
+      }
     })
     .use(
       createKunEditorPlugins(props.adapters, props.features, {
@@ -98,6 +114,9 @@ const editorInfo = useEditor((root) => {
 
   if (mentionEnabled) {
     editor.use(mentionSlash)
+  }
+  if (tooltipEnabled) {
+    editor.use(selectionTooltip)
   }
 
   return editor
