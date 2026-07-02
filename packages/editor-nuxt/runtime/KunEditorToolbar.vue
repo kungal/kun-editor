@@ -16,7 +16,10 @@
 // set). There is deliberately NO math button — an empty inline-math atom is a
 // broken node; math is entered via the `$…$` / `$$` input rules.
 //
-// KunButton/KunIcon/KunTooltip/KunPopover are auto-imported by @kungal/ui-nuxt in
+// The emoji/sticker picker switches tabs with a <KunTab variant="underlined">
+// (matching <KunEditorViewSwitch> and the forum's picker).
+//
+// KunButton/KunIcon/KunTooltip/KunPopover/KunTab are auto-imported by ui-nuxt in
 // the consuming app; icons use the app's iconify set (e.g. lucide via @nuxt/icon).
 // The container/menu utility classes are generated via @kungal/editor-nuxt's
 // shipped tailwind.css (@source) — the consumer @imports it once.
@@ -126,7 +129,7 @@ const onFileChange = async (e: Event) => {
 const showPicker = computed(() => props.features.sticker !== false)
 const stickerSource = computed(() => props.adapters.stickerSource)
 const hasSticker = computed(() => !!stickerSource.value)
-const tab = ref<'emoji' | 'sticker'>('emoji')
+const tab = ref('emoji') // 'emoji' | 'sticker' — widened to string for KunTab v-model
 const packs = ref<StickerPack[]>([])
 const loaded = ref(false)
 const loadFailed = ref(false)
@@ -217,20 +220,18 @@ const insertSticker = (src: string, name: string) =>
           </KunButton>
         </template>
 
-        <div v-if="hasSticker" class="mb-2 flex gap-1">
-          <KunButton
-            :variant="tab === 'emoji' ? 'flat' : 'light'"
-            size="sm"
-            @click="tab = 'emoji'"
-            >{{ t.emoji }}</KunButton
-          >
-          <KunButton
-            :variant="tab === 'sticker' ? 'flat' : 'light'"
-            size="sm"
-            @click="tab = 'sticker'"
-            >{{ t.sticker }}</KunButton
-          >
-        </div>
+        <KunTab
+          v-if="hasSticker"
+          v-model="tab"
+          :items="[
+            { value: 'emoji', textValue: t.emoji },
+            { value: 'sticker', textValue: t.sticker }
+          ]"
+          variant="underlined"
+          color="primary"
+          :full-width="true"
+          class="mb-2"
+        />
 
         <div
           v-show="!hasSticker || tab === 'emoji'"
