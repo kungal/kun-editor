@@ -11,7 +11,7 @@
 // handle (insertQuote / insertMention / focus).
 import { MilkdownProvider } from '@milkdown/vue'
 import { ProsemirrorAdapterProvider } from '@prosemirror-adapter/vue'
-import { computed, provide, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, provide, ref, watch } from 'vue'
 import type {
   KunEditorAdapters,
   KunEditorFeatures,
@@ -38,13 +38,17 @@ const props = withDefaults(
     readonly?: boolean
     /** Placeholder text shown while the editor is empty. */
     placeholder?: string
+    /** Sync scrolling between the split panes. Default `true`; set `false` to
+     * disable (or toggle it at runtime via the view-switch API). */
+    scrollSync?: boolean
   }>(),
   {
     adapters: () => ({}),
     features: () => ({}),
     locale: 'zh-cn',
     readonly: false,
-    placeholder: ''
+    placeholder: '',
+    scrollSync: true
   }
 )
 
@@ -83,12 +87,91 @@ const swap = () => {
   swapped.value = !swapped.value
 }
 
+// Split-view scroll sync — on by default (seeded from the prop), togglable at
+// runtime so a host can offer an off switch (or just pass `:scroll-sync="false"`).
+const scrollSyncOn = ref(props.scrollSync)
+watch(
+  () => props.scrollSync,
+  (v) => {
+    scrollSyncOn.value = v
+  }
+)
+const toggleScrollSync = () => {
+  scrollSyncOn.value = !scrollSyncOn.value
+}
+
 const isEnglish = computed(() => props.locale.toLowerCase().startsWith('en'))
 const labels = computed(() =>
   isEnglish.value
-    ? { wysiwyg: 'Preview', source: 'Markdown', split: 'Split', swap: 'Swap sides' }
-    : { wysiwyg: '预览', source: 'Markdown', split: '分栏', swap: '左右互换' }
+    ? {
+        wysiwyg: 'Preview',
+        source: 'Markdown',
+        split: 'Split',
+        swap: 'Swap sides',
+        scrollSync: 'Sync scroll'
+      }
+    : {
+        wysiwyg: '预览',
+        source: 'Markdown',
+        split: '分栏',
+        swap: '左右互换',
+        scrollSync: '同步滚动'
+      }
 )
+
+// ── Proportional scroll sync between the split panes ─────────────────────────
+// Percentage-based (source ↔ preview line mapping is impractical here), with an
+// "active pane" guard + idle timeout so the driven pane's echoed scroll event
+// doesn't feed back into a loop. Needs the panes to scroll internally (the
+// reference stylesheet gives them a bounded height in split mode).
+const rootEl = ref<HTMLElement | null>(null)
+let detachScroll: (() => void) | null = null
+let activePane: Element | null = null
+let idleTimer: ReturnType<typeof setTimeout> | null = null
+
+const teardownScrollSync = () => {
+  detachScroll?.()
+  detachScroll = null
+  activePane = null
+}
+
+const setupScrollSync = () => {
+  teardownScrollSync()
+  const root = rootEl.value
+  if (!root) return
+  const source = root.querySelector<HTMLElement>('.cm-scroller')
+  const preview = root.querySelector<HTMLElement>('.kun-editor__wysiwyg')
+  if (!source || !preview) return
+
+  const handler = (which: HTMLElement, other: HTMLElement) => () => {
+    if (activePane && activePane !== which) return // ignore the echoed scroll
+    activePane = which
+    const max = which.scrollHeight - which.clientHeight
+    const ratio = max > 0 ? which.scrollTop / max : 0
+    const otherMax = other.scrollHeight - other.clientHeight
+    other.scrollTop = ratio * (otherMax > 0 ? otherMax : 0)
+    if (idleTimer) clearTimeout(idleTimer)
+    idleTimer = setTimeout(() => {
+      activePane = null
+    }, 120)
+  }
+  const onSource = handler(source, preview)
+  const onPreview = handler(preview, source)
+  source.addEventListener('scroll', onSource, { passive: true })
+  preview.addEventListener('scroll', onPreview, { passive: true })
+  detachScroll = () => {
+    source.removeEventListener('scroll', onSource)
+    preview.removeEventListener('scroll', onPreview)
+  }
+}
+
+watch([mode, scrollSyncOn], ([m, on]) => {
+  teardownScrollSync()
+  if (m === 'split' && on) {
+    nextTick(setupScrollSync)
+  }
+})
+onBeforeUnmount(teardownScrollSync)
 
 // The WYSIWYG is a read-only live preview in split mode (source is the editor).
 const wysiwygReadonly = computed(() => props.readonly || mode.value === 'split')
@@ -106,9 +189,9 @@ defineExpose<KunEditorExpose>({
 </script>
 
 <template>
-  <div class="kun-editor" data-kun-editor :data-mode="mode">
-    <!-- The view switch (预览 / Markdown / 分栏 + swap). Override the #view-switch
-         slot to swap the hand-rolled tabs for e.g. a KunUI <KunTab>. -->
+  <div ref="rootEl" class="kun-editor" data-kun-editor :data-mode="mode">
+    <!-- The view switch (预览 / Markdown / 分栏 + swap + scroll-sync). Override the
+         #view-switch slot to swap the hand-rolled tabs for e.g. a KunUI <KunTab>. -->
     <slot
       name="view-switch"
       :mode="mode"
@@ -116,6 +199,8 @@ defineExpose<KunEditorExpose>({
       :labels="labels"
       :swapped="swapped"
       :swap="swap"
+      :scroll-sync="scrollSyncOn"
+      :toggle-scroll-sync="toggleScrollSync"
     >
       <div class="kun-editor__toolbar" role="tablist">
         <button
@@ -145,16 +230,27 @@ defineExpose<KunEditorExpose>({
         >
           {{ labels.split }}
         </button>
-        <button
-          v-if="mode === 'split'"
-          type="button"
-          class="kun-editor__tab kun-editor__swap"
-          :title="labels.swap"
-          :aria-label="labels.swap"
-          @click="swap()"
-        >
-          ⇄
-        </button>
+        <template v-if="mode === 'split'">
+          <button
+            type="button"
+            class="kun-editor__tab kun-editor__swap"
+            :title="labels.swap"
+            :aria-label="labels.swap"
+            @click="swap()"
+          >
+            ⇄
+          </button>
+          <button
+            type="button"
+            class="kun-editor__tab"
+            :data-active="scrollSyncOn"
+            :title="labels.scrollSync"
+            :aria-pressed="scrollSyncOn"
+            @click="toggleScrollSync()"
+          >
+            {{ labels.scrollSync }}
+          </button>
+        </template>
       </div>
     </slot>
 

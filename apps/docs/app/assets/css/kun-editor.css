@@ -55,6 +55,16 @@
 .kun-editor[data-mode='split'] .kun-editor__pane {
   flex: 1 1 0;
   min-width: 0;
+  /* Each pane scrolls internally (a bounded height) so scroll sync has something
+     to sync. Override --kun-editor-split-height to taste. */
+  height: var(--kun-editor-split-height, 60vh);
+}
+/* Make each editor fill + scroll within its pane. */
+.kun-editor[data-mode='split'] .kun-editor__source .cm-editor {
+  height: 100%;
+}
+.kun-editor[data-mode='split'] .kun-editor__wysiwyg {
+  overflow: auto;
 }
 @media (min-width: 48rem) {
   .kun-editor[data-mode='split'] .kun-editor__panes {

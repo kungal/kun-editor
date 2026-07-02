@@ -44,11 +44,21 @@ export interface KunEditorViewSwitchApi {
   /** Switch the active view. */
   setMode: (mode: 'wysiwyg' | 'source' | 'split') => void
   /** Localized labels (respects the `locale` prop). */
-  labels: { wysiwyg: string; source: string; split: string; swap: string }
+  labels: {
+    wysiwyg: string
+    source: string
+    split: string
+    swap: string
+    scrollSync: string
+  }
   /** Whether the split panes are swapped (source on the right). */
   swapped: boolean
   /** Toggle the split panes' left/right order. */
   swap: () => void
+  /** Whether split-pane scroll sync is on. */
+  scrollSync: boolean
+  /** Toggle split-pane scroll sync. */
+  toggleScrollSync: () => void
 }
 
 // The imperative handle a host gets from a `<KunEditor>` template ref:

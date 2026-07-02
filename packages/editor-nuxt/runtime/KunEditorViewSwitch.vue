@@ -38,15 +38,27 @@ const onChange = (value: string) => {
       size="sm"
       @update:model-value="onChange"
     />
-    <KunButton
-      v-if="mode === 'split'"
-      variant="light"
-      size="sm"
-      :is-icon-only="true"
-      :aria-label="labels.swap"
-      @click="swap()"
-    >
-      <KunIcon name="lucide:arrow-left-right" />
-    </KunButton>
+    <template v-if="mode === 'split'">
+      <KunButton
+        variant="light"
+        size="sm"
+        :is-icon-only="true"
+        :aria-label="labels.swap"
+        @click="swap()"
+      >
+        <KunIcon name="lucide:arrow-left-right" />
+      </KunButton>
+      <KunButton
+        :variant="scrollSync ? 'flat' : 'light'"
+        :color="scrollSync ? 'primary' : 'default'"
+        size="sm"
+        :is-icon-only="true"
+        :aria-label="labels.scrollSync"
+        :aria-pressed="scrollSync"
+        @click="toggleScrollSync()"
+      >
+        <KunIcon :name="scrollSync ? 'lucide:link' : 'lucide:unlink'" />
+      </KunButton>
+    </template>
   </div>
 </template>
