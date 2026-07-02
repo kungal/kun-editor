@@ -1,5 +1,44 @@
 # @kungal/editor-nuxt
 
+## 0.15.0
+
+### Minor Changes
+
+- a7273bb: Ship `tailwind.css` so the KunUI toolbar/picker/tabs styles render drop-in.
+
+  `<KunEditorToolbar>` / `<KunEditorViewSwitch>` use Tailwind utility classes
+  (grids, aspect, sizes, dividers, menu items). Tailwind v4 doesn't scan
+  `node_modules`, so without registration the sticker/emoji grid collapsed (huge
+  stickers). The package now ships `tailwind.css` containing a path-relative
+  `@source "./runtime"` — the Tailwind-team-recommended pattern for a
+  Tailwind-based library, and pnpm-layout-safe (resolved relative to the file, not
+  the app's `node_modules`). Consumers add one line to their Tailwind entry:
+
+  ```css
+  @import "@kungal/ui-vue/style.css";
+  @import "@kungal/editor-nuxt/tailwind.css";
+  ```
+
+- a7273bb: Toolbar: headings become one "text size" dropdown; remove the formula button.
+
+  - **Headings → a single "text size" control** (Paragraph / H1–H6) instead of
+    three H1/H2/H3 buttons — the modern standard, and it can set Paragraph (reset),
+    which the old toggle buttons couldn't. The headless `EditorToolbar` uses a
+    native `<select>` (new `.kun-editor__heading-select` class hook); the KunUI
+    `<KunEditorToolbar>` uses a `<KunPopover>` with each level shown at its own size
+    (like the forum). Both drive `setHeadingCommand`.
+  - **Remove the math/formula button.** With no selection it inserted an empty
+    inline-math node (a broken formula box). Math is entered via the existing
+    `$…$` / `$$` input rules instead — the ecosystem norm (prosemirror-math). The
+    spoiler button stays.
+
+### Patch Changes
+
+- Updated dependencies [a7273bb]
+- Updated dependencies [a7273bb]
+  - @kungal/editor-core@0.15.0
+  - @kungal/editor-vue@0.15.0
+
 ## 0.14.0
 
 ### Minor Changes
