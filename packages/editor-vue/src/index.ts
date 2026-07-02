@@ -14,6 +14,9 @@ export type { KunEditorExpose } from './types'
 // The command API the #toolbar scoped slot exposes (build a custom toolbar).
 export type { KunEditorToolbarApi } from './types'
 
+// A toolbar button id for <KunEditorToolbar :items> (reorder / subset buttons).
+export type { KunToolbarItem } from './types'
+
 // The API the #view-switch scoped slot exposes (build a custom view switch).
 export type { KunEditorViewSwitchApi } from './types'
 

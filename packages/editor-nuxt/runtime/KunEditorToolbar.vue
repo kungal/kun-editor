@@ -11,18 +11,15 @@
 // KunButton / KunIcon / KunTooltip / KunPopover chrome. It drives the editor
 // purely through the slot API props (KunEditorToolbarApi) — no useInstance.
 //
-// Headings are ONE "text size" KunPopover (Paragraph / H1–H6, each shown at its
-// own size — like the forum's header menu), driven by setHeadingCommand (absolute
-// set). There is deliberately NO math button — an empty inline-math atom is a
-// broken node; math is entered via the `$…$` / `$$` input rules.
+// Button order/set is customizable via `:items` (a list of KunToolbarItem ids,
+// '|' = divider) so a host can reorder or subset the built-in buttons and apply
+// the SAME order across every editor, instead of rebuilding a custom toolbar.
+// Defaults to the standard layout. image/picker are auto-dropped without their
+// adapter/feature, and dividers collapse around removed items.
 //
-// The emoji/sticker picker switches tabs with a <KunTab variant="underlined">
-// (matching <KunEditorViewSwitch> and the forum's picker).
-//
-// KunButton/KunIcon/KunTooltip/KunPopover/KunTab are auto-imported by ui-nuxt in
-// the consuming app; icons use the app's iconify set (e.g. lucide via @nuxt/icon).
-// The container/menu utility classes are generated via @kungal/editor-nuxt's
-// shipped tailwind.css (@source) — the consumer @imports it once.
+// Headings are ONE "text size" KunPopover (Paragraph / H1–H6). There is NO math
+// button — an empty inline-math atom is a broken node; math is via `$…$` / `$$`.
+// KunButton/KunIcon/KunTooltip/KunPopover/KunTab are auto-imported by ui-nuxt.
 import { computed, ref } from 'vue'
 import {
   createCodeBlockCommand,
@@ -41,9 +38,39 @@ import {
   setHeadingCommand
 } from '@kungal/editor-core/preset'
 import { EMOJI } from '@kungal/editor-vue'
-import type { KunEditorToolbarApi, StickerPack } from '@kungal/editor-vue'
+import type {
+  KunEditorToolbarApi,
+  KunToolbarItem,
+  StickerPack
+} from '@kungal/editor-vue'
 
-const props = defineProps<KunEditorToolbarApi>()
+const props = defineProps<
+  KunEditorToolbarApi & {
+    /** Ordered button ids ('|' = divider). Defaults to the standard layout. */
+    items?: KunToolbarItem[]
+  }
+>()
+
+const DEFAULT_ITEMS: KunToolbarItem[] = [
+  'heading',
+  '|',
+  'bold',
+  'italic',
+  'strike',
+  'code',
+  '|',
+  'bulletList',
+  'orderedList',
+  'quote',
+  'codeBlock',
+  'hr',
+  '|',
+  'spoiler',
+  '|',
+  'image',
+  '|',
+  'picker'
+]
 
 const en = computed(() => props.locale.toLowerCase().startsWith('en'))
 const t = computed(() => ({
@@ -66,6 +93,66 @@ const t = computed(() => ({
   failed: en.value ? 'Failed to load stickers' : '贴纸加载失败'
 }))
 
+interface Tool {
+  icon: string
+  title: string
+  run: () => void
+}
+
+// The plain command buttons (everything except heading / image / picker).
+// `.key` is read at click time via props.run (populated once the editor exists).
+const commandButtons = computed<Record<string, Tool>>(() => ({
+  bold: { icon: 'lucide:bold', title: t.value.bold, run: () => props.run(toggleStrongCommand.key) },
+  italic: { icon: 'lucide:italic', title: t.value.italic, run: () => props.run(toggleEmphasisCommand.key) },
+  strike: { icon: 'lucide:strikethrough', title: t.value.strike, run: () => props.run(toggleStrikethroughCommand.key) },
+  code: { icon: 'lucide:code', title: t.value.code, run: () => props.run(toggleInlineCodeCommand.key) },
+  bulletList: { icon: 'lucide:list', title: t.value.bulletList, run: () => props.run(wrapInBulletListCommand.key) },
+  orderedList: { icon: 'lucide:list-ordered', title: t.value.orderedList, run: () => props.run(wrapInOrderedListCommand.key) },
+  quote: { icon: 'lucide:text-quote', title: t.value.quote, run: () => props.run(wrapInBlockquoteCommand.key) },
+  codeBlock: { icon: 'lucide:square-code', title: t.value.codeBlock, run: () => props.run(createCodeBlockCommand.key, '') },
+  hr: { icon: 'lucide:minus', title: t.value.hr, run: () => props.run(insertHrCommand.key) },
+  spoiler: { icon: 'lucide:eye-off', title: t.value.spoiler, run: () => props.run(insertKunSpoilerCommand.key) }
+}))
+
+type RenderItem =
+  | { kind: 'divider' }
+  | { kind: 'heading' }
+  | { kind: 'image' }
+  | { kind: 'picker' }
+  | { kind: 'button'; tool: Tool }
+
+// Resolve `items` → renderables: drop image/picker when unavailable, map command
+// ids to their button, then collapse consecutive/leading/trailing dividers so a
+// removed item never leaves a doubled or dangling separator.
+const resolvedItems = computed<RenderItem[]>(() => {
+  const buttons = commandButtons.value
+  const mapped = (props.items ?? DEFAULT_ITEMS)
+    .filter((it) =>
+      it === 'image' ? canUpload.value : it === 'picker' ? showPicker.value : true
+    )
+    .map<RenderItem | null>((it) => {
+      if (it === '|') return { kind: 'divider' }
+      if (it === 'heading') return { kind: 'heading' }
+      if (it === 'image') return { kind: 'image' }
+      if (it === 'picker') return { kind: 'picker' }
+      const tool = buttons[it]
+      return tool ? { kind: 'button', tool } : null
+    })
+    .filter((x): x is RenderItem => x !== null)
+
+  const out: RenderItem[] = []
+  for (const it of mapped) {
+    if (it.kind === 'divider' && (out.length === 0 || out[out.length - 1]?.kind === 'divider')) {
+      continue
+    }
+    out.push(it)
+  }
+  while (out.length && out[out.length - 1]?.kind === 'divider') {
+    out.pop()
+  }
+  return out
+})
+
 // Paragraph (level 0) + H1–H6, each rendered at its own size in the menu.
 const headingOptions = computed(() => {
   const labels = en.value
@@ -74,44 +161,25 @@ const headingOptions = computed(() => {
   const sizes = ['1rem', '1.6rem', '1.4rem', '1.25rem', '1.1rem', '1rem', '0.9rem']
   return labels.map((label, level) => ({ level, label, size: sizes[level] }))
 })
-const headingPopover = ref<{ close: () => void } | null>(null)
+// Function refs (these elements live inside a v-for, where string refs collect
+// into arrays). Each renders at most once.
+let headingPopoverEl: { close: () => void } | null = null
+const setHeadingPopover = (el: unknown) => {
+  headingPopoverEl = el as { close: () => void } | null
+}
 const setHeading = (level: number) => {
   props.run(setHeadingCommand.key, level)
-  headingPopover.value?.close()
+  headingPopoverEl?.close()
 }
 
-interface Tool {
-  icon: string
-  title: string
-  run: () => void
-}
-
-// `.key` is read at click time via props.run (populated once the editor exists).
-const groups = computed<Tool[][]>(() => [
-  [
-    { icon: 'lucide:bold', title: t.value.bold, run: () => props.run(toggleStrongCommand.key) },
-    { icon: 'lucide:italic', title: t.value.italic, run: () => props.run(toggleEmphasisCommand.key) },
-    { icon: 'lucide:strikethrough', title: t.value.strike, run: () => props.run(toggleStrikethroughCommand.key) },
-    { icon: 'lucide:code', title: t.value.code, run: () => props.run(toggleInlineCodeCommand.key) }
-  ],
-  [
-    { icon: 'lucide:list', title: t.value.bulletList, run: () => props.run(wrapInBulletListCommand.key) },
-    { icon: 'lucide:list-ordered', title: t.value.orderedList, run: () => props.run(wrapInOrderedListCommand.key) },
-    { icon: 'lucide:text-quote', title: t.value.quote, run: () => props.run(wrapInBlockquoteCommand.key) },
-    { icon: 'lucide:square-code', title: t.value.codeBlock, run: () => props.run(createCodeBlockCommand.key, '') },
-    { icon: 'lucide:minus', title: t.value.hr, run: () => props.run(insertHrCommand.key) }
-  ],
-  [
-    { icon: 'lucide:eye-off', title: t.value.spoiler, run: () => props.run(insertKunSpoilerCommand.key) }
-  ]
-])
-
-// Image upload button — shown only when the host supplies uploadImage. The
-// upload itself goes through api.uploadImage, which shows an in-document
-// "uploading…" placeholder at the caret (same UX as paste/drop).
+// Image upload — via api.uploadImage (shows the in-document "uploading…"
+// placeholder). Only rendered when the host supplies uploadImage.
 const canUpload = computed(() => !!props.adapters.uploadImage)
-const fileInput = ref<HTMLInputElement | null>(null)
-const pickImage = () => fileInput.value?.click()
+let fileInputEl: HTMLInputElement | null = null
+const setFileInput = (el: unknown) => {
+  fileInputEl = el as HTMLInputElement | null
+}
+const pickImage = () => fileInputEl?.click()
 const onFileChange = (e: Event) => {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
@@ -145,65 +213,65 @@ const insertSticker = (src: string, name: string) =>
 
 <template>
   <div class="flex flex-wrap items-center gap-0.5">
-    <KunPopover ref="headingPopover" position="bottom-start" :opaque="true" inner-class="min-w-40 p-1">
-      <template #trigger>
-        <KunButton variant="light" size="sm" :aria-label="t.textSize">
-          {{ t.textSize }}
-          <KunIcon name="lucide:chevron-down" />
-        </KunButton>
-      </template>
-      <button
-        v-for="o in headingOptions"
-        :key="o.level"
-        type="button"
-        class="hover:bg-default-100 flex w-full items-center rounded px-3 py-1.5 text-left leading-tight"
-        :style="{ fontSize: o.size }"
-        @click="setHeading(o.level)"
-      >
-        {{ o.label }}
-      </button>
-    </KunPopover>
-
-    <template v-for="(group, gi) in groups" :key="gi">
-      <span class="bg-default-200 mx-1 h-5 w-px" aria-hidden="true" />
-      <KunTooltip v-for="(b, bi) in group" :key="bi" :text="b.title" :delay-show="300">
-        <KunButton
-          variant="light"
-          size="sm"
-          :is-icon-only="true"
-          :aria-label="b.title"
-          @click="b.run()"
-        >
-          <KunIcon :name="b.icon" />
-        </KunButton>
-      </KunTooltip>
-    </template>
-
-    <template v-if="canUpload">
-      <span class="bg-default-200 mx-1 h-5 w-px" aria-hidden="true" />
-      <KunTooltip :text="t.image" :delay-show="300">
-        <KunButton
-          variant="light"
-          size="sm"
-          :is-icon-only="true"
-          :aria-label="t.image"
-          @click="pickImage"
-        >
-          <KunIcon name="lucide:image" />
-        </KunButton>
-      </KunTooltip>
-      <input
-        ref="fileInput"
-        type="file"
-        accept=".jpg,.jpeg,.png,.webp,.gif"
-        hidden
-        @change="onFileChange"
+    <template v-for="(item, i) in resolvedItems" :key="i">
+      <span
+        v-if="item.kind === 'divider'"
+        class="bg-default-200 mx-1 h-5 w-px"
+        aria-hidden="true"
       />
-    </template>
 
-    <template v-if="showPicker">
-      <span class="bg-default-200 mx-1 h-5 w-px" aria-hidden="true" />
-      <KunPopover position="bottom-start" :opaque="true" inner-class="w-72 p-2">
+      <KunPopover
+        v-else-if="item.kind === 'heading'"
+        :ref="setHeadingPopover"
+        position="bottom-start"
+        :opaque="true"
+        inner-class="min-w-40 p-1"
+      >
+        <template #trigger>
+          <KunButton variant="light" size="sm" :aria-label="t.textSize">
+            {{ t.textSize }}
+            <KunIcon name="lucide:chevron-down" />
+          </KunButton>
+        </template>
+        <button
+          v-for="o in headingOptions"
+          :key="o.level"
+          type="button"
+          class="hover:bg-default-100 flex w-full items-center rounded px-3 py-1.5 text-left leading-tight"
+          :style="{ fontSize: o.size }"
+          @click="setHeading(o.level)"
+        >
+          {{ o.label }}
+        </button>
+      </KunPopover>
+
+      <template v-else-if="item.kind === 'image'">
+        <KunTooltip :text="t.image" :delay-show="300">
+          <KunButton
+            variant="light"
+            size="sm"
+            :is-icon-only="true"
+            :aria-label="t.image"
+            @click="pickImage"
+          >
+            <KunIcon name="lucide:image" />
+          </KunButton>
+        </KunTooltip>
+        <input
+          :ref="setFileInput"
+          type="file"
+          accept=".jpg,.jpeg,.png,.webp,.gif"
+          hidden
+          @change="onFileChange"
+        />
+      </template>
+
+      <KunPopover
+        v-else-if="item.kind === 'picker'"
+        position="bottom-start"
+        :opaque="true"
+        inner-class="w-72 p-2"
+      >
         <template #trigger>
           <KunButton
             variant="light"
@@ -234,8 +302,8 @@ const insertSticker = (src: string, name: string) =>
           class="grid max-h-56 grid-cols-8 gap-0.5 overflow-y-auto"
         >
           <button
-            v-for="(e, i) in EMOJI"
-            :key="i"
+            v-for="(e, ei) in EMOJI"
+            :key="ei"
             type="button"
             class="hover:bg-default-100 rounded p-1 text-lg leading-none"
             @click="props.insertText(e)"
@@ -250,8 +318,8 @@ const insertSticker = (src: string, name: string) =>
               <div class="text-default-500 mb-1 text-xs">{{ pack.name }}</div>
               <div class="grid grid-cols-4 gap-1">
                 <button
-                  v-for="(s, i) in pack.stickers"
-                  :key="i"
+                  v-for="(s, si) in pack.stickers"
+                  :key="si"
                   type="button"
                   class="hover:bg-default-100 rounded p-1"
                   :title="s.name"
@@ -267,6 +335,22 @@ const insertSticker = (src: string, name: string) =>
           </div>
         </div>
       </KunPopover>
+
+      <KunTooltip
+        v-else-if="item.kind === 'button'"
+        :text="item.tool.title"
+        :delay-show="300"
+      >
+        <KunButton
+          variant="light"
+          size="sm"
+          :is-icon-only="true"
+          :aria-label="item.tool.title"
+          @click="item.tool.run()"
+        >
+          <KunIcon :name="item.tool.icon" />
+        </KunButton>
+      </KunTooltip>
     </template>
   </div>
 </template>

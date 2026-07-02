@@ -5,6 +5,25 @@ import type {
   KunEditorLocale
 } from '@kungal/editor-core'
 
+// A toolbar button id for `<KunEditorToolbar :items>` — pass an ordered list to
+// reorder / subset the built-in buttons (`'|'` is a group divider). Keeps every
+// consumer on the same toolbar with a per-app order, instead of rebuilding one.
+export type KunToolbarItem =
+  | 'heading'
+  | 'bold'
+  | 'italic'
+  | 'strike'
+  | 'code'
+  | 'bulletList'
+  | 'orderedList'
+  | 'quote'
+  | 'codeBlock'
+  | 'hr'
+  | 'spoiler'
+  | 'image'
+  | 'picker'
+  | '|'
+
 // The scoped-slot props `<KunEditor #toolbar="api">` hands to a custom toolbar.
 // The core stays headless: this is the command API a UI (the default hand-rolled
 // toolbar, or a KunUI one, or your own) builds buttons on top of — the same shape

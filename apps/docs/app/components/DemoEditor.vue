@@ -9,6 +9,7 @@ import type {
   KunEditorFeatures,
   KunEditorLocale
 } from '@kungal/editor-core'
+import type { KunToolbarItem } from '@kungal/editor-vue'
 
 const props = withDefaults(
   defineProps<{
@@ -21,6 +22,8 @@ const props = withDefaults(
     output?: boolean
     /** Fill the #toolbar slot with the KunUI <KunEditorToolbar> (editor-nuxt). */
     kunuiToolbar?: boolean
+    /** Custom button order for <KunEditorToolbar :items>. */
+    toolbarItems?: KunToolbarItem[]
   }>(),
   {
     modelValue: '',
@@ -29,7 +32,8 @@ const props = withDefaults(
     locale: 'zh-cn',
     readonly: false,
     output: true,
-    kunuiToolbar: false
+    kunuiToolbar: false,
+    toolbarItems: undefined
   }
 )
 
@@ -53,7 +57,7 @@ const md = ref(props.modelValue)
             <KunEditorViewSwitch v-bind="s" />
           </template>
           <template v-if="kunuiToolbar" #toolbar="api">
-            <KunEditorToolbar v-bind="api" />
+            <KunEditorToolbar v-bind="api" :items="toolbarItems" />
           </template>
         </KunEditor>
         <template #fallback>

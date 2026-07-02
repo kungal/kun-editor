@@ -1,12 +1,32 @@
 <script setup lang="ts">
 import { mockNotify, mockStickerSource, mockUploadImage } from '~/utils/mockAdapters'
 import type { KunEditorAdapters } from '@kungal/editor-core'
+import type { KunToolbarItem } from '@kungal/editor-vue'
 
 const adapters: KunEditorAdapters = {
   uploadImage: mockUploadImage,
   stickerSource: mockStickerSource,
   notify: mockNotify
 }
+
+// Reordered + subset: picker first, then bold/italic, image, heading last — and
+// no lists/quote/code/hr/spoiler. Apply the SAME array to every editor for a
+// consistent site-wide order without rebuilding a toolbar.
+const customItems: KunToolbarItem[] = [
+  'picker',
+  '|',
+  'bold',
+  'italic',
+  'code',
+  '|',
+  'image',
+  '|',
+  'heading'
+]
+const itemsSrc = `<KunEditorToolbar
+  v-bind="api"
+  :items="['picker', '|', 'bold', 'italic', 'code', '|', 'image', '|', 'heading']"
+/>`
 
 const usage = `<script setup lang="ts">
 // nuxt.config: extends ['@kungal/ui-nuxt', '@kungal/editor-nuxt']
@@ -58,6 +78,23 @@ const adapters = { uploadImage, stickerSource, notify }
         model-value="上面的工具栏是 **KunUI 组件版**。试试加粗、标题、列表、上传图片、表情/贴纸 —— 再和 [默认(手搓)工具栏](/playground) 对比。"
       />
     </ClientOnly>
+
+    <h2 class="mt-8 mb-1 text-xl font-semibold">自定义按钮顺序 / 增减</h2>
+    <p class="text-default-600 mb-2">
+      传 <code>:items</code>(<code>KunToolbarItem[]</code>,<code>'|'</code> 是分隔线)重排或增减内置按钮 ——
+      不用重写整套工具栏。把同一份 <code>items</code> 用在编辑/回复/评论,顺序就全站一致。下面是
+      表情在前、去掉列表/引用等的例子:
+    </p>
+    <ClientOnly>
+      <DemoEditor
+        :kunui-toolbar="true"
+        :toolbar-items="customItems"
+        :adapters="adapters"
+        :output="false"
+        model-value="这条工具栏用 :items 重排:表情 → 加粗/斜体/代码 → 图片 → 文本大小。"
+      />
+    </ClientOnly>
+    <Code :code="itemsSrc" lang="vue" />
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">用法</h2>
     <Code :code="usage" lang="vue" />
