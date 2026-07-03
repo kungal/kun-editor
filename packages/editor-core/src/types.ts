@@ -70,6 +70,18 @@ export type NotifyLevel = 'info' | 'success' | 'warn' | 'error'
 export type Notify = (message: string, level: NotifyLevel) => void
 
 /**
+ * Ask the user for a link URL — provide this to show your OWN UI (a modal, an
+ * inline input, an article picker…) instead of the native `window.prompt` the
+ * headless toolbar / selection bubble fall back to. Gets the currently selected
+ * text (to prefill or search). Return the URL, or a falsy value to cancel. When
+ * set, the KunUI `<KunEditorToolbar>` uses it too instead of its inline popover,
+ * so one override covers every link entry point.
+ */
+export type LinkPrompt = (
+  context: { text: string }
+) => string | null | undefined | Promise<string | null | undefined>
+
+/**
  * The full policy bundle a host passes when constructing the editor. Every
  * field is optional: omit `uploadImage` for an image-free editor (the galgame
  * 简介 case), omit `searchMentionUsers` to drop @mentions, etc. What is present
@@ -80,6 +92,11 @@ export interface KunEditorAdapters {
   searchMentionUsers?: SearchMentionUsers
   stickerSource?: StickerSource
   notify?: Notify
+  /**
+   * Custom link-URL entry (replaces the native prompt in the headless toolbar /
+   * bubble, and the KunUI toolbar's popover). See {@link LinkPrompt}.
+   */
+  linkPrompt?: LinkPrompt
   /**
    * How an @mention's user id becomes its markdown link URL. The URL form is a
    * server contract, so it's host policy — default `kungal-user:<id>` (the KUN

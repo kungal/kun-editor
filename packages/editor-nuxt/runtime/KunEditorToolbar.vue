@@ -195,6 +195,18 @@ const applyLink = () => {
   linkPopoverEl?.close()
 }
 
+// When the host supplies a `linkPrompt` adapter, the link button uses THAT (its
+// own modal) instead of the inline popover — so one override covers the toolbar,
+// the default toolbar, and the selection bubble alike.
+const useLinkAdapter = computed(() => !!props.adapters.linkPrompt)
+const applyLinkFromAdapter = async () => {
+  const raw = await props.adapters.linkPrompt?.({ text: '' })
+  const href = raw?.trim()
+  if (href) {
+    props.insertLink({ href })
+  }
+}
+
 // Image upload — via api.uploadImage (shows the in-document "uploading…"
 // placeholder). Only rendered when the host supplies uploadImage.
 const canUpload = computed(() => !!props.adapters.uploadImage)
@@ -267,6 +279,22 @@ const insertSticker = (src: string, name: string) =>
           {{ o.label }}
         </button>
       </KunPopover>
+
+      <KunTooltip
+        v-else-if="item.kind === 'link' && useLinkAdapter"
+        :text="t.link"
+        :delay-show="300"
+      >
+        <KunButton
+          variant="light"
+          size="sm"
+          :is-icon-only="true"
+          :aria-label="t.link"
+          @click="applyLinkFromAdapter"
+        >
+          <KunIcon name="lucide:link" />
+        </KunButton>
+      </KunTooltip>
 
       <KunPopover
         v-else-if="item.kind === 'link'"

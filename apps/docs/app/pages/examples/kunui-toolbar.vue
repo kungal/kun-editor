@@ -42,6 +42,21 @@ const bubbleSrc = `<!-- 选区浮动菜单只留加粗/斜体;false 关闭 -->
 
 /* 样式(参考 kun-editor.css):.kun-editor__bubble / .kun-editor__bubble-btn */`
 
+// Custom link-URL entry: a `linkPrompt` adapter replaces the native prompt (and
+// the toolbar popover). Here it just derives a URL from the selected text; a real
+// app would open its own KunModal / article picker and resolve the chosen URL.
+const linkAdapters: KunEditorAdapters = {
+  ...adapters,
+  linkPrompt: ({ text }) =>
+    Promise.resolve(`https://example.com/search?q=${encodeURIComponent(text || 'link')}`)
+}
+const linkPromptSrc = `const adapters = {
+  // …uploadImage, notify…
+  // Your own UI instead of the native prompt / popover — return the URL (or null):
+  linkPrompt: async ({ text }) => await openLinkModal(text) // e.g. a KunModal
+}
+// One override covers the toolbar, the default toolbar, AND the selection bubble.`
+
 const usage = `<script setup lang="ts">
 // nuxt.config: extends ['@kungal/ui-nuxt', '@kungal/editor-nuxt']
 // → <KunEditor> + <KunEditorToolbar> + <KunEditorViewSwitch> auto-import.
@@ -141,6 +156,22 @@ const adapters = { uploadImage, stickerSource, notify }
       />
     </ClientOnly>
     <Code :code="bubbleSrc" lang="vue" />
+
+    <h2 class="mt-8 mb-1 text-xl font-semibold">自定义链接输入(linkPrompt)</h2>
+    <p class="text-default-600 mb-2">
+      默认「插入链接」用原生 <code>window.prompt</code>(手搓工具栏 / 选区气泡)或内置
+      popover(KunUI 工具栏)。传一个 <code>linkPrompt</code> 适配器就能换成<strong>你自己的
+      UI</strong>(KunModal、文章选择器…),一处覆盖工具栏 + 气泡。下面这个示例把选中文字拼进
+      URL —— 选中文字点链接看看(不再弹原生框):
+    </p>
+    <ClientOnly>
+      <DemoEditor
+        :kunui-toolbar="true"
+        :adapters="linkAdapters"
+        model-value="选中这段文字,点链接按钮 —— 用的是 linkPrompt(不是原生弹框)。"
+      />
+    </ClientOnly>
+    <Code :code="linkPromptSrc" lang="ts" />
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">用法</h2>
     <Code :code="usage" lang="vue" />

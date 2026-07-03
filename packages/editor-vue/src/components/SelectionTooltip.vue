@@ -41,11 +41,19 @@ const call = <T,>(key: CmdKey<T>, payload?: T) => {
 }
 
 // Link needs a URL. The bubble only shows on a non-empty selection, so this wraps
-// the selected text. Headless: a native prompt (the KunUI toolbar uses a popover).
-const promptLink = () => {
-  const url = window.prompt(isEnglish.value ? 'Link URL' : '链接 URL')?.trim()
-  if (url) {
-    call(insertLinkCommand.key, { href: url })
+// the selected text. The host can supply a `linkPrompt` adapter (its own modal);
+// otherwise we fall back to the native prompt.
+const promptLink = async () => {
+  const v = view.value
+  const { from, to } = v?.state.selection ?? { from: 0, to: 0 }
+  const text = v ? v.state.doc.textBetween(from, to, ' ') : ''
+  const linkPrompt = ctx?.adapters.linkPrompt
+  const raw = linkPrompt
+    ? await linkPrompt({ text })
+    : window.prompt(isEnglish.value ? 'Link URL' : '链接 URL')
+  const href = raw?.trim()
+  if (href) {
+    call(insertLinkCommand.key, { href })
   }
 }
 

@@ -53,12 +53,23 @@ const call = <T,>(key: CmdKey<T>, payload?: T) => {
   getEditor()?.action(callCommand(key, payload))
 }
 
-// Link: prompt for a URL, then wrap the selection (or insert the URL as linked
-// text). Headless → a native prompt; the KunUI toolbar uses a popover input.
-const promptLink = () => {
-  const url = window.prompt(isEnglish.value ? 'Link URL' : '链接 URL')?.trim()
-  if (url) {
-    call(insertLinkCommand.key, { href: url })
+// Link: get a URL, then wrap the selection (or insert the URL as linked text).
+// Uses the host's `linkPrompt` adapter (its own modal) if supplied; otherwise the
+// native prompt.
+const promptLink = async () => {
+  let text = ''
+  getEditor()?.action((c) => {
+    const view = c.get(editorViewCtx)
+    const { from, to } = view.state.selection
+    text = view.state.doc.textBetween(from, to, ' ')
+  })
+  const linkPrompt = ctx?.adapters.linkPrompt
+  const raw = linkPrompt
+    ? await linkPrompt({ text })
+    : window.prompt(isEnglish.value ? 'Link URL' : '链接 URL')
+  const href = raw?.trim()
+  if (href) {
+    call(insertLinkCommand.key, { href })
   }
 }
 
