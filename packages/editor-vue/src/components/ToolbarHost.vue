@@ -9,6 +9,7 @@ import type { CmdKey } from '@milkdown/kit/core'
 import { callCommand } from '@milkdown/kit/utils'
 import { useInstance } from '@milkdown/vue'
 import { inject } from 'vue'
+import { insertImageCommand } from '@milkdown/kit/preset/commonmark'
 import {
   insertLinkCommand,
   insertMentionCommand,
@@ -36,6 +37,14 @@ const insertText = (text: string): void => {
 }
 const insertLink: KunEditorToolbarApi['insertLink'] = (payload) => {
   run(insertLinkCommand.key, payload)
+  focus()
+}
+const insertImage: KunEditorToolbarApi['insertImage'] = (payload) => {
+  run(insertImageCommand.key, {
+    src: payload.src,
+    alt: payload.alt ?? '',
+    title: payload.title ?? ''
+  })
   focus()
 }
 const insertQuote: KunEditorToolbarApi['insertQuote'] = (payload) => {
@@ -66,6 +75,7 @@ const api: KunEditorToolbarApi = {
   insertText,
   uploadImage,
   insertLink,
+  insertImage,
   insertQuote,
   insertMention,
   focus,

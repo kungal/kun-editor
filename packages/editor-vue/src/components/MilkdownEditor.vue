@@ -23,10 +23,12 @@ import { callCommand, replaceAll } from '@milkdown/kit/utils'
 import { TextSelection } from '@milkdown/kit/prose/state'
 import { Milkdown, useEditor } from '@milkdown/vue'
 import { usePluginViewFactory } from '@prosemirror-adapter/vue'
+import { insertImageCommand } from '@milkdown/kit/preset/commonmark'
 import {
   createKunEditorPlugins,
   insertMentionCommand,
-  insertQuoteCommand
+  insertQuoteCommand,
+  startImageUpload
 } from '@kungal/editor-core/preset'
 import type {
   KunEditorAdapters,
@@ -191,6 +193,30 @@ const insertMention: KunEditorExpose['insertMention'] = (payload) => {
   editorInfo.get()?.action(callCommand(insertMentionCommand.key, payload))
   focus()
 }
+const insertImage: KunEditorExpose['insertImage'] = (payload) => {
+  editorInfo.get()?.action(
+    callCommand(insertImageCommand.key, {
+      src: payload.src,
+      alt: payload.alt ?? '',
+      title: payload.title ?? ''
+    })
+  )
+  focus()
+}
+const uploadImage: KunEditorExpose['uploadImage'] = (file) => {
+  const adapter = props.adapters.uploadImage
+  const editor = editorInfo.get()
+  if (!adapter || !editor) {
+    return
+  }
+  editor.action((ctx) => {
+    void startImageUpload(ctx.get(editorViewCtx), file, {
+      uploadImage: adapter,
+      notify: props.adapters.notify,
+      locale: props.locale
+    })
+  })
+}
 
 // Scroll the index-th TOP-LEVEL heading into view (order matches the parseHeadings
 // outline), and — when editable — place the caret in it so editing continues
@@ -224,6 +250,8 @@ const scrollToHeading: KunEditorExpose['scrollToHeading'] = (index) => {
 defineExpose<KunEditorExpose>({
   insertQuote,
   insertMention,
+  insertImage,
+  uploadImage,
   focus,
   scrollToHeading
 })

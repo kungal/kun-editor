@@ -99,6 +99,12 @@ export const pageMeta: Record<string, PageMeta> = {
     description:
       '桌面版编辑器左侧的浅色大纲:<KunEditor> 的 @update:headings 派生标题列表,点击调 scrollToHeading(i) 在当前视图(所见即所得 / 源码 / 分栏)跳转并落光标。样式、布局(左侧留白)由宿主决定,编辑器只出能力。'
   },
+  '/examples/image-dialog': {
+    title: 'Image dialog',
+    cn: '图片弹框',
+    description:
+      '宿主自建的图片插入弹框:链接插入(api.insertImage)、选图上传、一次拖多张、以及「最近使用」历史。编辑器只出 insertImage / uploadImage 两个原语,弹框 UI + 历史全由宿主用 KunPopover 搭。'
+  },
 
   // Plugins
   '/plugins/spoiler': {

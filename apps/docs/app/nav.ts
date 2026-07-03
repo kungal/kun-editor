@@ -37,7 +37,8 @@ export const nav: NavSection[] = [
     items: [
       item('/examples/forum-reply'),
       item('/examples/kunui-toolbar'),
-      item('/examples/toc')
+      item('/examples/toc'),
+      item('/examples/image-dialog')
     ]
   },
   {

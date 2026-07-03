@@ -51,6 +51,12 @@ export interface KunEditorToolbarApi {
    */
   uploadImage: (file: File) => void
   /**
+   * Insert an image node at the cursor from a ready URL — for a host-built image
+   * dialog (paste a URL, or re-insert from an upload history). For the upload path
+   * use `uploadImage`, or call your own upload adapter then this.
+   */
+  insertImage: (payload: { src: string; alt?: string; title?: string }) => void
+  /**
    * Apply a link to the selection, or (empty selection) insert linked text.
    * `text` defaults to the href. Standard markdown `[text](href)`.
    */
@@ -116,6 +122,13 @@ export interface KunEditorExpose {
    * focus. Requires the `mention` feature (on by default).
    */
   insertMention(payload: { userId: number; name: string }): void
+  /** Insert an image at the cursor from a ready URL (a host-built image dialog). */
+  insertImage(payload: { src: string; alt?: string; title?: string }): void
+  /**
+   * Upload an image File via the `uploadImage` adapter (in-document "uploading…"
+   * placeholder, then the image). No-op without the adapter.
+   */
+  uploadImage(file: File): void
   /** Focus the WYSIWYG editor. */
   focus(): void
   /**

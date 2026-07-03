@@ -252,6 +252,8 @@ const source = ref<InstanceType<typeof MarkdownSource> | null>(null)
 defineExpose<KunEditorExpose>({
   insertQuote: (payload) => inner.value?.insertQuote(payload),
   insertMention: (payload) => inner.value?.insertMention(payload),
+  insertImage: (payload) => inner.value?.insertImage(payload),
+  uploadImage: (file) => inner.value?.uploadImage(file),
   focus: () => inner.value?.focus(),
   // Navigate to a heading in whichever pane the user edits: the CodeMirror source
   // in source/split (mounted only then), else the WYSIWYG.
