@@ -10,10 +10,29 @@
 //   </KunEditor>
 //
 // KunTab / KunButton / KunIcon are auto-imported by @kungal/ui-nuxt.
+//
+// Look is customizable: pass `variant` / `color` / `size` (forwarded to the
+// KunTab, and `size` to the swap / scroll-sync buttons) to restyle without
+// rebuilding the switch. For a completely different control, use the raw
+// #view-switch slot API instead.
 import { computed } from 'vue'
 import type { KunEditorViewSwitchApi } from '@kungal/editor-vue'
+import type { KunTabColor, KunTabSize, KunTabVariant } from '@kungal/ui-vue'
 
-const props = defineProps<KunEditorViewSwitchApi>()
+const props = withDefaults(
+  defineProps<
+    KunEditorViewSwitchApi & {
+      variant?: KunTabVariant
+      color?: KunTabColor
+      size?: KunTabSize
+    }
+  >(),
+  {
+    variant: 'underlined',
+    color: 'primary',
+    size: 'sm'
+  }
+)
 
 // Only the offered views (from the `views` prop). Hidden entirely for one view.
 const items = computed(() =>
@@ -33,15 +52,15 @@ const onChange = (value: string) => {
     <KunTab
       :model-value="mode"
       :items="items"
-      variant="underlined"
-      color="primary"
-      size="sm"
+      :variant="variant"
+      :color="color"
+      :size="size"
       @update:model-value="onChange"
     />
     <template v-if="mode === 'split'">
       <KunButton
         variant="light"
-        size="sm"
+        :size="size"
         :is-icon-only="true"
         :aria-label="labels.swap"
         @click="swap()"
@@ -51,7 +70,7 @@ const onChange = (value: string) => {
       <KunButton
         :variant="scrollSync ? 'flat' : 'light'"
         :color="scrollSync ? 'primary' : 'default'"
-        size="sm"
+        :size="size"
         :is-icon-only="true"
         :aria-label="labels.scrollSync"
         :aria-pressed="scrollSync"

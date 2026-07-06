@@ -57,6 +57,13 @@ const linkPromptSrc = `const adapters = {
 }
 // One override covers the toolbar, the default toolbar, AND the selection bubble.`
 
+// View-switch styling: <KunEditorViewSwitch> forwards variant / color / size.
+const switchMd = ref('切换上面的 预览 / Markdown / 分栏,看看切换条样式。')
+const switchSrc = `<template #view-switch="s">
+  <!-- 外观可配:variant / color / size 转发给 KunTab -->
+  <KunEditorViewSwitch v-bind="s" variant="solid" color="secondary" size="md" />
+</template>`
+
 const usage = `<script setup lang="ts">
 // nuxt.config: extends ['@kungal/ui-nuxt', '@kungal/editor-nuxt']
 // → <KunEditor> + <KunEditorToolbar> + <KunEditorViewSwitch> auto-import.
@@ -172,6 +179,30 @@ const adapters = { uploadImage, stickerSource, notify }
       />
     </ClientOnly>
     <Code :code="linkPromptSrc" lang="ts" />
+
+    <h2 class="mt-8 mb-1 text-xl font-semibold">自定义切换条样式</h2>
+    <p class="text-default-600 mb-2">
+      预览 / Markdown / 分栏 切换条有三层可定制:① 手搓默认切换条 —— 改
+      <code>.kun-editor__toolbar</code> / <code>.kun-editor__tab</code>(<code>[data-active]</code>)的 CSS;
+      ② KunUI <code>&lt;KunEditorViewSwitch&gt;</code> —— 传 <code>variant</code> /
+      <code>color</code> / <code>size</code>(转发给 KunTab);③ 想要完全不同的控件 —— 直接用
+      <code>#view-switch</code> 插槽 API 自己搭。下面是 <code>solid + secondary + md</code>:
+    </p>
+    <ClientOnly>
+      <div class="border-default-200 rounded-kun-lg my-5 overflow-hidden border">
+        <div class="bg-content1/60 p-4">
+          <KunEditor v-model="switchMd" :adapters="adapters">
+            <template #view-switch="s">
+              <KunEditorViewSwitch v-bind="s" variant="solid" color="secondary" size="md" />
+            </template>
+            <template #toolbar="api">
+              <KunEditorToolbar v-bind="api" />
+            </template>
+          </KunEditor>
+        </div>
+      </div>
+    </ClientOnly>
+    <Code :code="switchSrc" lang="vue" />
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">用法</h2>
     <Code :code="usage" lang="vue" />
