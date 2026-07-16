@@ -11,7 +11,15 @@
 // handle (insertQuote / insertMention / focus).
 import { MilkdownProvider } from '@milkdown/vue'
 import { ProsemirrorAdapterProvider } from '@prosemirror-adapter/vue'
-import { computed, nextTick, onBeforeUnmount, provide, ref, watch } from 'vue'
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  provide,
+  ref,
+  watch
+} from 'vue'
 import type {
   KunEditorAdapters,
   KunEditorFeatures,
@@ -90,7 +98,26 @@ const emit = defineEmits<{
   'update:modelValue': [markdown: string]
   /** The heading outline (for a host-rendered TOC), whenever it changes. */
   'update:headings': [headings: KunHeading[]]
+  /** The WYSIWYG's create/hydrate state — true until Milkdown is ready. */
+  'update:loading': [loading: boolean]
 }>()
+
+// Milkdown / CodeMirror need the DOM, so the editor body mounts client-side only:
+// the server (and the first client paint) render just the placeholder, which the
+// client hydrates cleanly before swapping in the editor — no SSR/hydration
+// mismatch, and the area never collapses to nothing.
+const mounted = ref(false)
+onMounted(() => {
+  mounted.value = true
+})
+
+// Milkdown's own create/hydrate state (from useEditor). The placeholder stays up
+// until it's ready; starts true so it shows from the very first client render.
+const loading = ref(true)
+const onLoading = (v: boolean) => {
+  loading.value = v
+  emit('update:loading', v)
+}
 
 // Derive the heading outline from the bound markdown and emit it on change, so a
 // host can render a table of contents. Cheap (a regex line scan); the host drives
@@ -269,6 +296,10 @@ defineExpose<KunEditorExpose>({
 
 <template>
   <div ref="rootEl" class="kun-editor" data-kun-editor :data-mode="mode">
+    <!-- Editor body is client-only (Milkdown/CodeMirror need the DOM). The server
+         and the first client paint render just the placeholder below, so there's
+         no hydration mismatch and the area doesn't collapse to nothing. -->
+    <template v-if="mounted">
     <!-- The view switch (预览 / Markdown / 分栏 + swap + scroll-sync). Override the
          #view-switch slot to swap the hand-rolled tabs for e.g. a KunUI <KunTab>. -->
     <slot
@@ -361,10 +392,23 @@ defineExpose<KunEditorExpose>({
               :active="mode === 'wysiwyg' && !readonly"
               :selection-toolbar="selectionToolbarEnabled"
               @update:model-value="onUpdate"
+              @update:loading="onLoading"
             />
           </div>
         </div>
       </ProsemirrorAdapterProvider>
     </MilkdownProvider>
+    </template>
+
+    <!-- Loading placeholder: shown on the server + first paint, and until Milkdown
+         is ready. Override the #loading slot (e.g. a <KunSkeleton>) or restyle the
+         .kun-editor__loading / .kun-editor__skeleton class hooks. -->
+    <div v-if="!mounted || loading" class="kun-editor__loading" aria-hidden="true">
+      <slot name="loading">
+        <div class="kun-editor__skeleton" />
+        <div class="kun-editor__skeleton" />
+        <div class="kun-editor__skeleton" />
+      </slot>
+    </div>
   </div>
 </template>

@@ -143,6 +143,44 @@
   background: var(--color-default-100);
 }
 
+/* ── Loading placeholder (WYSIWYG create/hydrate gap) ───────────────────── */
+/* Shown while Milkdown hydrates; reserves height so the area doesn't collapse. */
+.kun-editor__loading {
+  padding: 0.75rem 0;
+}
+.kun-editor__skeleton {
+  height: 0.85rem;
+  margin: 0.6rem 0;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--color-default-100) 25%,
+    var(--color-default-200) 50%,
+    var(--color-default-100) 75%
+  );
+  background-size: 200% 100%;
+  animation: kun-editor-shimmer 1.2s ease-in-out infinite;
+}
+.kun-editor__skeleton:nth-child(2) {
+  width: 85%;
+}
+.kun-editor__skeleton:nth-child(3) {
+  width: 60%;
+}
+@keyframes kun-editor-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kun-editor__skeleton {
+    animation: none;
+  }
+}
+
 /* ── Formatting toolbar ─────────────────────────────────────────────────── */
 .kun-editor__format-toolbar {
   display: flex;

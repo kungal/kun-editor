@@ -59,6 +59,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [markdown: string]
+  /** Milkdown's create/hydrate state — true until the editor is ready. */
+  'update:loading': [loading: boolean]
 }>()
 
 // The markdown the editor last emitted. Lets the modelValue watch below tell an
@@ -144,6 +146,11 @@ const editorInfo = useEditor((root) => {
 
   return editor
 })
+
+// Surface Milkdown's own loading state (Ref<boolean> from useEditor) so the outer
+// component can show a placeholder while the editor hydrates/creates — the SSR gap
+// where the WYSIWYG area is briefly empty.
+watch(editorInfo.loading, (v) => emit('update:loading', v), { immediate: true })
 
 // Re-sync the doc when modelValue changes from OUTSIDE the editor (a parent
 // replacing the bound value). Guarded by lastEmitted so the editor's own edits

@@ -65,6 +65,11 @@ const uploadImage: NonNullable<KunEditorAdapters['uploadImage']> = (file) =>
     reader.readAsDataURL(file)
   })
 
+// Milkdown hydrates client-side, so <KunEditor> shows a built-in skeleton during
+// the create gap. Hosts can also react to the state via @update:loading (e.g.
+// disable a submit button until ready).
+const loading = ref(false)
+
 const notice = ref('')
 const notify: NonNullable<KunEditorAdapters['notify']> = (msg) => {
   notice.value = msg
@@ -116,6 +121,7 @@ const editorKey = computed(() =>
             :locale="locale"
             :readonly="readonly"
             placeholder="写点什么…(清空内容看看 placeholder)"
+            @update:loading="loading = $event"
           />
         </KunCard>
 
@@ -124,6 +130,10 @@ const editorKey = computed(() =>
             <KunChip color="success">
               <KunIcon name="simple-icons:markdown" />
               v-model
+            </KunChip>
+            <KunChip v-if="loading" color="warning" data-loading-chip>
+              <KunIcon name="lucide:loader" />
+              加载中…
             </KunChip>
             <span class="text-default-500 text-sm">{{ markdown.length }} chars</span>
           </div>
