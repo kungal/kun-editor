@@ -28,12 +28,13 @@ Nuxt: also add `@kungal/editor-nuxt`, `@kungal/ui-nuxt`, `nuxt`.
 KunEditor is **headless** — it ships zero CSS, only stable class hooks
 (`.kun-editor__*`, `.kun-mention-dropdown*`) and `data-*` state. Give it a look
 with your own stylesheet. The canonical reference is
-[`apps/docs/app/assets/css/kun-editor.css`](../apps/docs/app/assets/css/kun-editor.css),
-which themes the hooks with KunUI tokens — copy it next to your KunUI entry:
+[`packages/editor-nuxt/editor.css`](../packages/editor-nuxt/editor.css), which
+themes the hooks with KunUI tokens and SHIPS with the layer — import it next to
+your KunUI entry (or copy it and edit):
 
 ```css
 /* your app's main.css — after @kungal/ui-tokens + @kungal/ui-vue */
-@import './kun-editor.css'; /* the reference stylesheet, copied into your app */
+@import '@kungal/editor-nuxt/editor.css'; /* the reference stylesheet */
 ```
 
 Also import the peers' own CSS for the features you enable:
@@ -79,7 +80,7 @@ const adapters: KunEditorAdapters = {
 ```vue
 <script setup lang="ts">
 import { KunEditor } from '@kungal/editor-vue'
-import '~/assets/kun-editor.css' // your copy of the reference stylesheet
+import '@kungal/editor-nuxt/editor.css' // the reference stylesheet
 const markdown = ref('')
 </script>
 

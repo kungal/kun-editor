@@ -2,7 +2,7 @@
 const importCss = `/* 你的 main.css —— 在 KunUI 的 tokens/style 之后 */
 @import '@kungal/ui-tokens';
 @import '@kungal/ui-vue/style.css';
-@import './kun-editor.css';   /* 从本仓库 apps/docs 拷来的参考样式 */`
+@import '@kungal/editor-nuxt/editor.css';   /* 随 layer 发布的参考样式 */`
 
 const hooks = [
   { name: '.kun-editor', type: 'shell', description: '最外层容器(纵向 flex)' },
@@ -22,7 +22,11 @@ const structural = `/* 编辑器真正「需要」的结构性规则 —— 别�
 .kun-mention-dropdown { position: absolute; display: none; }
 .kun-mention-dropdown[data-show='true'] { display: block; }
 .kun-editor__picker { position: relative; }
-.kun-editor__picker-panel { position: absolute; }`
+.kun-editor__picker-panel { position: absolute; }
+/* placeholder 的 ::before 是绝对定位 —— 空块必须是它的定位祖先,
+   否则长 placeholder 会按视口宽度排版,直接溢出编辑器 */
+.kun-editor__placeholder { position: relative; }
+.kun-editor__placeholder::before { position: absolute; top: 0; left: 0; width: 100%; }`
 
 const theming = `/* 所有配色都读 KunUI 设计 token —— 换肤只需覆盖变量,或改 KunUI 主题 */
 .kun-editor__tab[data-active='true'] { background: var(--color-primary); }
@@ -46,16 +50,21 @@ const theming = `/* 所有配色都读 KunUI 设计 token —— 换肤只需覆
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">最快的上手方式</h2>
     <p class="text-default-600 mb-3">
-      直接拷贝本仓库的参考样式表
-      <a
-        class="text-primary"
-        href="https://github.com/kungal/kun-editor/blob/main/apps/docs/app/assets/css/kun-editor.css"
-        target="_blank"
-        >apps/docs/app/assets/css/kun-editor.css</a
-      >
-      到你的项目并导入。它已用 KunUI token 主题化:
+      参考样式表随
+      <code class="text-primary">@kungal/editor-nuxt</code>
+      一起发布,直接 import 即可(样式修复随版本升级到手,不用再拷一遍):
     </p>
     <Code :code="importCss" lang="css" />
+    <p class="text-default-600 mt-3 mb-3">
+      想改就改:把
+      <a
+        class="text-primary"
+        href="https://github.com/kungal/kun-editor/blob/main/packages/editor-nuxt/editor.css"
+        target="_blank"
+        >packages/editor-nuxt/editor.css</a
+      >
+      拷进项目当起点也行 —— 纯 CSS,无构建步骤,且已用 KunUI token 主题化。
+    </p>
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">Class 钩子</h2>
     <p class="text-default-600">写自己的样式时,针对这些稳定的钩子:</p>

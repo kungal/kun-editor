@@ -12,7 +12,7 @@ const use = `<!-- 任意组件里 —— 无需 import,<KunEditor> 已自动注�
 const css = `/* app 的 main.css */
 @import '@kungal/ui-tokens';
 @import '@kungal/ui-vue/style.css';
-@import './kun-editor.css';   /* 编辑器参考样式 */`
+@import '@kungal/editor-nuxt/editor.css';   /* 编辑器参考样式 */`
 </script>
 
 <template>

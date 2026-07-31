@@ -7,8 +7,8 @@ WYSIWYG preview + markdown-source), its toolbar and the Vue plugin views
 
 **Headless — ships zero CSS.** The component only renders stable class hooks
 (`.kun-editor__*`, `.kun-mention-dropdown*`) + `data-*` state; you own the look.
-Copy the reference stylesheet [`apps/docs/app/assets/css/kun-editor.css`](../../apps/docs/app/assets/css/kun-editor.css)
-(themed with KunUI tokens), or write your own. It works in any Vue 3 app;
+Import the reference stylesheet [`@kungal/editor-nuxt/editor.css`](../editor-nuxt/editor.css)
+(themed with KunUI tokens), copy it, or write your own. It works in any Vue 3 app;
 `@kungal/editor-nuxt` adds Nuxt auto-import sugar.
 
 ## Usage
@@ -16,8 +16,8 @@ Copy the reference stylesheet [`apps/docs/app/assets/css/kun-editor.css`](../../
 ```vue
 <script setup lang="ts">
 import { KunEditor, type KunEditorAdapters } from '@kungal/editor-vue'
-// Headless: bring your own styles. See apps/docs for the KunUI-themed reference.
-import '~/assets/kun-editor.css'
+// Headless: bring your own styles, or use the KunUI-themed reference sheet.
+import '@kungal/editor-nuxt/editor.css'
 
 const markdown = ref('')
 

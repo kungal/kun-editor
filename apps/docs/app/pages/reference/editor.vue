@@ -11,7 +11,7 @@ const emits = [
 
 const usage = `<script setup lang="ts">
 import { KunEditor, type KunEditorAdapters } from '@kungal/editor-vue'
-import '~/assets/kun-editor.css'
+import '@kungal/editor-nuxt/editor.css'
 
 const markdown = ref('')
 const adapters: KunEditorAdapters = { /* … */ }

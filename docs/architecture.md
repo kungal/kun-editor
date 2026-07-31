@@ -151,10 +151,10 @@ KunEditor — no big-bang cutover.
   renders only stable class hooks (`.kun-editor__*`, `.kun-mention-dropdown*`) and
   `data-*` state; all styling is the host's. The canonical reference styling lives
   in the docs site (`apps/docs`, Nuxt 4 + KunUI + Tailwind v4, mirroring kun-ui's
-  own docs): `app/assets/css/kun-editor.css` themes the hooks with KunUI tokens,
+  own docs): `packages/editor-nuxt/editor.css` themes the hooks with KunUI tokens,
   and `/playground` shows a live, fully-styled `<KunEditor>` with adapter/feature
   toggles. This keeps the editor installable in any Vue app (no `@kungal/ui-vue`
-  dependency) while KunUI hosts get a matching look by copying the reference CSS.
+  dependency) while KunUI hosts get a matching look by importing the reference CSS.
   The site is a full docs site (sidebar + SEO from a `site.config`, Shiki code,
   hand-authored prop tables, live client-only `<DemoEditor>` on every page):
   getting-started, guides (styling / adapters / features / nuxt), a page per

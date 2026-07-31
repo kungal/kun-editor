@@ -81,8 +81,8 @@ const features = [
   @milkdown/kit @milkdown/prose @milkdown/vue vue</code></pre>
       </KunCard>
       <p class="text-default-500 mt-3 text-sm">
-        editor-vue 是 headless 的 —— 复制本站的
-        <code class="text-primary">kun-editor.css</code>
+        editor-vue 是 headless 的 —— 引一份
+        <code class="text-primary">@kungal/editor-nuxt/editor.css</code>
         参考样式(或自己写)来给它上妆。可选功能(katex / 代码块)按需再装它们的
         peer。
       </p>

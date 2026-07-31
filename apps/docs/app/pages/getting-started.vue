@@ -12,8 +12,8 @@ pnpm add katex`
 
 const usage = `<script setup lang="ts">
 import { KunEditor, type KunEditorAdapters } from '@kungal/editor-vue'
-// 编辑器是 headless 的 —— 自带样式:拷贝本站的参考样式表(见「样式」页)
-import '~/assets/kun-editor.css'
+// 编辑器是 headless 的 —— 上妆:引参考样式表(或自己写,见「样式」页)
+import '@kungal/editor-nuxt/editor.css'
 // 启用了哪个 peer 就引它的 CSS
 import 'katex/dist/katex.min.css'
 

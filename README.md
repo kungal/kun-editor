@@ -55,8 +55,8 @@ Milkdown plugins.
   `@mention`, image upload, sticker/emoji, inline reply-quote. Each a factory
   over its adapter, never a host-bound singleton.
 - **Headless** — `editor-vue` ships **zero CSS**, only stable class hooks; style
-  it with the reference [`kun-editor.css`](./apps/docs/app/assets/css/kun-editor.css)
-  (themed with KunUI tokens) or your own.
+  it with the reference [`editor.css`](./packages/editor-nuxt/editor.css) shipped
+  by `@kungal/editor-nuxt` (themed with KunUI tokens) or your own.
 - **Imperative API** — a `<KunEditor>` ref exposes `insertQuote` / `insertMention`
   / `focus` for cursor-level inserts (the forum's 「引用」 flow).
 
@@ -72,10 +72,9 @@ pnpm add @kungal/editor-vue @kungal/editor-core vue \
 ```vue
 <script setup lang="ts">
 import { KunEditor, type KunEditorAdapters } from '@kungal/editor-vue'
-// editor-vue is HEADLESS (ships no CSS). Give it a look with your own
-// stylesheet — copy the reference `kun-editor.css` from the docs site
-// (apps/docs), which themes it with KunUI tokens.
-import '~/assets/kun-editor.css'
+// editor-vue is HEADLESS (ships no CSS). Give it a look with the reference
+// stylesheet shipped by the KunUI layer (or copy it and edit).
+import '@kungal/editor-nuxt/editor.css'
 
 const markdown = ref('')
 const adapters: KunEditorAdapters = {

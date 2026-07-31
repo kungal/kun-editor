@@ -6,7 +6,7 @@
 // is rendered by CSS (`::before { content: attr(data-placeholder) }`), so it's
 // purely visual — never part of the doc or the markdown output. Headless: this
 // core ships only the class/attr hook; the `::before` rule lives in the host's
-// stylesheet (see the reference kun-editor.css).
+// stylesheet (see the reference editor.css in @kungal/editor-nuxt).
 //
 // mode 'block' (default): show on whichever empty block the cursor is in (Notion
 // style). mode 'doc': show only when the whole document is empty. Skipped in

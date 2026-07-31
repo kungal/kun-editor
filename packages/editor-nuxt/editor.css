@@ -4,8 +4,12 @@
  * `@kungal/editor-vue` ships ZERO CSS — it only renders stable class hooks
  * (`.kun-editor__*`, `.kun-mention-dropdown*`) and `data-*` state. This file is
  * the canonical styling of those hooks, themed with KunUI design tokens
- * (`--color-*` from `@kungal/ui-tokens`). A downstream app (the forum, moyu, …)
- * copies this file — or writes its own — to give the headless editor a look.
+ * (`--color-*` from `@kungal/ui-tokens`), and it ships with the KunUI layer:
+ *
+ *   @import '@kungal/editor-nuxt/editor.css';
+ *
+ * Import it (fixes then arrive with a version bump) or copy it into your app and
+ * edit freely — it's plain CSS with no build step.
  *
  * It also carries the two structural rules the editor genuinely needs to
  * function: ProseMirror's `white-space` and the popover positioning / show-hide.
@@ -95,12 +99,23 @@
 /* Placeholder: the editor sets a `data-placeholder` attr + this class on the
  * empty block (a decoration, not real content). Render the text via ::before so
  * it never affects the doc / caret. */
+/* The ::before is absolutely positioned, so it needs a positioned ancestor —
+ * without one its containing block is the viewport and a long placeholder is
+ * laid out against THAT width, escaping the editor (horizontal overflow). */
+.kun-editor__placeholder {
+  position: relative;
+}
+
 .kun-editor__placeholder::before {
   content: attr(data-placeholder);
   position: absolute;
+  top: 0;
+  left: 0;
+  /* Wrap inside the block instead of running past the editor's right edge. */
+  width: 100%;
+  overflow-wrap: break-word;
   color: var(--color-default-400);
   pointer-events: none;
-  height: 0;
 }
 
 /* In-flight "uploading…" placeholder — a decoration widget the editor drops at

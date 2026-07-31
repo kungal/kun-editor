@@ -8,8 +8,10 @@
 /* The `.kun-prose` type system — used to render the changelog markdown. */
 @import '@kungal/ui-vue/prose.css';
 
-/* The headless editor's chrome, themed with KunUI tokens (see the file header). */
-@import './kun-editor.css';
+/* The headless editor's chrome, themed with KunUI tokens (see the file header).
+ * Shipped BY the layer, so style fixes arrive with a version bump instead of a
+ * re-copy — this app dogfoods the same import a downstream host uses. */
+@import '@kungal/editor-nuxt/editor.css';
 
 /*
  * Tailwind only generates the utility classes it finds in scanned source. KunUI's
