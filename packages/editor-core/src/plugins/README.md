@@ -14,7 +14,7 @@ plugins/
   katex/        inline + block LaTeX, input rules, remark       (peer: katex)
   code/         CodeMirror code-block config + icons            (peers: codemirror, @codemirror/*)
   upload/       paste/drop/toolbar image upload                 (adapter: uploadImage)
-  stop-link/    link keymap that stops the auto-link mark
+  stop-link/    Space keymap + orphan stored-link cleanup
 ```
 
 Each folder exports a **factory** (`createXxxPlugin(adapter?)`), never a

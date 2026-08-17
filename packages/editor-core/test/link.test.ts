@@ -3,7 +3,10 @@
 import { describe, expect, it } from 'vitest'
 import { Editor, defaultValueCtx, editorViewCtx, rootCtx } from '@milkdown/kit/core'
 import { callCommand, getMarkdown } from '@milkdown/kit/utils'
+import { undoCommand } from '@milkdown/kit/plugin/history'
+import { closeHistory } from '@milkdown/kit/prose/history'
 import { TextSelection } from '@milkdown/kit/prose/state'
+import { toggleLinkCommand, linkSchema } from '@milkdown/kit/preset/commonmark'
 import { createKunEditorPlugins } from '../src/preset'
 import { insertLinkCommand } from '../src/plugins/link'
 
@@ -83,5 +86,95 @@ describe('insertLinkCommand', () => {
       })
     })
     expect(out).toBe('x')
+  })
+})
+
+describe('orphan link stored mark', () => {
+  const linkHello = (editor: Editor) => {
+    select(editor, 1, 6)
+    editor.action(callCommand(insertLinkCommand.key, { href: 'https://a.com' }))
+  }
+
+  it('clears the stored mark as soon as the linked text is gone', async () => {
+    await withEditor((editor) => {
+      linkHello(editor)
+      select(editor, 1, 6)
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx)
+        view.dispatch(view.state.tr.deleteSelection())
+        const linkType = linkSchema.type(ctx)
+        expect(!!linkType.isInSet(view.state.storedMarks ?? [])).toBe(false)
+      })
+    })
+  })
+
+  it('does not keep the link after backspacing the linked text away', async () => {
+    const out = await withEditor((editor) => {
+      linkHello(editor)
+      select(editor, 6, 6)
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx)
+        for (let i = 0; i < 5; i++) {
+          const { from } = view.state.selection
+          view.dispatch(view.state.tr.delete(from - 1, from))
+        }
+        view.dispatch(view.state.tr.insertText('x'))
+      })
+    })
+    expect(out).toBe('x')
+  })
+
+  it('keeps the link when only part of the linked text is deleted', async () => {
+    const out = await withEditor((editor) => {
+      linkHello(editor)
+      select(editor, 4, 6) // "lo"
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx)
+        view.dispatch(view.state.tr.deleteSelection())
+        view.dispatch(view.state.tr.insertText('x'))
+      })
+    })
+    expect(out).toBe('[helx](https://a.com)')
+  })
+
+  it('continues the link when typing inside leftover linked text', async () => {
+    const out = await withEditor((editor) => {
+      linkHello(editor)
+      select(editor, 3, 3) // after "he"
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx)
+        view.dispatch(view.state.tr.insertText('X'))
+      })
+    })
+    expect(out).toBe('[heXllo](https://a.com)')
+  })
+
+  it('strips an armed toggleLink stored mark outside a link', async () => {
+    const out = await withEditor((editor) => {
+      select(editor, 6, 6)
+      editor.action(callCommand(toggleLinkCommand.key, { href: 'https://a.com' }))
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx)
+        view.dispatch(view.state.tr.insertText('x'))
+      })
+    })
+    expect(out).toBe('hellox')
+  })
+
+  it('undo after deleting a link restores the link in one step', async () => {
+    const out = await withEditor((editor) => {
+      linkHello(editor)
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx)
+        view.dispatch(closeHistory(view.state.tr))
+      })
+      select(editor, 1, 6)
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx)
+        view.dispatch(view.state.tr.deleteSelection())
+      })
+      editor.action(callCommand(undoCommand.key))
+    })
+    expect(out).toBe('[hello](https://a.com)')
   })
 })

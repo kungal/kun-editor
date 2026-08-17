@@ -12,7 +12,7 @@ import type {
   KunEditorFeatures,
   KunEditorLocale
 } from '@kungal/editor-core'
-import type { KunSelectionItem } from './types'
+import type { KunSelectionItem, KunToggleMark } from './types'
 
 export interface KunEditorContext {
   /** The host policy bundle (searchMentionUsers, stickerSource, notify, …). */
@@ -23,6 +23,12 @@ export interface KunEditorContext {
   readonly locale: KunEditorLocale
   /** Ordered buttons for the selection bubble toolbar (a plugin view reads it). */
   readonly selectionToolbarItems: KunSelectionItem[]
+  /**
+   * Live toggle-mark state (bold / italic / strike / code). Mutated in place
+   * by the editor's active-marks plugin on every view update — toolbar and
+   * bubble both read this same object.
+   */
+  readonly activeMarks: Record<KunToggleMark, boolean>
 }
 
 export const KUN_EDITOR_CONTEXT: InjectionKey<KunEditorContext> =

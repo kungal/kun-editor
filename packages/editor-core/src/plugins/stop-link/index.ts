@@ -1,6 +1,19 @@
-// Stop-link keymap — pressing Space clears the active link mark so typing after
-// a link doesn't keep extending the link. Ported from the forum's
-// plugins/stop-link/stopLinkPlugin.ts. Pure: no host policy.
+// Stop-link — keep the link mark from leaking onto text that is not a link.
+//
+// A link is a MARK, so ProseMirror stores it as a pending mark after a delete
+// (the same mechanism that makes typing after a deleted bold word stay bold).
+// For a link that is wrong: the next keystroke must not inherit a href that
+// is no longer under the cursor. Two complementary pieces:
+//
+//   1. A $prose plugin that strips an orphan stored link the moment the
+//      cursor is not inside a link (covers select-delete, backspace, …).
+//   2. A Space keymap that also clears the stored mark — Milkdown's link
+//      mark is inclusive, so Space is how you stop extending a live link
+//      while typing at its end (the forum's original stop-link behaviour).
+//
+// A stored link mark is ONLY valid while the cursor sits inside a link. This
+// plugin will therefore strip an "armed" toggleLink on an empty selection
+// outside a link — insert via insertLinkCommand instead. Pure: no host policy.
 import type { MilkdownPlugin } from '@milkdown/kit/ctx'
 import { $command, $prose, $useKeymap } from '@milkdown/kit/utils'
 import { linkSchema } from '@milkdown/kit/preset/commonmark'
@@ -27,7 +40,9 @@ export const stopLinkCommand = $command('StopLink', (ctx) => () => {
     const markType = linkSchema.type(ctx)
     const checkMark = hasMark(state, markType)
     if (checkMark) {
-      dispatch?.(state.tr.removeStoredMark(markType))
+      dispatch?.(
+        state.tr.removeStoredMark(markType).setMeta('addToHistory', false)
+      )
     }
     return false
   }
@@ -46,13 +61,6 @@ export const linkCustomKeymap = $useKeymap('linkCustomKeymap', {
 
 const orphanLinkKey = new PluginKey('KUN_ORPHAN_LINK')
 
-// A link is a MARK, so deleting its text leaves the link as a STORED mark — the
-// pending mark ProseMirror re-applies to the next keystroke (the same reason
-// typing right after a deleted bold word stays bold). For a link that's wrong:
-// ending the link must not make every following character a link. The Space
-// keymap above clears it when you keep typing, but a select-then-delete leaves
-// no Space to press. Clear the stored link mark the moment the cursor is no
-// longer inside a link.
 const clearOrphanLink = $prose(
   (ctx) =>
     new Plugin({
@@ -63,15 +71,17 @@ const clearOrphanLink = $prose(
           return null
         }
         const linkType = linkSchema.type(ctx)
-        if (!storedMarks.some((m) => m.type === linkType)) {
+        if (!linkType.isInSet(storedMarks)) {
           return null
         }
-        // The cursor still sits inside a link (the mark is in the surrounding
-        // marks) — keep the stored mark so typing continues the link.
-        if (selection.$from.marks().some((m) => m.type === linkType)) {
+        // Still inside a link — keep the stored mark so typing continues it.
+        if (linkType.isInSet(selection.$from.marks())) {
           return null
         }
-        return newState.tr.removeStoredMark(linkType)
+        // Housekeeping: do not occupy an undo step of its own.
+        return newState.tr
+          .removeStoredMark(linkType)
+          .setMeta('addToHistory', false)
       }
     })
 )

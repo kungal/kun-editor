@@ -48,10 +48,10 @@ export interface KunEditorToolbarApi {
   /** Run a Milkdown command (import its key from the preset/commonmark/gfm). */
   run: <T>(key: CmdKey<T>, payload?: T) => void
   /**
-   * Reactive active state of the toggle marks at the current cursor. A key is
-   * `true` while that mark is active (e.g. `bold` is true inside a bold run, or
-   * when it is the pending stored mark), so a toolbar can highlight its pressed
-   * buttons the same way it highlights hover.
+   * Live toggle-mark state at the caret / selection (bold / italic / strike /
+   * code). The same record drives the default toolbar and the selection
+   * bubble; a custom `#toolbar` reads it here. Updated on every editor view
+   * tick, including stored-mark-only toggles.
    */
   activeMarks: Readonly<Record<KunToggleMark, boolean>>
   /** Insert plain text at the cursor (e.g. an emoji). */

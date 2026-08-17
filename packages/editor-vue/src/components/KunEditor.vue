@@ -17,6 +17,7 @@ import {
   onBeforeUnmount,
   onMounted,
   provide,
+  reactive,
   ref,
   watch
 } from 'vue'
@@ -31,6 +32,7 @@ import MilkdownEditor from './MilkdownEditor.vue'
 import EditorToolbar from './EditorToolbar.vue'
 import ToolbarHost from './ToolbarHost.vue'
 import MarkdownSource from './MarkdownSource.vue'
+import { createEmptyActiveMarks } from '../active-marks'
 import { KUN_EDITOR_CONTEXT } from '../context'
 import type { KunEditorExpose, KunSelectionItem } from '../types'
 
@@ -128,11 +130,13 @@ watch(
   { immediate: true }
 )
 
-// Provide the adapters + locale to the plugin VIEWS (the @mention dropdown, and
-// later the sticker picker). It MUST be provided here, not in <MilkdownEditor>:
-// @prosemirror-adapter/vue renders those views as portals under
-// <ProsemirrorAdapterProvider> (siblings of <MilkdownEditor>), so only an
-// ancestor of that provider can reach them. Getters keep prop reactivity.
+// One reactive record for toggle-mark chrome. The WYSIWYG plugin writes it;
+// the toolbar, the #toolbar slot API, and the selection bubble (a portal
+// sibling) all read it. MUST be provided here, not in <MilkdownEditor>:
+// @prosemirror-adapter/vue renders plugin views as portals under
+// <ProsemirrorAdapterProvider> (siblings of <MilkdownEditor>).
+const activeMarks = reactive(createEmptyActiveMarks())
+
 provide(KUN_EDITOR_CONTEXT, {
   get adapters() {
     return props.adapters
@@ -149,6 +153,9 @@ provide(KUN_EDITOR_CONTEXT, {
     return Array.isArray(props.selectionToolbar)
       ? props.selectionToolbar
       : DEFAULT_SELECTION_ITEMS
+  },
+  get activeMarks() {
+    return activeMarks
   }
 })
 

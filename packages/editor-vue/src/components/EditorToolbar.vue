@@ -35,15 +35,15 @@ import {
 import { editorViewCtx } from '@milkdown/kit/core'
 import type { CmdKey } from '@milkdown/kit/core'
 import { computed, inject, ref } from 'vue'
+import { EMPTY_ACTIVE_MARKS } from '../active-marks'
 import { KUN_EDITOR_CONTEXT } from '../context'
-import { useActiveMarks } from '../composables/useActiveMarks'
 import type { KunToggleMark } from '../types'
 import { TOOLBAR_ICONS as I } from '../toolbar-icons'
 import StickerPicker from './StickerPicker.vue'
 
 const [, getEditor] = useInstance()
 const ctx = inject(KUN_EDITOR_CONTEXT)
-const { activeMarks, refresh } = useActiveMarks()
+const activeMarks = ctx?.activeMarks ?? EMPTY_ACTIVE_MARKS
 const uploadImage = computed(() => ctx?.adapters.uploadImage)
 // The emoji/sticker picker (emoji is built-in; the sticker tab needs the
 // adapter). Shown unless the host turns the feature off.
@@ -54,9 +54,6 @@ const isEnglish = computed(() =>
 
 const call = <T,>(key: CmdKey<T>, payload?: T) => {
   getEditor()?.action(callCommand(key, payload))
-  // Refresh the toggle-mark active state: a stored-mark toggle neither moves
-  // the selection nor changes the doc, so the listener would miss it.
-  refresh()
 }
 
 // Link: get a URL, then wrap the selection (or insert the URL as linked text).

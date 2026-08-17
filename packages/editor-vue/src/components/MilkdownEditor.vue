@@ -35,7 +35,9 @@ import type {
   KunEditorFeatures,
   KunEditorLocale
 } from '@kungal/editor-core'
-import { watch } from 'vue'
+import { inject, watch } from 'vue'
+import { createActiveMarksPlugin } from '../active-marks'
+import { KUN_EDITOR_CONTEXT } from '../context'
 import MentionDropdown from './MentionDropdown.vue'
 import SelectionTooltip from './SelectionTooltip.vue'
 import type { KunEditorExpose } from '../types'
@@ -79,6 +81,8 @@ let applyingExternal = false
 // feature is on AND the host supplies searchMentionUsers (no adapter → the
 // mention schema still round-trips, just no autocomplete). The dropdown reads
 // the adapter via the KunEditor context (provided by the outer component).
+const kunCtx = inject(KUN_EDITOR_CONTEXT)
+
 const pluginViewFactory = usePluginViewFactory()
 const mentionSlash = slashFactory('kunMention')
 const mentionEnabled =
@@ -142,6 +146,11 @@ const editorInfo = useEditor((root) => {
   }
   if (tooltipEnabled) {
     editor.use(selectionTooltip)
+  }
+  // Single writer for toggle-mark chrome. view.update fires on stored-mark
+  // toggles too, so the toolbar does not need a post-command refresh.
+  if (kunCtx) {
+    editor.use(createActiveMarksPlugin(kunCtx.activeMarks))
   }
 
   return editor

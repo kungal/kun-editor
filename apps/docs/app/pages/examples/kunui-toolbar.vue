@@ -93,7 +93,7 @@ const adapters = { uploadImage, stickerSource, notify }
     <p class="text-default-600 mt-4 leading-relaxed">
       <code class="text-primary">&lt;KunEditor&gt;</code> 的工具栏是可替换的。它通过
       <code>#toolbar</code> 具名插槽把命令 API(<code>KunEditorToolbarApi</code>:run /
-      insertText / focus / adapters / …)传出,所以自定义工具栏活在<strong>宿主的组件树</strong>里,
+      activeMarks / insertText / focus / adapters / …)传出,所以自定义工具栏活在<strong>宿主的组件树</strong>里,
       无需 <code>useInstance</code>。核心 <code>@kungal/editor-vue</code> 保持
       <strong>headless、零 UI 依赖</strong>;<code>@kungal/editor-nuxt</code>(本就假定
       KunUI)提供 <code>&lt;KunEditorToolbar&gt;</code> —— 用

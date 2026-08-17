@@ -11,6 +11,7 @@ const hooks = [
   { name: '.kun-editor__wysiwyg .ProseMirror', type: 'wysiwyg', description: '所见即所得编辑区(需要 white-space: pre-wrap)' },
   { name: '.kun-editor__format-toolbar', type: 'toolbar', description: '格式化工具栏' },
   { name: '.kun-editor__tool', type: 'toolbar', description: '工具栏按钮' },
+  { name: '.kun-editor__tool[data-active], .kun-editor__bubble-btn[data-active]', type: 'toolbar', description: '加粗 / 斜体等 toggle 的按下态' },
   { name: '.kun-editor__source .cm-editor', type: 'source', description: 'CodeMirror 源码视图' },
   { name: '.kun-mention-dropdown[data-show]', type: 'mention', description: '@提及下拉(定位 + 显隐必需)' },
   { name: '.kun-editor__picker-panel', type: 'picker', description: '贴纸 / 表情弹层(定位必需)' },
@@ -31,6 +32,8 @@ const structural = `/* 编辑器真正「需要」的结构性规则 —— 别�
 const theming = `/* 所有配色都读 KunUI 设计 token —— 换肤只需覆盖变量,或改 KunUI 主题 */
 .kun-editor__tab[data-active='true'] { background: var(--color-primary); }
 .kun-editor__tool:hover { background: var(--color-default-100); }
+.kun-editor__tool[data-active='true'],
+.kun-editor__bubble-btn[data-active='true'] { background: var(--color-primary); }
 /* 暗色模式:KunUI 的 .kun-dark-mode 一挂,token 自动切换,编辑器随之变色 */`
 </script>
 

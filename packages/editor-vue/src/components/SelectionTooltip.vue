@@ -23,12 +23,15 @@ import { toggleStrikethroughCommand } from '@milkdown/kit/preset/gfm'
 import { insertLinkCommand } from '@kungal/editor-core/preset'
 import type { CmdKey } from '@milkdown/kit/core'
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { EMPTY_ACTIVE_MARKS } from '../active-marks'
 import { KUN_EDITOR_CONTEXT } from '../context'
+import type { KunToggleMark } from '../types'
 import { TOOLBAR_ICONS as I } from '../toolbar-icons'
 
 const { view, prevState } = usePluginViewContext()
 const [, getEditor] = useInstance()
 const ctx = inject(KUN_EDITOR_CONTEXT)
+const activeMarks = ctx?.activeMarks ?? EMPTY_ACTIVE_MARKS
 const isEnglish = computed(() =>
   (ctx?.locale ?? 'zh-cn').toLowerCase().startsWith('en')
 )
@@ -61,6 +64,7 @@ interface BubbleButton {
   svg: string
   title: string
   run: () => void
+  mark?: KunToggleMark
 }
 type BubbleItem = { divider: true } | ({ divider: false } & BubbleButton)
 
@@ -68,10 +72,10 @@ type BubbleItem = { divider: true } | ({ divider: false } & BubbleButton)
 const commandMap = computed<Record<string, BubbleButton>>(() => {
   const en = isEnglish.value
   return {
-    bold: { svg: I.bold, title: en ? 'Bold' : '加粗', run: () => call(toggleStrongCommand.key) },
-    italic: { svg: I.italic, title: en ? 'Italic' : '斜体', run: () => call(toggleEmphasisCommand.key) },
-    strike: { svg: I.strike, title: en ? 'Strikethrough' : '删除线', run: () => call(toggleStrikethroughCommand.key) },
-    code: { svg: I.code, title: en ? 'Inline code' : '行内代码', run: () => call(toggleInlineCodeCommand.key) },
+    bold: { svg: I.bold, title: en ? 'Bold' : '加粗', run: () => call(toggleStrongCommand.key), mark: 'bold' },
+    italic: { svg: I.italic, title: en ? 'Italic' : '斜体', run: () => call(toggleEmphasisCommand.key), mark: 'italic' },
+    strike: { svg: I.strike, title: en ? 'Strikethrough' : '删除线', run: () => call(toggleStrikethroughCommand.key), mark: 'strike' },
+    code: { svg: I.code, title: en ? 'Inline code' : '行内代码', run: () => call(toggleInlineCodeCommand.key), mark: 'code' },
     link: { svg: I.link, title: en ? 'Link' : '链接', run: promptLink }
   }
 })
@@ -132,6 +136,8 @@ onBeforeUnmount(() => {
         class="kun-editor__bubble-btn"
         :title="it.title"
         :aria-label="it.title"
+        :aria-pressed="it.mark ? activeMarks[it.mark] : undefined"
+        :data-active="it.mark ? activeMarks[it.mark] : undefined"
         @mousedown.prevent="it.run()"
       >
         <span class="kun-editor__icon" v-html="it.svg" />
