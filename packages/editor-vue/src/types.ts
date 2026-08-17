@@ -35,6 +35,11 @@ export type KunSelectionItem =
   | 'link'
   | '|'
 
+// The toggle marks a toolbar can show an active state for (bold / italic /
+// strikethrough / inline code). The rest of the toolbar buttons are one-shot
+// actions (insert a block, upload, link) with no on/off state.
+export type KunToggleMark = 'bold' | 'italic' | 'strike' | 'code'
+
 // The scoped-slot props `<KunEditor #toolbar="api">` hands to a custom toolbar.
 // The core stays headless: this is the command API a UI (the default hand-rolled
 // toolbar, or a KunUI one, or your own) builds buttons on top of — the same shape
@@ -42,6 +47,13 @@ export type KunSelectionItem =
 export interface KunEditorToolbarApi {
   /** Run a Milkdown command (import its key from the preset/commonmark/gfm). */
   run: <T>(key: CmdKey<T>, payload?: T) => void
+  /**
+   * Reactive active state of the toggle marks at the current cursor. A key is
+   * `true` while that mark is active (e.g. `bold` is true inside a bold run, or
+   * when it is the pending stored mark), so a toolbar can highlight its pressed
+   * buttons the same way it highlights hover.
+   */
+  activeMarks: Readonly<Record<KunToggleMark, boolean>>
   /** Insert plain text at the cursor (e.g. an emoji). */
   insertText: (text: string) => void
   /**

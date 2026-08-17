@@ -65,4 +65,23 @@ describe('insertLinkCommand', () => {
     })
     expect(out).toBe('hello')
   })
+
+  it('does not keep the link mark after the linked text is deleted', async () => {
+    const out = await withEditor((editor) => {
+      select(editor, 1, 6) // "hello"
+      editor.action(callCommand(insertLinkCommand.key, { href: 'https://a.com' }))
+      // Select the whole link again and delete it in one stroke.
+      select(editor, 1, 6)
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx)
+        view.dispatch(view.state.tr.deleteSelection())
+      })
+      // Type at the (now empty) cursor — it must NOT be linked.
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx)
+        view.dispatch(view.state.tr.insertText('x'))
+      })
+    })
+    expect(out).toBe('x')
+  })
 })

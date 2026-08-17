@@ -2,9 +2,10 @@
 // a link doesn't keep extending the link. Ported from the forum's
 // plugins/stop-link/stopLinkPlugin.ts. Pure: no host policy.
 import type { MilkdownPlugin } from '@milkdown/kit/ctx'
-import { $command, $useKeymap } from '@milkdown/kit/utils'
+import { $command, $prose, $useKeymap } from '@milkdown/kit/utils'
 import { linkSchema } from '@milkdown/kit/preset/commonmark'
 import { commandsCtx } from '@milkdown/kit/core'
+import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
 import type { MarkType } from '@milkdown/kit/prose/model'
 import type { EditorState } from '@milkdown/kit/prose/state'
 
@@ -43,7 +44,40 @@ export const linkCustomKeymap = $useKeymap('linkCustomKeymap', {
   }
 })
 
-/** The stop-link plugin bundle: the command + its Space keymap. Pure.
- * `$useKeymap` returns a `[ctx, shortcut]` tuple, so flatten before use. */
+const orphanLinkKey = new PluginKey('KUN_ORPHAN_LINK')
+
+// A link is a MARK, so deleting its text leaves the link as a STORED mark — the
+// pending mark ProseMirror re-applies to the next keystroke (the same reason
+// typing right after a deleted bold word stays bold). For a link that's wrong:
+// ending the link must not make every following character a link. The Space
+// keymap above clears it when you keep typing, but a select-then-delete leaves
+// no Space to press. Clear the stored link mark the moment the cursor is no
+// longer inside a link.
+const clearOrphanLink = $prose(
+  (ctx) =>
+    new Plugin({
+      key: orphanLinkKey,
+      appendTransaction(_transactions, _oldState, newState) {
+        const { storedMarks, selection } = newState
+        if (!selection.empty || !storedMarks) {
+          return null
+        }
+        const linkType = linkSchema.type(ctx)
+        if (!storedMarks.some((m) => m.type === linkType)) {
+          return null
+        }
+        // The cursor still sits inside a link (the mark is in the surrounding
+        // marks) — keep the stored mark so typing continues the link.
+        if (selection.$from.marks().some((m) => m.type === linkType)) {
+          return null
+        }
+        return newState.tr.removeStoredMark(linkType)
+      }
+    })
+)
+
+/** The stop-link plugin bundle: the command, its Space keymap, and the orphan
+ * cleanup. Pure. `$useKeymap` returns a `[ctx, shortcut]` tuple, so flatten
+ * before use. */
 export const createStopLinkPlugin = (): MilkdownPlugin[] =>
-  [stopLinkCommand, linkCustomKeymap].flat() as MilkdownPlugin[]
+  [stopLinkCommand, linkCustomKeymap, clearOrphanLink].flat() as MilkdownPlugin[]

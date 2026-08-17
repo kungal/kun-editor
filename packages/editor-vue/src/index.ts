@@ -20,6 +20,9 @@ export type { KunToolbarItem } from './types'
 // A button id for the selection bubble (<KunEditor :selection-toolbar>).
 export type { KunSelectionItem } from './types'
 
+// The toggle marks a toolbar can show an active state for (bold / italic / …).
+export type { KunToggleMark } from './types'
+
 // The API the #view-switch scoped slot exposes (build a custom view switch).
 export type { KunEditorViewSwitchApi } from './types'
 
