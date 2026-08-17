@@ -229,6 +229,15 @@
   background: var(--color-default-100);
 }
 
+.kun-editor__tool[data-active='true'] {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast, #fff);
+}
+
+.kun-editor__tool[data-active='true']:hover {
+  background: var(--color-primary);
+}
+
 .kun-editor__icon {
   display: inline-flex;
 }

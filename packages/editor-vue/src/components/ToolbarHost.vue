@@ -7,9 +7,9 @@
 import { editorViewCtx } from '@milkdown/kit/core'
 import type { CmdKey } from '@milkdown/kit/core'
 import { callCommand } from '@milkdown/kit/utils'
+import { insertImageCommand } from '@milkdown/kit/preset/commonmark'
 import { useInstance } from '@milkdown/vue'
 import { inject } from 'vue'
-import { insertImageCommand } from '@milkdown/kit/preset/commonmark'
 import {
   insertLinkCommand,
   insertMentionCommand,
@@ -17,13 +17,19 @@ import {
   startImageUpload
 } from '@kungal/editor-core/preset'
 import { KUN_EDITOR_CONTEXT } from '../context'
+import { useActiveMarks } from '../composables/useActiveMarks'
 import type { KunEditorToolbarApi } from '../types'
 
 const [, getEditor] = useInstance()
 const ctx = inject(KUN_EDITOR_CONTEXT, undefined)
 
+const { activeMarks, refresh: refreshActiveMarks } = useActiveMarks()
+
 const run = <T,>(key: CmdKey<T>, payload?: T): void => {
   getEditor()?.action(callCommand(key, payload))
+  // Refresh immediately: a stored-mark toggle neither moves the selection nor
+  // changes the doc, so the listeners in useActiveMarks would miss it.
+  refreshActiveMarks()
 }
 const focus = (): void => {
   getEditor()?.action((c) => c.get(editorViewCtx).focus())
@@ -72,6 +78,7 @@ const uploadImage: KunEditorToolbarApi['uploadImage'] = (file) => {
 
 const api: KunEditorToolbarApi = {
   run,
+  activeMarks,
   insertText,
   uploadImage,
   insertLink,

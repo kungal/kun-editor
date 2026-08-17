@@ -40,6 +40,7 @@ import {
 import { EMOJI } from '@kungal/editor-vue'
 import type {
   KunEditorToolbarApi,
+  KunToggleMark,
   KunToolbarItem,
   StickerPack
 } from '@kungal/editor-vue'
@@ -101,15 +102,18 @@ interface Tool {
   icon: string
   title: string
   run: () => void
+  // The toggle mark this button flips, when any. Buttons with a mark render a
+  // pressed/active state (see the template) driven by `api.activeMarks`.
+  mark?: KunToggleMark
 }
 
 // The plain command buttons (everything except heading / image / picker).
 // `.key` is read at click time via props.run (populated once the editor exists).
 const commandButtons = computed<Record<string, Tool>>(() => ({
-  bold: { icon: 'lucide:bold', title: t.value.bold, run: () => props.run(toggleStrongCommand.key) },
-  italic: { icon: 'lucide:italic', title: t.value.italic, run: () => props.run(toggleEmphasisCommand.key) },
-  strike: { icon: 'lucide:strikethrough', title: t.value.strike, run: () => props.run(toggleStrikethroughCommand.key) },
-  code: { icon: 'lucide:code', title: t.value.code, run: () => props.run(toggleInlineCodeCommand.key) },
+  bold: { icon: 'lucide:bold', title: t.value.bold, run: () => props.run(toggleStrongCommand.key), mark: 'bold' },
+  italic: { icon: 'lucide:italic', title: t.value.italic, run: () => props.run(toggleEmphasisCommand.key), mark: 'italic' },
+  strike: { icon: 'lucide:strikethrough', title: t.value.strike, run: () => props.run(toggleStrikethroughCommand.key), mark: 'strike' },
+  code: { icon: 'lucide:code', title: t.value.code, run: () => props.run(toggleInlineCodeCommand.key), mark: 'code' },
   bulletList: { icon: 'lucide:list', title: t.value.bulletList, run: () => props.run(wrapInBulletListCommand.key) },
   orderedList: { icon: 'lucide:list-ordered', title: t.value.orderedList, run: () => props.run(wrapInOrderedListCommand.key) },
   quote: { icon: 'lucide:text-quote', title: t.value.quote, run: () => props.run(wrapInBlockquoteCommand.key) },
@@ -427,10 +431,20 @@ const insertSticker = (src: string, name: string) =>
         :delay-show="300"
       >
         <KunButton
-          variant="light"
+          :variant="
+            item.tool.mark && props.activeMarks[item.tool.mark]
+              ? 'flat'
+              : 'light'
+          "
+          :color="
+            item.tool.mark && props.activeMarks[item.tool.mark]
+              ? 'primary'
+              : 'default'
+          "
           size="sm"
           :is-icon-only="true"
           :aria-label="item.tool.title"
+          :aria-pressed="item.tool.mark ? props.activeMarks[item.tool.mark] : undefined"
           @click="item.tool.run()"
         >
           <KunIcon :name="item.tool.icon" />

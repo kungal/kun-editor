@@ -36,11 +36,14 @@ import { editorViewCtx } from '@milkdown/kit/core'
 import type { CmdKey } from '@milkdown/kit/core'
 import { computed, inject, ref } from 'vue'
 import { KUN_EDITOR_CONTEXT } from '../context'
+import { useActiveMarks } from '../composables/useActiveMarks'
+import type { KunToggleMark } from '../types'
 import { TOOLBAR_ICONS as I } from '../toolbar-icons'
 import StickerPicker from './StickerPicker.vue'
 
 const [, getEditor] = useInstance()
 const ctx = inject(KUN_EDITOR_CONTEXT)
+const { activeMarks, refresh } = useActiveMarks()
 const uploadImage = computed(() => ctx?.adapters.uploadImage)
 // The emoji/sticker picker (emoji is built-in; the sticker tab needs the
 // adapter). Shown unless the host turns the feature off.
@@ -51,6 +54,9 @@ const isEnglish = computed(() =>
 
 const call = <T,>(key: CmdKey<T>, payload?: T) => {
   getEditor()?.action(callCommand(key, payload))
+  // Refresh the toggle-mark active state: a stored-mark toggle neither moves
+  // the selection nor changes the doc, so the listener would miss it.
+  refresh()
 }
 
 // Link: get a URL, then wrap the selection (or insert the URL as linked text).
@@ -77,6 +83,8 @@ interface ToolButton {
   svg: string
   title: string
   run: () => void
+  // The toggle mark this button flips, when any — rendered with an active state.
+  mark?: KunToggleMark
 }
 
 const t = computed(() => {
@@ -116,10 +124,10 @@ const onHeadingSelect = (e: Event) => {
 // Grouped for visual separation; each `run` reads the command `.key` lazily.
 const groups = computed<ToolButton[][]>(() => [
   [
-    { svg: I.bold, title: t.value.bold, run: () => call(toggleStrongCommand.key) },
-    { svg: I.italic, title: t.value.italic, run: () => call(toggleEmphasisCommand.key) },
-    { svg: I.strike, title: t.value.strike, run: () => call(toggleStrikethroughCommand.key) },
-    { svg: I.code, title: t.value.code, run: () => call(toggleInlineCodeCommand.key) },
+    { svg: I.bold, title: t.value.bold, run: () => call(toggleStrongCommand.key), mark: 'bold' },
+    { svg: I.italic, title: t.value.italic, run: () => call(toggleEmphasisCommand.key), mark: 'italic' },
+    { svg: I.strike, title: t.value.strike, run: () => call(toggleStrikethroughCommand.key), mark: 'strike' },
+    { svg: I.code, title: t.value.code, run: () => call(toggleInlineCodeCommand.key), mark: 'code' },
     { svg: I.link, title: t.value.link, run: promptLink }
   ],
   [
@@ -180,6 +188,8 @@ const onFileChange = (e: Event) => {
         class="kun-editor__tool"
         :title="btn.title"
         :aria-label="btn.title"
+        :aria-pressed="btn.mark ? activeMarks[btn.mark] : undefined"
+        :data-active="btn.mark ? activeMarks[btn.mark] : undefined"
         @click="btn.run()"
       >
         <span class="kun-editor__icon" v-html="btn.svg" />
