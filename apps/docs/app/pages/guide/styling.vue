@@ -12,6 +12,8 @@ const hooks = [
   { name: '.kun-editor__format-toolbar', type: 'toolbar', description: '格式化工具栏' },
   { name: '.kun-editor__tool', type: 'toolbar', description: '工具栏按钮' },
   { name: '.kun-editor__tool[data-active], .kun-editor__bubble-btn[data-active]', type: 'toolbar', description: '加粗 / 斜体等 toggle 的按下态' },
+  { name: '.kun-editor__bubble[data-show]', type: 'bubble', description: '选区浮动菜单(定位 + 显隐必需)' },
+  { name: '.kun-editor__bubble-input', type: 'bubble', description: '气泡里的链接 URL 输入框(气泡为 data-mode="link" 时)' },
   { name: '.kun-editor__source .cm-editor', type: 'source', description: 'CodeMirror 源码视图' },
   { name: '.kun-mention-dropdown[data-show]', type: 'mention', description: '@提及下拉(定位 + 显隐必需)' },
   { name: '.kun-editor__picker-panel', type: 'picker', description: '贴纸 / 表情弹层(定位必需)' },

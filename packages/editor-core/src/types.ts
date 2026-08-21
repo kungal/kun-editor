@@ -71,11 +71,11 @@ export type Notify = (message: string, level: NotifyLevel) => void
 
 /**
  * Ask the user for a link URL — provide this to show your OWN UI (a modal, an
- * inline input, an article picker…) instead of the native `window.prompt` the
- * headless toolbar / selection bubble fall back to. Gets the currently selected
- * text (to prefill or search). Return the URL, or a falsy value to cancel. When
- * set, the KunUI `<KunEditorToolbar>` uses it too instead of its inline popover,
- * so one override covers every link entry point.
+ * article picker…) instead of the built-in entry: the selection bubble's inline
+ * URL input, the KunUI toolbar's popover, or the headless toolbar's native
+ * `window.prompt`. Gets the currently selected text (to prefill or search).
+ * Return the URL, or a falsy value to cancel. One override covers every link
+ * entry point.
  */
 export type LinkPrompt = (
   context: { text: string }
@@ -93,8 +93,9 @@ export interface KunEditorAdapters {
   stickerSource?: StickerSource
   notify?: Notify
   /**
-   * Custom link-URL entry (replaces the native prompt in the headless toolbar /
-   * bubble, and the KunUI toolbar's popover). See {@link LinkPrompt}.
+   * Custom link-URL entry (replaces the selection bubble's inline input, the
+   * headless toolbar's native prompt, and the KunUI toolbar's popover). See
+   * {@link LinkPrompt}.
    */
   linkPrompt?: LinkPrompt
   /**
