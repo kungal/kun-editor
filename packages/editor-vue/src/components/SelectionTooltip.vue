@@ -196,11 +196,15 @@ onBeforeUnmount(() => {
   >
     <template v-if="editingLink">
       <!-- No <form>: the editor is often rendered inside the host's own form,
-           and nested forms are invalid HTML. Enter / Esc do the same job. -->
+           and nested forms are invalid HTML. Enter / Esc do the same job.
+           `type="text"` + `inputmode="url"`, never `type="url"`: native URL
+           validation rejects a schemeless `www.a.com/x` — the very input
+           insertLinkCommand normalizes. inputmode keeps the mobile keyboard. -->
       <input
         ref="inputRef"
         v-model="linkUrl"
-        type="url"
+        type="text"
+        inputmode="url"
         class="kun-editor__link-input"
         :placeholder="t.linkUrl"
         :aria-label="t.linkUrl"

@@ -61,6 +61,25 @@ describe('insertLinkCommand', () => {
     expect(out).toBe('hello<https://a.com>')
   })
 
+  it('gives a schemeless host an https:// scheme', async () => {
+    const out = await withEditor((editor) => {
+      select(editor, 1, 6) // "hello"
+      editor.action(
+        callCommand(insertLinkCommand.key, { href: 'www.kungal.com/topic/1' })
+      )
+    })
+    // Without this the href stays relative and resolves against the page URL.
+    expect(out).toBe('[hello](https://www.kungal.com/topic/1)')
+  })
+
+  it('normalizes the href it inserts as text too', async () => {
+    const out = await withEditor((editor) => {
+      select(editor, 6, 6)
+      editor.action(callCommand(insertLinkCommand.key, { href: 'kungal.com' }))
+    })
+    expect(out).toBe('hello<https://kungal.com>')
+  })
+
   it('is a no-op for a blank href', async () => {
     const out = await withEditor((editor) => {
       select(editor, 1, 6)

@@ -75,6 +75,10 @@ export type Notify = (message: string, level: NotifyLevel) => void
  * URL input, the headless toolbar's URL panel, or the KunUI toolbar's popover.
  * Gets the currently selected text (to prefill or search). Return the URL, or a
  * falsy value to cancel. One override covers every link entry point.
+ *
+ * The URL you return is normalized like any other (a schemeless host gets
+ * `https://`), so a picker can hand back whatever it has. See
+ * `normalizeLinkHref`.
  */
 export type LinkPrompt = (
   context: { text: string }

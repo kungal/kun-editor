@@ -5,10 +5,11 @@ const preset = `import { createKunEditorPlugins } from '@kungal/editor-core/pres
 const plugins = createKunEditorPlugins(adapters, features, { locale: 'zh-cn' })
 editor.use(plugins)`
 
-const light = `// 轻量主入口:仅类型 + 常量,零运行时依赖(服务端可直接引)
-import { MENTION_SCHEME, QUOTE_SCHEME } from '@kungal/editor-core'
+const light = `// 轻量主入口:仅类型 + 常量 + 纯函数,零运行时依赖(服务端可直接引)
+import { MENTION_SCHEME, QUOTE_SCHEME, normalizeLinkHref } from '@kungal/editor-core'
 // MENTION_SCHEME === 'kungal-user:'
-// QUOTE_SCHEME   === 'kungal-reply:'`
+// QUOTE_SCHEME   === 'kungal-reply:'
+normalizeLinkHref('www.kungal.com/topic/1') // 'https://www.kungal.com/topic/1'`
 
 const factories = [
   { name: 'createKunEditorPlugins', type: '(adapters?, features?, opts?) => MilkdownPlugin[]', description: '组装好的插件包(baseline + 各插件),渲染层的唯一入口。' },
@@ -24,6 +25,8 @@ const factories = [
 const consts = [
   { name: 'MENTION_SCHEME', type: "'kungal-user:'", description: '@提及的 markdown link scheme(与服务端共享)。' },
   { name: 'QUOTE_SCHEME', type: "'kungal-reply:'", description: '引用的 markdown link scheme(与服务端共享)。' },
+  { name: 'insertLinkCommand', type: '$Command<{ href, text? }>', description: '给选区加链接;空选区则插入 href(或 text)并加链接。href 会先归一化。' },
+  { name: 'normalizeLinkHref', type: '(input: string) => string', description: '给用户输入的 URL 补 scheme:www.a.com/x → https://www.a.com/x,邮箱 → mailto:。已有 scheme / 显式相对路径(/x、./x、#x、//host)原样返回。主入口导出,服务端可复用。' },
   { name: 'insertQuoteCommand', type: '$Command<{ refId, label }>', description: '在光标处插入一个引用原子(宿主调用)。' },
   { name: 'insertMentionCommand', type: '$Command<{ userId, name }>', description: '在光标处插入一个提及(工具栏 / 测试用)。' }
 ]

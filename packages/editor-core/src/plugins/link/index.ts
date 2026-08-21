@@ -9,9 +9,14 @@
 import type { MilkdownPlugin } from '@milkdown/kit/ctx'
 import { $command } from '@milkdown/kit/utils'
 import { linkSchema } from '@milkdown/kit/preset/commonmark'
+import { normalizeLinkHref } from '../../href'
 
 export interface InsertLinkPayload {
-  /** The URL. Required — a blank href is a no-op. */
+  /**
+   * The URL. Required — a blank href is a no-op. Normalized on the way in, so a
+   * schemeless host gets one: `www.a.com/x` → `https://www.a.com/x`. See
+   * {@link normalizeLinkHref} for the exact rules.
+   */
   href: string
   /** Text to insert + link when the selection is empty. Defaults to the href. */
   text?: string
@@ -21,13 +26,17 @@ export interface InsertLinkPayload {
  * Apply the `link` mark with `href` to the selection; on an EMPTY selection,
  * insert `text` (or the href) and link that. Clears the stored mark afterwards so
  * typing past the link isn't linked (same intent as the stop-link keymap).
+ *
+ * The href is normalized here — this command is the single funnel every link
+ * entry point (bubble, toolbar, host `linkPrompt`) goes through, so a UI never
+ * has to, and every one of them behaves the same.
  */
 export const insertLinkCommand = $command(
   'InsertKunLink',
   (ctx) =>
     (payload?: InsertLinkPayload) =>
     (state, dispatch) => {
-      const href = payload?.href?.trim()
+      const href = normalizeLinkHref(payload?.href ?? '')
       if (!href) {
         return false
       }

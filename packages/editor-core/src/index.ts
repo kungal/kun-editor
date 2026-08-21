@@ -10,6 +10,11 @@ export * from './types'
 // Heading outline (TOC) parsing — pure, so it's here in the light entry.
 export * from './outline'
 
+// Link URL normalization (`www.a.com/x` → `https://www.a.com/x`). Applied by
+// `insertLinkCommand` for every link entry point; exported here so a server can
+// normalize legacy content with the exact same rules. Pure. See ./href.
+export * from './href'
+
 // Markdown scheme used to encode an @mention as a plain link the server can
 // render + parse: `[@name](kungal-user:<id>)`. Lives here (not the plugin) so
 // hosts and the server can share the exact string. See ./plugins/mention.

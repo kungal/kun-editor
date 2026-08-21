@@ -112,12 +112,15 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
     </button>
 
     <!-- No <form>: the editor often sits inside the host's own form, and nested
-         forms are invalid HTML. Enter / Esc do the same job. -->
+         forms are invalid HTML. Enter / Esc do the same job. `type="text"` +
+         `inputmode="url"`, never `type="url"`: native URL validation rejects a
+         schemeless `www.a.com/x` — the very input insertLinkCommand normalizes. -->
     <div v-show="open" class="kun-editor__link-panel">
       <input
         ref="inputRef"
         v-model="url"
-        type="url"
+        type="text"
+        inputmode="url"
         class="kun-editor__link-input"
         :placeholder="t.linkUrl"
         :aria-label="t.linkUrl"

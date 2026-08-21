@@ -319,10 +319,14 @@ const insertSticker = (src: string, name: string) =>
             </KunButton>
           </KunTooltip>
         </template>
+        <!-- `type="text"` + `inputmode="url"`, never `type="url"`: this IS a
+             form, so native URL validation would block submit on a schemeless
+             `www.a.com/x` — the very input insertLinkCommand normalizes. -->
         <form class="flex items-center gap-1" @submit.prevent="applyLink">
           <KunInput
             v-model="linkUrl"
-            type="url"
+            type="text"
+            inputmode="url"
             size="sm"
             :placeholder="t.linkPlaceholder"
             :autofocus="true"
