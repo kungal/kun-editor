@@ -15,7 +15,6 @@ import { usePluginViewContext } from '@prosemirror-adapter/vue'
 import { useInstance } from '@milkdown/vue'
 import { callCommand } from '@milkdown/kit/utils'
 import {
-  linkSchema,
   toggleEmphasisCommand,
   toggleInlineCodeCommand,
   toggleStrongCommand
@@ -26,6 +25,7 @@ import type { CmdKey } from '@milkdown/kit/core'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { EMPTY_ACTIVE_MARKS } from '../active-marks'
 import { KUN_EDITOR_CONTEXT } from '../context'
+import { readSelectedHref } from '../selected-href'
 import type { KunToggleMark } from '../types'
 import { TOOLBAR_ICONS as I } from '../toolbar-icons'
 
@@ -76,21 +76,9 @@ const selectedHref = () => {
   let href = ''
   getEditor()?.action((c) => {
     const state = view.value?.state
-    if (!state) {
-      return
+    if (state) {
+      href = readSelectedHref(state, c)
     }
-    const type = linkSchema.type(c)
-    const { from, to } = state.selection
-    state.doc.nodesBetween(from, to, (node) => {
-      if (href) {
-        return false
-      }
-      const mark = type.isInSet(node.marks)
-      if (mark) {
-        href = String(mark.attrs.href ?? '')
-      }
-      return true
-    })
   })
   return href
 }
@@ -213,7 +201,7 @@ onBeforeUnmount(() => {
         ref="inputRef"
         v-model="linkUrl"
         type="url"
-        class="kun-editor__bubble-input"
+        class="kun-editor__link-input"
         :placeholder="t.linkUrl"
         :aria-label="t.linkUrl"
         spellcheck="false"

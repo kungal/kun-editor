@@ -153,7 +153,7 @@ const adapters = { uploadImage, stickerSource, notify }
       选中文本会浮出格式菜单。<code>selectionToolbar</code> 传项目数组可重排/增减
       (<code>'|'</code> 分隔),传 <code>false</code> 关闭;样式改参考 CSS 的
       <code>.kun-editor__bubble</code> / <code>.kun-editor__bubble-btn</code> /
-      <code>.kun-editor__bubble-input</code>。点「链接」时气泡会就地换成 URL 输入框
+      <code>.kun-editor__link-input</code>。点「链接」时气泡会就地换成 URL 输入框
       (<code>[data-mode='link']</code>),Enter 确定、Esc 取消。下面这个只保留
       加粗/斜体 —— 选中下方文字试试:
     </p>
@@ -168,8 +168,8 @@ const adapters = { uploadImage, stickerSource, notify }
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">自定义链接输入(linkPrompt)</h2>
     <p class="text-default-600 mb-2">
-      默认「插入链接」:选区气泡内联一个 URL 输入框(不弹层)、KunUI 工具栏用
-      popover、手搓工具栏退回原生 <code>window.prompt</code>。传一个
+      默认「插入链接」不弹原生框:选区气泡就地换成 URL 输入框、手搓工具栏在按钮下开一个小面板
+      (两者共用 <code>.kun-editor__link-input</code>)、KunUI 工具栏用 popover。传一个
       <code>linkPrompt</code> 适配器就能全部换成<strong>你自己的
       UI</strong>(KunModal、文章选择器…),一处覆盖工具栏 + 气泡。下面这个示例把选中文字拼进
       URL —— 选中文字点链接看看:

@@ -28,7 +28,6 @@ import {
 import { toggleStrikethroughCommand } from '@milkdown/kit/preset/gfm'
 import {
   insertKunSpoilerCommand,
-  insertLinkCommand,
   setHeadingCommand,
   startImageUpload
 } from '@kungal/editor-core/preset'
@@ -39,6 +38,7 @@ import { EMPTY_ACTIVE_MARKS } from '../active-marks'
 import { KUN_EDITOR_CONTEXT } from '../context'
 import type { KunToggleMark } from '../types'
 import { TOOLBAR_ICONS as I } from '../toolbar-icons'
+import LinkInput from './LinkInput.vue'
 import StickerPicker from './StickerPicker.vue'
 
 const [, getEditor] = useInstance()
@@ -56,26 +56,6 @@ const call = <T,>(key: CmdKey<T>, payload?: T) => {
   getEditor()?.action(callCommand(key, payload))
 }
 
-// Link: get a URL, then wrap the selection (or insert the URL as linked text).
-// Uses the host's `linkPrompt` adapter (its own modal) if supplied; otherwise the
-// native prompt.
-const promptLink = async () => {
-  let text = ''
-  getEditor()?.action((c) => {
-    const view = c.get(editorViewCtx)
-    const { from, to } = view.state.selection
-    text = view.state.doc.textBetween(from, to, ' ')
-  })
-  const linkPrompt = ctx?.adapters.linkPrompt
-  const raw = linkPrompt
-    ? await linkPrompt({ text })
-    : window.prompt(isEnglish.value ? 'Link URL' : '链接 URL')
-  const href = raw?.trim()
-  if (href) {
-    call(insertLinkCommand.key, { href })
-  }
-}
-
 interface ToolButton {
   svg: string
   title: string
@@ -83,6 +63,9 @@ interface ToolButton {
   // The toggle mark this button flips, when any — rendered with an active state.
   mark?: KunToggleMark
 }
+/** The link slot renders <LinkInput> (a button + its URL panel), not a plain
+ * button — it sits in the group so the divider layout stays untouched. */
+type ToolItem = ToolButton | { link: true }
 
 const t = computed(() => {
   const en = isEnglish.value
@@ -92,7 +75,6 @@ const t = computed(() => {
     italic: en ? 'Italic' : '斜体',
     strike: en ? 'Strikethrough' : '删除线',
     code: en ? 'Inline code' : '行内代码',
-    link: en ? 'Link' : '链接',
     bulletList: en ? 'Bullet list' : '无序列表',
     orderedList: en ? 'Ordered list' : '有序列表',
     quote: en ? 'Blockquote' : '引用块',
@@ -119,13 +101,13 @@ const onHeadingSelect = (e: Event) => {
 }
 
 // Grouped for visual separation; each `run` reads the command `.key` lazily.
-const groups = computed<ToolButton[][]>(() => [
+const groups = computed<ToolItem[][]>(() => [
   [
     { svg: I.bold, title: t.value.bold, run: () => call(toggleStrongCommand.key), mark: 'bold' },
     { svg: I.italic, title: t.value.italic, run: () => call(toggleEmphasisCommand.key), mark: 'italic' },
     { svg: I.strike, title: t.value.strike, run: () => call(toggleStrikethroughCommand.key), mark: 'strike' },
     { svg: I.code, title: t.value.code, run: () => call(toggleInlineCodeCommand.key), mark: 'code' },
-    { svg: I.link, title: t.value.link, run: promptLink }
+    { link: true }
   ],
   [
     { svg: I.bulletList, title: t.value.bulletList, run: () => call(wrapInBulletListCommand.key) },
@@ -178,19 +160,21 @@ const onFileChange = (e: Event) => {
 
     <template v-for="(group, gi) in groups" :key="gi">
       <span class="kun-editor__toolbar-divider" aria-hidden="true" />
-      <button
-        v-for="(btn, bi) in group"
-        :key="bi"
-        type="button"
-        class="kun-editor__tool"
-        :title="btn.title"
-        :aria-label="btn.title"
-        :aria-pressed="btn.mark ? activeMarks[btn.mark] : undefined"
-        :data-active="btn.mark ? activeMarks[btn.mark] : undefined"
-        @click="btn.run()"
-      >
-        <span class="kun-editor__icon" v-html="btn.svg" />
-      </button>
+      <template v-for="(btn, bi) in group" :key="bi">
+        <LinkInput v-if="'link' in btn" />
+        <button
+          v-else
+          type="button"
+          class="kun-editor__tool"
+          :title="btn.title"
+          :aria-label="btn.title"
+          :aria-pressed="btn.mark ? activeMarks[btn.mark] : undefined"
+          :data-active="btn.mark ? activeMarks[btn.mark] : undefined"
+          @click="btn.run()"
+        >
+          <span class="kun-editor__icon" v-html="btn.svg" />
+        </button>
+      </template>
     </template>
 
     <template v-if="uploadImage">

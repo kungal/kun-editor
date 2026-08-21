@@ -166,23 +166,6 @@
 .kun-editor__bubble-btn:hover {
   background: var(--color-default-100);
 }
-/* Link entry: the bubble swaps its button row for this URL input in place
-   (data-mode="link"), so no second floating layer is involved. */
-.kun-editor__bubble-input {
-  width: 14rem;
-  min-width: 0;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid var(--color-default-200);
-  border-radius: 0.375rem;
-  background: transparent;
-  color: var(--color-foreground);
-  font: inherit;
-  font-size: 0.875rem;
-  outline: none;
-}
-.kun-editor__bubble-input:focus {
-  border-color: var(--color-primary);
-}
 
 /* ── Loading placeholder (WYSIWYG create/hydrate gap) ───────────────────── */
 /* Shown while Milkdown hydrates; reserves height so the area doesn't collapse. */
@@ -268,6 +251,50 @@
 
 .kun-editor__icon {
   display: inline-flex;
+}
+
+/* ── Link URL entry ─────────────────────────────────────────────────────── */
+/* Two shapes, one input hook. The selection bubble swaps its button row for the
+   input IN PLACE (it is itself a floating tooltip — see `[data-mode='link']`);
+   the fixed toolbar, being a static row, opens this small panel under its
+   button instead. */
+.kun-editor__link {
+  position: relative;
+  display: inline-flex;
+}
+
+.kun-editor__link-panel {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem;
+  background: var(--kun-editor-surface);
+  border: 1px solid var(--color-default-200);
+  border-radius: 0.5rem;
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.kun-editor__link-input {
+  width: 14rem;
+  min-width: 0;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--color-default-200);
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--color-foreground);
+  font: inherit;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.kun-editor__link-input:focus {
+  border-color: var(--color-primary);
 }
 
 /* ── Markdown source (CodeMirror) ───────────────────────────────────────── */

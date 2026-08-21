@@ -17,9 +17,16 @@ WORKDIR /repo
 # ---- deps: copy manifests, install the docs subgraph (+ workspace deps) ----
 FROM base AS deps
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY packages/editor-core/package.json packages/editor-core/package.json
-COPY packages/editor-vue/package.json  packages/editor-vue/package.json
-COPY apps/docs/package.json            apps/docs/package.json
+COPY packages/editor-core/package.json  packages/editor-core/package.json
+COPY packages/editor-vue/package.json   packages/editor-vue/package.json
+# editor-nuxt too: the docs extend that LAYER, so Nuxt compiles its runtime
+# .vue files — and under pnpm's isolated layout they resolve `@kungal/editor-vue`
+# through packages/editor-nuxt/node_modules, which only exists if the layer took
+# part in the install. Without this the docs build dies with
+#   [@vue/compiler-sfc] Failed to resolve import source "@kungal/editor-vue"
+# pointing at packages/editor-nuxt/runtime/*.vue.
+COPY packages/editor-nuxt/package.json  packages/editor-nuxt/package.json
+COPY apps/docs/package.json             apps/docs/package.json
 # --ignore-scripts: no lifecycle build needs to run at install time here; the
 # later `nuxt build` runs its own prepare.
 RUN pnpm install --frozen-lockfile --ignore-scripts --filter "@kungal/editor-docs..."

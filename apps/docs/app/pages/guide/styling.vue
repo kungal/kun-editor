@@ -13,7 +13,9 @@ const hooks = [
   { name: '.kun-editor__tool', type: 'toolbar', description: '工具栏按钮' },
   { name: '.kun-editor__tool[data-active], .kun-editor__bubble-btn[data-active]', type: 'toolbar', description: '加粗 / 斜体等 toggle 的按下态' },
   { name: '.kun-editor__bubble[data-show]', type: 'bubble', description: '选区浮动菜单(定位 + 显隐必需)' },
-  { name: '.kun-editor__bubble-input', type: 'bubble', description: '气泡里的链接 URL 输入框(气泡为 data-mode="link" 时)' },
+  { name: '.kun-editor__link', type: 'link', description: '工具栏链接按钮 + 其 URL 面板的容器(定位必需)' },
+  { name: '.kun-editor__link-panel', type: 'link', description: '工具栏链接按钮下的 URL 面板(定位必需)' },
+  { name: '.kun-editor__link-input', type: 'link', description: '链接 URL 输入框 —— 工具栏面板与选区气泡共用同一个钩子' },
   { name: '.kun-editor__source .cm-editor', type: 'source', description: 'CodeMirror 源码视图' },
   { name: '.kun-mention-dropdown[data-show]', type: 'mention', description: '@提及下拉(定位 + 显隐必需)' },
   { name: '.kun-editor__picker-panel', type: 'picker', description: '贴纸 / 表情弹层(定位必需)' },
@@ -26,6 +28,8 @@ const structural = `/* 编辑器真正「需要」的结构性规则 —— 别�
 .kun-mention-dropdown[data-show='true'] { display: block; }
 .kun-editor__picker { position: relative; }
 .kun-editor__picker-panel { position: absolute; }
+.kun-editor__link { position: relative; }
+.kun-editor__link-panel { position: absolute; }
 /* placeholder 的 ::before 是绝对定位 —— 空块必须是它的定位祖先,
    否则长 placeholder 会按视口宽度排版,直接溢出编辑器 */
 .kun-editor__placeholder { position: relative; }
