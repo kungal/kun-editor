@@ -27,7 +27,7 @@ const consts = [
   { name: 'QUOTE_SCHEME', type: "'kungal-reply:'", description: '引用的 markdown link scheme(与服务端共享)。' },
   { name: 'insertLinkCommand', type: '$Command<{ href, text? }>', description: '给选区加链接;空选区则插入 href(或 text)并加链接。href 会先归一化。' },
   { name: 'normalizeLinkHref', type: '(input: string) => string', description: '给用户输入的 URL 补 scheme:www.a.com/x → https://www.a.com/x,邮箱 → mailto:。已有 scheme / 显式相对路径(/x、./x、#x、//host)原样返回。主入口导出,服务端可复用。' },
-  { name: 'insertKunSpoilerCommand', type: '$Command<void>', description: '隐藏文本按钮:把选中文字放进 ||…|| 节点;光标已在 spoiler 里则揭示(按钮是开关);空选区则新建一个空 spoiler 并把光标放进去。代码块里返回 false。' },
+  { name: 'insertKunSpoilerCommand', type: '$Command<void>', description: '隐藏文本按钮:把选中文字放进 ||…|| 节点(选区里的换行变成空格 —— 剧透是单行的);光标已在 spoiler 里则揭示(按钮是开关);空选区则新建一个空 spoiler 并把光标放进去。代码块里、选中的是节点、或选区里一个字都没有时返回 false。' },
   { name: 'insertQuoteCommand', type: '$Command<{ refId, label }>', description: '在光标处插入一个引用原子(宿主调用)。' },
   { name: 'insertMentionCommand', type: '$Command<{ userId, name }>', description: '在光标处插入一个提及(工具栏 / 测试用)。' }
 ]

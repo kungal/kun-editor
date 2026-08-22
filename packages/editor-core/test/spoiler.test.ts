@@ -181,6 +181,57 @@ describe('insertKunSpoilerCommand', () => {
     expect(out).toBe('![kun](/a.webp)')
   })
 
+  // `||…||` pairs within one line — in the remark transform here and in the
+  // server renderer alike — so a spoiler holding a line break would serialize to
+  // markdown that reads back as literal `||`. Commonmark's hardbreak declares
+  // `leafText: () => '\n'`, so this is exactly what textBetween hands over.
+  it('turns a line break inside the selection into a space', async () => {
+    const out = await withEditor('第一行\n第二行', (editor) => {
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx)
+        view.dispatch(
+          view.state.tr.setSelection(new AllSelection(view.state.doc))
+        )
+      })
+      spoiler(editor)
+    })
+    expect(out).toBe(`||第一行 第二行||${ZWSP}`)
+  })
+
+  it('round-trips what it wrote across a line break', async () => {
+    const hidden = await withEditor('第一行\n第二行', (editor) => {
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx)
+        view.dispatch(
+          view.state.tr.setSelection(new AllSelection(view.state.doc))
+        )
+      })
+      spoiler(editor)
+    })
+    // Loading it back gives a real spoiler node, not literal `||`.
+    let nodes = 0
+    await withEditor(hidden, (editor) => {
+      editor.action((ctx) => {
+        ctx.get(editorViewCtx).state.doc.descendants((node) => {
+          if (node.type.name === 'kun-spoiler') nodes++
+        })
+      })
+    })
+    expect(nodes).toBe(1)
+  })
+
+  it('refuses over a selection with no words in it', async () => {
+    let handled: boolean | undefined
+    const out = await withEditor('![kun](/a.webp)', (editor) => {
+      // A TEXT selection across the image, not a NodeSelection: the image is
+      // all there is to hide, and hiding it would delete it.
+      select(editor, 1, 2)
+      handled = spoiler(editor)
+    })
+    expect(handled).toBe(false)
+    expect(out).toBe('![kun](/a.webp)')
+  })
+
   it('refuses inside a code block, where an inline node cannot go', async () => {
     let handled: boolean | undefined
     const out = await withEditor('```\ncode\n```', (editor) => {

@@ -61,7 +61,7 @@
         "type": "boolean | KunSelectionItem[]",
         "required": false,
         "default": "true",
-        "description": "The floating toolbar shown on text selection. `true` (default) = the standard buttons; `false` = off; or pass an ordered `KunSelectionItem[]` to reorder / subset them (`'|'` is a divider). Its look is styled via the `.kun-editor__bubble` / `.kun-editor__bubble-btn` class hooks."
+        "description": "The floating toolbar shown on text selection. `true` (default) = the standard buttons (bold / italic / strike / code / spoiler / link); `false` = off; or pass an ordered `KunSelectionItem[]` to reorder / subset them (`'|'` is a divider). Its look is styled via the `.kun-editor__bubble` / `.kun-editor__bubble-btn` class hooks."
       },
       {
         "name": "views",

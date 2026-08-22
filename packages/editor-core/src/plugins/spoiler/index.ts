@@ -149,7 +149,9 @@ const enclosingSpoiler = (
  * - a selection → its TEXT moves INSIDE the node. It has to be moved, not
  *   replaced: `replaceSelectionWith` on its own deletes what you selected. The
  *   schema is `marks: ''` (bold inside `||…||` cannot round-trip), so the
- *   formatting is what's dropped, never the words.
+ *   formatting is what's dropped, never the words. Line breaks become spaces:
+ *   `||…||` pairs within one line in every reader of the syntax, so a spoiler
+ *   spanning lines would serialize to markdown that reads back as literal `||`.
  * - an empty selection → an empty spoiler with the caret inside it: type, and
  *   what you type is hidden. "Empty" means holding a caret anchor — a caret
  *   cannot sit in an inline node with no text node in it — and a spoiler with
@@ -160,10 +162,11 @@ const enclosingSpoiler = (
  *   all, so this button has to toggle.
  *
  * Returns false where there is nothing to hide or nowhere to put it — inside a
- * code block, or with a NODE selected (an image is not text; replacing it would
- * delete it) — so a host can grey the button out. A spoiler holds text, so any
- * other inline node caught in a text selection (an image, inline math) does not
- * survive the move: `||…||` cannot carry one.
+ * code block, with a NODE selected, or over a selection holding no words at all
+ * (an image is not text; replacing it would delete it) — so a host can grey the
+ * button out. A spoiler holds text, so any other inline node caught in a text
+ * selection alongside words (an image, inline math) does not survive the move:
+ * `||…||` cannot carry one.
  */
 export const insertKunSpoilerCommand = $command(
   'InsertKunSpoiler',
@@ -213,17 +216,28 @@ export const insertKunSpoilerCommand = $command(
     ) {
       return false
     }
+    // ' ' for BOTH separators, because `||…||` is line-scoped everywhere it is
+    // read — the remark transform below, and the server renderer that shares the
+    // syntax — so a spoiler holding a line break would serialize to markdown
+    // that reads back as literal `||`. The block separator keeps the words apart
+    // when a selection spans paragraphs; the leaf one covers a line break inside
+    // one (commonmark's hardbreak declares `leafText: () => '\n'`, so without it
+    // the button writes the very cross-line `||` it cannot parse).
+    const text = state.doc
+      .textBetween(from, to, ' ', ' ')
+      .replaceAll(CARET_ANCHOR, '')
+    // A selection with no words in it (an image on its own) is nothing to hide,
+    // and hiding it would delete it. An EMPTY selection is the other thing
+    // entirely: an empty spoiler to type into.
+    if (!empty && !text.trim()) {
+      return false
+    }
     if (!dispatch) {
       return true
     }
 
-    // ' ' as the block separator: a selection spanning paragraphs collapses into
-    // one spoiler, and the words either side of the break stay apart. With
-    // nothing selected the node still needs a text node to hold the caret, so
-    // it starts on an anchor — the serializer drops it again.
-    const text = state.doc
-      .textBetween(from, to, ' ')
-      .replaceAll(CARET_ANCHOR, '')
+    // Empty selection → the node still needs a text node to hold the caret, so
+    // it starts on an anchor; the serializer drops it again.
     const node = type.create(null, state.schema.text(text || CARET_ANCHOR))
     const tr = state.tr.replaceSelectionWith(node, false)
     // `replaceSelectionWith` leaves the selection right after the node.

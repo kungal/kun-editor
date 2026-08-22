@@ -20,11 +20,14 @@ import {
   toggleStrongCommand
 } from '@milkdown/kit/preset/commonmark'
 import { toggleStrikethroughCommand } from '@milkdown/kit/preset/gfm'
-import { insertLinkCommand } from '@kungal/editor-core/preset'
+import {
+  insertKunSpoilerCommand,
+  insertLinkCommand
+} from '@kungal/editor-core/preset'
 import type { CmdKey } from '@milkdown/kit/core'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { EMPTY_ACTIVE_MARKS } from '../active-marks'
-import { KUN_EDITOR_CONTEXT } from '../context'
+import { DEFAULT_SELECTION_ITEMS, KUN_EDITOR_CONTEXT } from '../context'
 import { readSelectedHref } from '../selected-href'
 import type { KunToggleMark } from '../types'
 import { TOOLBAR_ICONS as I } from '../toolbar-icons'
@@ -43,6 +46,7 @@ const t = computed(() => {
     italic: en ? 'Italic' : '斜体',
     strike: en ? 'Strikethrough' : '删除线',
     code: en ? 'Inline code' : '行内代码',
+    spoiler: en ? 'Spoiler' : '隐藏文本',
     link: en ? 'Link' : '链接',
     linkUrl: en ? 'Link URL' : '链接 URL',
     apply: en ? 'Apply' : '确定',
@@ -136,6 +140,7 @@ const commandMap = computed<Record<string, BubbleButton>>(() => ({
   italic: { svg: I.italic, title: t.value.italic, run: () => call(toggleEmphasisCommand.key), mark: 'italic' },
   strike: { svg: I.strike, title: t.value.strike, run: () => call(toggleStrikethroughCommand.key), mark: 'strike' },
   code: { svg: I.code, title: t.value.code, run: () => call(toggleInlineCodeCommand.key), mark: 'code' },
+  spoiler: { svg: I.spoiler, title: t.value.spoiler, run: () => call(insertKunSpoilerCommand.key), mark: 'spoiler' },
   link: { svg: I.link, title: t.value.link, run: openLinkEditor }
 }))
 
@@ -143,7 +148,7 @@ const commandMap = computed<Record<string, BubbleButton>>(() => ({
 // dividers collapsed around any unknown/removed item.
 const items = computed<BubbleItem[]>(() => {
   const map = commandMap.value
-  const configured = ctx?.selectionToolbarItems ?? ['bold', 'italic', 'strike', 'code', 'link']
+  const configured = ctx?.selectionToolbarItems ?? DEFAULT_SELECTION_ITEMS
   const mapped = configured
     .map<BubbleItem | null>((it) =>
       it === '|'

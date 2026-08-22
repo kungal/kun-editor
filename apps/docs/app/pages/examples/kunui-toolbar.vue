@@ -150,7 +150,9 @@ const adapters = { uploadImage, stickerSource, notify }
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">选区浮动工具栏(定制)</h2>
     <p class="text-default-600 mb-2">
-      选中文本会浮出格式菜单。<code>selectionToolbar</code> 传项目数组可重排/增减
+      选中文本会浮出格式菜单,默认那一排是
+      <code>bold / italic / strike / code / spoiler / link</code>。
+      <code>selectionToolbar</code> 传项目数组可重排/增减
       (<code>'|'</code> 分隔),传 <code>false</code> 关闭;样式改参考 CSS 的
       <code>.kun-editor__bubble</code> / <code>.kun-editor__bubble-btn</code> /
       <code>.kun-editor__link-input</code>。点「链接」时气泡会就地换成 URL 输入框

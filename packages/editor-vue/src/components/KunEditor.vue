@@ -33,16 +33,8 @@ import EditorToolbar from './EditorToolbar.vue'
 import ToolbarHost from './ToolbarHost.vue'
 import MarkdownSource from './MarkdownSource.vue'
 import { createEmptyActiveMarks } from '../active-marks'
-import { KUN_EDITOR_CONTEXT } from '../context'
+import { DEFAULT_SELECTION_ITEMS, KUN_EDITOR_CONTEXT } from '../context'
 import type { KunEditorExpose, KunSelectionItem } from '../types'
-
-const DEFAULT_SELECTION_ITEMS: KunSelectionItem[] = [
-  'bold',
-  'italic',
-  'strike',
-  'code',
-  'link'
-]
 
 type ViewMode = 'wysiwyg' | 'source' | 'split'
 
@@ -77,8 +69,9 @@ const props = withDefaults(
     scrollSync?: boolean
     /**
      * The floating toolbar shown on text selection. `true` (default) = the
-     * standard buttons; `false` = off; or pass an ordered `KunSelectionItem[]`
-     * to reorder / subset them (`'|'` is a divider). Its look is styled via the
+     * standard buttons (bold / italic / strike / code / spoiler / link);
+     * `false` = off; or pass an ordered `KunSelectionItem[]` to reorder /
+     * subset them (`'|'` is a divider). Its look is styled via the
      * `.kun-editor__bubble` / `.kun-editor__bubble-btn` class hooks.
      */
     selectionToolbar?: boolean | KunSelectionItem[]

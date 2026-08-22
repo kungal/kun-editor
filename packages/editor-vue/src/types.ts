@@ -32,6 +32,7 @@ export type KunSelectionItem =
   | 'italic'
   | 'strike'
   | 'code'
+  | 'spoiler'
   | 'link'
   | '|'
 
