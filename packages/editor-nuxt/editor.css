@@ -105,6 +105,17 @@
   word-wrap: break-word;
 }
 
+/* The spoiler chip while you EDIT it (`||hidden||`). @kungal/editor-core paints
+ * a `currentColor`-derived tint on its own — it must look hidden in a host with
+ * no design tokens at all — and reads `--kun-spoiler-bg` first, which is this
+ * hook: KunUI's muted surface, so the chip matches the rest of the chrome.
+ * Setting a custom property works from here even though the chip's `background`
+ * is an inline style (specificity applies per property, and this sets a
+ * different one). */
+.kun-editor__wysiwyg .kun-spoiler {
+  --kun-spoiler-bg: var(--color-default-200);
+}
+
 /* Placeholder: the editor sets a `data-placeholder` attr + this class on the
  * empty block (a decoration, not real content). Render the text via ::before so
  * it never affects the doc / caret. */

@@ -21,6 +21,17 @@
         行为与工具栏完全一致。
       </li>
       <li>
+        编辑时剧透块是一枚<strong>有底色的 chip</strong>(和正文一眼分得开),底色由
+        <code>--kun-spoiler-bg</code> 决定 —— 默认值不依赖任何设计 token(取自
+        <code>currentColor</code>,明暗主题都成立),KunUI 宿主里则由参考样式表映射成
+        <code>--color-default-200</code>。
+      </li>
+      <li>
+        光标锚点(<code>U+200B</code>)只存在于<strong>编辑器文档里</strong>,不会进入 markdown:
+        序列化时统一剥掉,解析时再补回来。旧版本会把它写进正文,存库的文本会变成
+        <code>鲲 ||Galgame||␣ 论坛</code> —— 打开再保存一次即可自愈。
+      </li>
+      <li>
         节点里是<strong>纯文本</strong>(schema <code>marks: ''</code>):把加粗的文字藏起来,
         留下的是文字,丢掉的是加粗 —— <code>||…||</code> 本来也表达不了行内格式。
       </li>

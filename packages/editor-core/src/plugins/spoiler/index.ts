@@ -8,6 +8,7 @@
 // The syntax `||text||` is the KUN ecosystem's own markdown extension (shared
 // with the server renderer), so the round-trip lives here in core, not in a host.
 import type { MilkdownPlugin } from '@milkdown/kit/ctx'
+import { SerializerReady, serializerCtx } from '@milkdown/kit/core'
 import type { Node } from '@milkdown/kit/transformer'
 import type {
   NodeType,
@@ -34,21 +35,65 @@ interface SpoilerNode extends Node {
   children?: SpoilerNode[]
 }
 
-/** DOM attrs for the rendered spoiler chip. The styling references KunUI CSS
- * variables so it inherits the host theme (the render layer ships the vars). */
+/**
+ * DOM attrs for the spoiler chip AS SEEN WHILE EDITING — a tinted chip, so you
+ * can tell hidden text from ordinary text while you write it. (The published
+ * page renders `||…||` itself; this styling never leaves the editor.)
+ *
+ * Self-sufficient on purpose: it used to be `background: var(--color-default-500)`
+ * with no fallback, so in any host that does not define that palette token — the
+ * headless editor being exactly such a host — the whole declaration was invalid
+ * and the chip computed to `rgba(0, 0, 0, 0)`. Hidden text looked like plain text.
+ *
+ * `--kun-spoiler-bg` is the theming hook: an INLINE style beats every selector a
+ * host stylesheet can write, so without a custom property the chip would be
+ * untouchable from CSS. Setting the property is not (a rule may set it on
+ * `.kun-spoiler` freely) — which is how @kungal/editor-nuxt paints it in KunUI
+ * colors, and how any host re-tints it in one line.
+ *
+ * The default is `currentColor`-derived rather than a fixed grey so it works on a
+ * light and a dark background alike; the plain rgba before it is what a browser
+ * without `color-mix()` keeps (an unknown function is dropped at parse time, so
+ * the earlier declaration survives — unlike a bad `var()`, which kills both).
+ */
 export const spoilerAttr = $nodeAttr('kun-spoiler', () => ({
   container: {
     class: 'kun-spoiler',
     style:
-      'background: var(--color-default-500); border-radius: var(--radius-sm); padding: 0 4px; cursor: pointer;'
+      'background: rgba(127, 127, 127, 0.3);' +
+      ' background: var(--kun-spoiler-bg, color-mix(in oklab, currentColor 22%, transparent));' +
+      ' border-radius: var(--radius-sm, 0.25rem); padding: 0 4px; cursor: pointer;'
   }
 }))
 
 /** The zero-width space this plugin parks the caret on. A caret has to sit in a
  * TEXT node: with nothing after a spoiler the browser puts the next keystroke
  * inside it, and an empty spoiler has nowhere to type at all. Spelled as an
- * escape because the literal character is invisible in a source file. */
+ * escape because the literal character is invisible in a source file.
+ *
+ * The invariant, held by `stripCaretAnchors` (out) and the remark transform (in):
+ * an anchor is an EDITOR device \u2014 it lives in the ProseMirror document, and never
+ * in the markdown. It used to ride along into whatever the host stored, so a
+ * saved post read `\u9cb2 ||Galgame||<U+200B> \u8bba\u575b`: an invisible character in the
+ * database, in every diff, and in every consumer that never heard of this editor. */
 const CARET_ANCHOR = '\u200b'
+
+/**
+ * Take the anchors back out of every markdown string the editor hands over.
+ *
+ * At the SERIALIZER, not at one caller: `getMarkdown()`, the listener that backs
+ * `v-model`, the source view and any host action all read through this one slice,
+ * and only the last of those is ours to police. Wrapping it also covers anchors
+ * that arrived from stored content or a paste, so a document heals itself the
+ * next time it is saved.
+ */
+const stripCaretAnchors: MilkdownPlugin = (ctx) => async () => {
+  await ctx.wait(SerializerReady)
+  ctx.update(
+    serializerCtx,
+    (serialize) => (doc) => serialize(doc).replaceAll(CARET_ANCHOR, '')
+  )
+}
 
 /** Anchors are an editor device, never content: strip them from any text moving
  * between a spoiler and the document (or the markdown). */
@@ -298,18 +343,22 @@ export const remarkSpoilerPlugin = $remark('remarkSpoiler', () => () => {
         return
       }
 
+      // Anchors that rode in with stored content (this plugin used to write them
+      // to markdown) are dropped here and re-added below, so a loaded spoiler
+      // ends up with exactly the one the editor needs.
+      const value = node.value.replaceAll(CARET_ANCHOR, '')
       const regex = /\|\|(.*?)\|\|/g
       const newNodes: SpoilerNode[] = []
       let lastIndex = 0
 
-      for (const match of node.value.matchAll(regex)) {
+      for (const match of value.matchAll(regex)) {
         const [full, content] = match
         const matchIndex = match.index ?? 0
 
         if (matchIndex > lastIndex) {
           newNodes.push({
             type: 'text',
-            value: node.value.slice(lastIndex, matchIndex)
+            value: value.slice(lastIndex, matchIndex)
           })
         }
 
@@ -318,13 +367,18 @@ export const remarkSpoilerPlugin = $remark('remarkSpoiler', () => () => {
             type: 'kun-spoiler',
             children: [{ type: 'text', value: content }]
           })
+          // Loading a spoiler has to leave the same caret anchor after it that
+          // typing one does — it is what lets you click past a spoiler sitting at
+          // the end of a paragraph and type OUTSIDE it. The serializer takes it
+          // off again, so it costs the stored markdown nothing.
+          newNodes.push({ type: 'text', value: CARET_ANCHOR })
         }
 
         lastIndex = matchIndex + full.length
       }
 
-      if (lastIndex < node.value.length) {
-        newNodes.push({ type: 'text', value: node.value.slice(lastIndex) })
+      if (lastIndex < value.length) {
+        newNodes.push({ type: 'text', value: value.slice(lastIndex) })
       }
 
       if (newNodes.length > 0 && typeof index === 'number') {
@@ -338,7 +392,8 @@ export const remarkSpoilerPlugin = $remark('remarkSpoiler', () => () => {
 
 /**
  * The spoiler plugin bundle: schema attrs, node schema, the `||…||` input rule,
- * the insert command and the remark round-trip. Pure — no adapter needed.
+ * the insert command, the remark round-trip and the serializer guard that keeps
+ * caret anchors out of the markdown. Pure — no adapter needed.
  */
 export const createSpoilerPlugin = (): MilkdownPlugin[] =>
   [
@@ -346,5 +401,6 @@ export const createSpoilerPlugin = (): MilkdownPlugin[] =>
     spoilerSchema,
     insertSpoilerInputRule,
     insertKunSpoilerCommand,
-    remarkSpoilerPlugin
+    remarkSpoilerPlugin,
+    stripCaretAnchors
   ].flat()

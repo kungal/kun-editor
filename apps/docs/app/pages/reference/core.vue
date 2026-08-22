@@ -13,7 +13,7 @@ normalizeLinkHref('www.kungal.com/topic/1') // 'https://www.kungal.com/topic/1'`
 
 const factories = [
   { name: 'createKunEditorPlugins', type: '(adapters?, features?, opts?) => MilkdownPlugin[]', description: '组装好的插件包(baseline + 各插件),渲染层的唯一入口。' },
-  { name: 'createSpoilerPlugin', type: '() => MilkdownPlugin[]', description: 'spoiler 节点 + 输入规则 + remark 往返 + 插入命令。' },
+  { name: 'createSpoilerPlugin', type: '() => MilkdownPlugin[]', description: 'spoiler 节点 + 输入规则 + remark 往返 + 插入命令 + 序列化守卫(光标锚点 U+200B 只留在编辑器文档里,不写进 markdown)。' },
   { name: 'createKatexPlugins', type: '() => MilkdownPlugin[]', description: '行内 / 块级 LaTeX 全套。' },
   { name: 'createCodeBlockPlugins', type: '(opts?) => MilkdownPlugin[]', description: 'CodeMirror 代码块组件 + 配置(主题 / 语言 / 图标 / 本地化 / latex 预览)。' },
   { name: 'createStopLinkPlugin', type: '() => MilkdownPlugin[]', description: 'Space 断开活动的链接标记。' },

@@ -63,7 +63,7 @@ describe('insertKunSpoilerCommand', () => {
       select(editor, 1, 6) // "hello"
       spoiler(editor)
     })
-    expect(out).toBe(`||hello||${ZWSP} world`)
+    expect(out).toBe('||hello|| world')
   })
 
   it('keeps the words when the selection carries marks', async () => {
@@ -72,7 +72,7 @@ describe('insertKunSpoilerCommand', () => {
       select(editor, 1, 10)
       spoiler(editor)
     })
-    expect(out).toBe(`||bold text||${ZWSP}`)
+    expect(out).toBe('||bold text||')
   })
 
   it('joins a selection spanning paragraphs into one spoiler', async () => {
@@ -80,7 +80,7 @@ describe('insertKunSpoilerCommand', () => {
       select(editor, 1, 5)
       spoiler(editor)
     })
-    expect(out).toBe(`||a b||${ZWSP}`)
+    expect(out).toBe('||a b||')
   })
 
   it('puts the caret inside the node when nothing is selected', async () => {
@@ -89,17 +89,17 @@ describe('insertKunSpoilerCommand', () => {
       spoiler(editor)
       type(editor, 'secret') // must land INSIDE the spoiler
     })
-    expect(out).toBe(`hello||secret||${ZWSP}`)
+    expect(out).toBe('hello||secret||')
   })
 
-  it('leaves nothing but the anchor behind when nothing is typed into it', async () => {
+  it('leaves nothing behind when nothing is typed into it', async () => {
     // A spoiler holding only the caret anchor never reaches the markdown, so a
     // stray click cannot leave a `||||` in the document.
     const out = await withEditor('hello', (editor) => {
       select(editor, 6)
       spoiler(editor)
     })
-    expect(out).toBe(`hello${ZWSP}`)
+    expect(out).toBe('hello')
   })
 
   it('leaves the caret outside the spoiler after wrapping', async () => {
@@ -108,7 +108,7 @@ describe('insertKunSpoilerCommand', () => {
       spoiler(editor)
       type(editor, '!') // must land AFTER the spoiler, not inside it
     })
-    expect(out).toBe(`||hello||${ZWSP}! world`)
+    expect(out).toBe('||hello||! world')
   })
 
   it('reveals the spoiler the caret is in instead of nesting', async () => {
@@ -134,7 +134,7 @@ describe('insertKunSpoilerCommand', () => {
       spoiler(editor) // reveal, leaving "secret" selected
       spoiler(editor) // hide it again
     })
-    expect(out).toBe(`||secret||${ZWSP} tail`)
+    expect(out).toBe('||secret|| tail')
   })
 
   it('reveals from a selection that only covers part of the spoiler', async () => {
@@ -147,10 +147,12 @@ describe('insertKunSpoilerCommand', () => {
 
   it('flattens a spoiler caught inside a wider selection', async () => {
     const out = await withEditor('a ||b|| c', (editor) => {
-      select(editor, 1, 8) // the whole paragraph
+      // 1..9, not 1..8: loading a spoiler leaves a caret anchor after it, so the
+      // paragraph is one (invisible) character longer than its markdown.
+      select(editor, 1, 9) // the whole paragraph
       spoiler(editor)
     })
-    expect(out).toBe(`||a b c||${ZWSP}`)
+    expect(out).toBe('||a b c||')
   })
 
   it('hides everything on a select-all (an AllSelection, not a text one)', async () => {
@@ -163,7 +165,7 @@ describe('insertKunSpoilerCommand', () => {
       })
       spoiler(editor)
     })
-    expect(out).toBe(`||hide me||${ZWSP}`)
+    expect(out).toBe('||hide me||')
   })
 
   it('refuses with a node selected, instead of replacing it', async () => {
@@ -195,7 +197,7 @@ describe('insertKunSpoilerCommand', () => {
       })
       spoiler(editor)
     })
-    expect(out).toBe(`||第一行 第二行||${ZWSP}`)
+    expect(out).toBe('||第一行 第二行||')
   })
 
   it('round-trips what it wrote across a line break', async () => {
@@ -240,5 +242,44 @@ describe('insertKunSpoilerCommand', () => {
     })
     expect(handled).toBe(false)
     expect(out).toBe('```\ncode\n```')
+  })
+
+  // ── The caret anchor is an EDITOR device ──────────────────────────────────
+  // It has to be in the ProseMirror document (a caret cannot sit anywhere but a
+  // text node) and must never be in what the host stores: it used to ride along
+  // into the saved markdown, putting an invisible U+200B in the database.
+
+  it('never writes the caret anchor into the markdown', async () => {
+    const out = await withEditor('hello world', (editor) => {
+      select(editor, 1, 6)
+      spoiler(editor)
+    })
+    expect(out).not.toContain(ZWSP)
+  })
+
+  it('takes out an anchor that arrived with stored content', async () => {
+    // Exactly what an older version of this plugin saved — opening and saving
+    // the post heals it.
+    const out = await withEditor(`鲲 ||Galgame||${ZWSP} 论坛`, () => {})
+    expect(out).toBe('鲲 ||Galgame|| 论坛')
+  })
+
+  it('gives a loaded spoiler the anchor the caret needs', async () => {
+    // The markdown no longer carries one, so parsing has to put it back: with no
+    // text node after a spoiler ending a paragraph, the browser puts the next
+    // keystroke INSIDE the spoiler.
+    let trailing = ''
+    await withEditor('||secret||', (editor) => {
+      editor.action((ctx) => {
+        const { doc } = ctx.get(editorViewCtx).state
+        doc.descendants((node, pos) => {
+          if (node.type.name === 'kun-spoiler') {
+            const end = pos + node.nodeSize
+            trailing = doc.textBetween(end, end + 1)
+          }
+        })
+      })
+    })
+    expect(trailing).toBe(ZWSP)
   })
 })

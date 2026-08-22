@@ -9,6 +9,7 @@ const hooks = [
   { name: '.kun-editor__toolbar', type: 'tabs', description: '预览 / Markdown 切换栏' },
   { name: '.kun-editor__tab[data-active]', type: 'tabs', description: '视图切换按钮(激活态用 data-active)' },
   { name: '.kun-editor__wysiwyg .ProseMirror', type: 'wysiwyg', description: '所见即所得编辑区(需要 white-space: pre-wrap)' },
+  { name: '.kun-spoiler', type: 'wysiwyg', description: '编辑中的剧透块 —— 底色走 --kun-spoiler-bg 变量(见下)' },
   { name: '.kun-editor__format-toolbar', type: 'toolbar', description: '格式化工具栏' },
   { name: '.kun-editor__tool', type: 'toolbar', description: '工具栏按钮' },
   { name: '.kun-editor__tool[data-active], .kun-editor__bubble-btn[data-active]', type: 'toolbar', description: '加粗 / 斜体等 toggle 的按下态' },
@@ -40,6 +41,9 @@ const theming = `/* 所有配色都读 KunUI 设计 token —— 换肤只需覆
 .kun-editor__tool:hover { background: var(--color-default-100); }
 .kun-editor__tool[data-active='true'],
 .kun-editor__bubble-btn[data-active='true'] { background: var(--color-primary); }
+/* 剧透块的底色是内联样式(编辑器自带一份不依赖任何 token 的默认值),
+   选择器压不过它 —— 但改一个自定义属性就行,这是它的换肤钩子 */
+.kun-editor__wysiwyg .kun-spoiler { --kun-spoiler-bg: var(--color-default-200); }
 /* 暗色模式:KunUI 的 .kun-dark-mode 一挂,token 自动切换,编辑器随之变色 */`
 </script>
 
