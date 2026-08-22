@@ -35,10 +35,16 @@ export type KunSelectionItem =
   | 'link'
   | '|'
 
-// The toggle marks a toolbar can show an active state for (bold / italic /
-// strikethrough / inline code). The rest of the toolbar buttons are one-shot
-// actions (insert a block, upload, link) with no on/off state.
-export type KunToggleMark = 'bold' | 'italic' | 'strike' | 'code'
+// The toggles a toolbar can show an active state for: the four inline marks,
+// plus `spoiler` — a NODE, but its button toggles the same way (inside a
+// spoiler, it reveals). The rest of the toolbar buttons are one-shot actions
+// (insert a block, upload, link) with no on/off state.
+export type KunToggleMark =
+  | 'bold'
+  | 'italic'
+  | 'strike'
+  | 'code'
+  | 'spoiler'
 
 // The scoped-slot props `<KunEditor #toolbar="api">` hands to a custom toolbar.
 // The core stays headless: this is the command API a UI (the default hand-rolled
@@ -48,8 +54,9 @@ export interface KunEditorToolbarApi {
   /** Run a Milkdown command (import its key from the preset/commonmark/gfm). */
   run: <T>(key: CmdKey<T>, payload?: T) => void
   /**
-   * Live toggle-mark state at the caret / selection (bold / italic / strike /
-   * code). The same record drives the default toolbar and the selection
+   * Live toggle state at the caret / selection (bold / italic / strike / code,
+   * and `spoiler` when the caret is inside one — its button toggles too). The
+   * same record drives the default toolbar and the selection
    * bubble; a custom `#toolbar` reads it here. Updated on every editor view
    * tick, including stored-mark-only toggles.
    */

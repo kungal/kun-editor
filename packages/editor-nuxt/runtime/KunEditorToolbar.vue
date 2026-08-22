@@ -119,7 +119,7 @@ const commandButtons = computed<Record<string, Tool>>(() => ({
   quote: { icon: 'lucide:text-quote', title: t.value.quote, run: () => props.run(wrapInBlockquoteCommand.key) },
   codeBlock: { icon: 'lucide:square-code', title: t.value.codeBlock, run: () => props.run(createCodeBlockCommand.key, '') },
   hr: { icon: 'lucide:minus', title: t.value.hr, run: () => props.run(insertHrCommand.key) },
-  spoiler: { icon: 'lucide:eye-off', title: t.value.spoiler, run: () => props.run(insertKunSpoilerCommand.key) }
+  spoiler: { icon: 'lucide:eye-off', title: t.value.spoiler, run: () => props.run(insertKunSpoilerCommand.key), mark: 'spoiler' }
 }))
 
 type RenderItem =

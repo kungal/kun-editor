@@ -117,7 +117,7 @@ const groups = computed<ToolItem[][]>(() => [
     { svg: I.hr, title: t.value.hr, run: () => call(insertHrCommand.key) }
   ],
   [
-    { svg: I.spoiler, title: t.value.spoiler, run: () => call(insertKunSpoilerCommand.key) }
+    { svg: I.spoiler, title: t.value.spoiler, run: () => call(insertKunSpoilerCommand.key), mark: 'spoiler' }
   ]
 ])
 

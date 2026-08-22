@@ -32,11 +32,30 @@ export const createEmptyActiveMarks = (): Record<KunToggleMark, boolean> => ({
   bold: false,
   italic: false,
   strike: false,
-  code: false
+  code: false,
+  spoiler: false
 })
 
 export const EMPTY_ACTIVE_MARKS: Readonly<Record<KunToggleMark, boolean>> =
   Object.freeze(createEmptyActiveMarks())
+
+/** The spoiler is a NODE, not a mark: active when the caret sits inside one,
+ * which is exactly when the 隐藏文本 button reveals instead of hides (see
+ * `insertKunSpoilerCommand`). Read off the SCHEMA rather than the plugin ctx, so
+ * it stays false — instead of throwing — when the host turned the feature off. */
+const isInSpoiler = (state: EditorState): boolean => {
+  const type = state.schema.nodes['kun-spoiler']
+  if (!type) {
+    return false
+  }
+  const { $from } = state.selection
+  for (let depth = $from.depth; depth > 0; depth--) {
+    if ($from.node(depth).type === type) {
+      return true
+    }
+  }
+  return false
+}
 
 /** Same decision `toggleMark` itself uses: stored marks at an empty caret,
  * `rangeHasMark` (any overlap) on a range. */
@@ -52,6 +71,7 @@ export const readActiveMarks = (
       ? !!type.isInSet(state.storedMarks ?? $from.marks())
       : state.doc.rangeHasMark(from, to, type)
   }
+  out.spoiler = isInSpoiler(state)
   return out
 }
 
@@ -61,7 +81,7 @@ const writeActiveMarks = (
   target: Record<KunToggleMark, boolean>
 ): void => {
   const next = readActiveMarks(state, ctx)
-  for (const name of TOGGLE_MARKS) {
+  for (const name of Object.keys(next) as KunToggleMark[]) {
     if (target[name] !== next[name]) {
       target[name] = next[name]
     }
