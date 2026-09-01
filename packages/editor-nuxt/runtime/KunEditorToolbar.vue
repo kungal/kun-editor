@@ -321,7 +321,16 @@ const insertSticker = (src: string, name: string) =>
         </template>
         <!-- `type="text"` + `inputmode="url"`, never `type="url"`: this IS a
              form, so native URL validation would block submit on a schemeless
-             `www.a.com/x` — the very input insertLinkCommand normalizes. -->
+             `www.a.com/x` — the very input insertLinkCommand normalizes.
+
+             NO `autofocus`: KunPopover already focuses the first focusable
+             element in its panel when it opens, and does it with
+             `preventScroll`. The input's own mount-time focus ran a tick
+             EARLIER — while the panel, teleported to <body>, was still sitting
+             at the document origin because floating-ui had not measured yet —
+             so "scroll the focused element into view" yanked the whole page to
+             the top. KunUI ≥ 2.26.0 passes preventScroll there too, but this
+             prop was doing nothing the popover wasn't already doing right. -->
         <form class="flex items-center gap-1" @submit.prevent="applyLink">
           <KunInput
             v-model="linkUrl"
@@ -329,7 +338,6 @@ const insertSticker = (src: string, name: string) =>
             inputmode="url"
             size="sm"
             :placeholder="t.linkPlaceholder"
-            :autofocus="true"
             class="flex-1"
           />
           <KunButton type="submit" variant="flat" color="primary" size="sm">

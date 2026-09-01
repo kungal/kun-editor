@@ -30,6 +30,12 @@ Then, anywhere in a template:
   `@kungal/ui-tokens` + `@kungal/ui-vue` setup. This layer intentionally owns no
   Tailwind entry — the `@source` scan path is node_modules-layout-specific, so
   only the app can write it correctly.
+- **Rendering the editor inside a `KunModal` / `KunDrawer` needs
+  `@kungal/ui-vue` >= 2.26.0.** The toolbar's link and sticker panels are
+  `KunPopover`s, which teleport to `<body>`; before 2.26.0 an overlay's focus
+  trap did not know about them and pulled focus straight back to the trigger, so
+  those panels could not be typed into. 2.26.0 registers a popover with the
+  overlay that opened it. Nothing to configure on the editor side.
 
 ## Status
 

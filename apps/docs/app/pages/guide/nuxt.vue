@@ -9,6 +9,10 @@ const use = `<!-- 任意组件里 —— 无需 import,<KunEditor> 已自动注�
   <KunEditor v-model="markdown" :adapters="adapters" />
 </template>`
 
+// The in-modal demo below: the editor's toolbar popovers are teleported to
+// <body>, so this is the case that only works from @kungal/ui-vue 2.26.0 on.
+const modalOpen = ref(false)
+
 const css = `/* app 的 main.css */
 @import '@kungal/ui-tokens';
 @import '@kungal/ui-vue/style.css';
@@ -53,6 +57,39 @@ const css = `/* app 的 main.css */
       的 CSS)。详见<NuxtLink class="text-primary" to="/guide/styling">样式指南</NuxtLink>。
     </p>
     <Code :code="css" lang="css" />
+
+    <h2 class="mt-8 mb-1 text-xl font-semibold">放进 KunModal / KunDrawer</h2>
+    <p class="text-default-600 mb-3">
+      编辑器本身可以直接放进弹窗/抽屉,但请把 <code>@kungal/ui-vue</code> 升到
+      <strong>2.26.0 及以上</strong>。工具栏的链接、表情面板是
+      <code>KunPopover</code>,面板会 teleport 到
+      <code>&lt;body&gt;</code>;而 <code>KunModal</code> /
+      <code>KunDrawer</code> 的焦点陷阱是以自己那棵 DOM 子树为界建立的 ——
+      2.26.0 之前的陷阱不认这些面板,焦点一进去就被拽回触发按钮,面板里的输入框
+      <strong>一个字都打不进去</strong>。2.26.0 起浮层会登记到「开它的那个弹窗」里,
+      陷阱照样是陷阱,面板也能用了。编辑器这一侧无需任何配置。
+    </p>
+    <p class="text-default-600 mb-3">
+      下面就是这个场景 —— 打开弹窗,点工具栏的链接按钮,URL 输入框应当拿到焦点、能打字:
+    </p>
+    <KunButton variant="flat" color="primary" @click="modalOpen = true">
+      打开一个装着编辑器的弹窗
+    </KunButton>
+    <KunModal v-model="modalOpen" title="弹窗里的编辑器" size="lg">
+      <DemoEditor
+        model-value="点工具栏的链接按钮试试。"
+        :kunui-toolbar="true"
+        :output="false"
+      />
+    </KunModal>
+
+    <p class="text-default-600 mt-3 mb-3">
+      同源的另一半(滚到页面中部点开链接面板会跳回顶部)在编辑器这一侧也修掉了:
+      面板里的输入框不再自带 <code>autofocus</code> —— <code>KunPopover</code>
+      本来就会带着 <code>preventScroll</code> 聚焦面板里第一个可聚焦元素,
+      多出来的那次聚焦发生在 floating-ui 量出位置<strong>之前</strong>,
+      浏览器于是「滚动到」还停在文档原点的面板。
+    </p>
 
     <p class="text-default-500 mt-6 text-sm">
       别忘了 Milkdown 全家桶与可选 peer 仍需在宿主里安装一次 —— 见<NuxtLink
