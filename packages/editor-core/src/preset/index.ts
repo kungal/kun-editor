@@ -37,6 +37,7 @@ import { createMentionPlugin } from '../plugins/mention'
 import { createQuotePlugin } from '../plugins/quote'
 import { createUploadPlugin, imageUploadPlaceholder } from '../plugins/upload'
 import { createPlaceholderPlugin } from '../plugins/placeholder'
+import { createInlineAtomPlugin } from '../plugins/inline-atom'
 
 // Re-export the individual plugin factories + building blocks so advanced hosts
 // can compose their own bundle instead of using the preset.
@@ -50,6 +51,7 @@ export * from '../plugins/mention'
 export * from '../plugins/quote'
 export * from '../plugins/upload'
 export * from '../plugins/placeholder'
+export * from '../plugins/inline-atom'
 
 /** Extra, non-adapter options for the composed bundle. */
 export interface KunEditorPluginOptions {
@@ -144,6 +146,10 @@ export const createKunEditorPlugins = (
   }
   // stop-link is pure chrome-free behaviour; always on.
   plugins.push(createStopLinkPlugin())
+  // Backspace / Delete beside an inline atom (mention, quote, math…) deletes it
+  // in one transaction on every input path — no native contenteditable, no
+  // prosemirror-view blur/focus fallback on Android. Pure; always on.
+  plugins.push(createInlineAtomPlugin())
   // insert-link command (click-to-link over the commonmark link mark); always on.
   plugins.push(createLinkPlugin())
   // setHeadingCommand (absolute block-type) — powers the "text size" dropdown.

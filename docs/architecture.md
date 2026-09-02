@@ -102,6 +102,15 @@ insertReference`) is genuinely reusable; only the label/target is host-specific.
 the host inserts one via `insertQuoteCommand({ refId, label })` and owns what the
 reference means. Markdown form: `[label](kungal-reply:<refId>)`.
 
+The other half of "a stable inline atom" is deletion, and it is shared by every
+inline atom (mention, quote, inline math, the next chip): `createInlineAtomPlugin()`
+takes Backspace / Delete beside one at the `beforeinput` event and removes the
+node in a single transaction, so the browser's contenteditable never handles a
+`contenteditable=false` element — that is the path that "sometimes fails" on
+Chrome Android and makes prosemirror-view blur + refocus the editor (the
+keyboard flicker). Its CSS companion, the `img.ProseMirror-separator` guard,
+lives in the reference stylesheet (see `packages/editor-nuxt/editor.css`).
+
 ## Migration plan (incremental, forum stays the reference)
 
 The forum keeps its working in-repo editor until each piece is proven in

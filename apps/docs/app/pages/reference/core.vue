@@ -17,6 +17,7 @@ const factories = [
   { name: 'createKatexPlugins', type: '() => MilkdownPlugin[]', description: '行内 / 块级 LaTeX 全套。' },
   { name: 'createCodeBlockPlugins', type: '(opts?) => MilkdownPlugin[]', description: 'CodeMirror 代码块组件 + 配置(主题 / 语言 / 图标 / 本地化 / latex 预览)。' },
   { name: 'createStopLinkPlugin', type: '() => MilkdownPlugin[]', description: 'Space 断开活动的链接标记。' },
+  { name: 'createInlineAtomPlugin', type: '() => MilkdownPlugin[]', description: '光标紧挨 @提及 / #楼层 / 行内公式这类行内原子节点时,Backspace / Delete 在 beforeinput 层用一个事务整块删掉 —— 不走浏览器原生 contenteditable,手机端也不再闪键盘。任何 atom: true 的行内节点自动享有。' },
   { name: 'createMentionPlugin', type: '() => MilkdownPlugin[]', description: 'mention schema + remark 往返 + 插入命令。' },
   { name: 'createUploadPlugin', type: '(uploadImage, opts?) => MilkdownPlugin[]', description: '基于 uploadImage 适配器的图片上传。' },
   { name: 'createQuotePlugin', type: '() => MilkdownPlugin[]', description: '不透明的行内引用原子 + 插入命令。' }

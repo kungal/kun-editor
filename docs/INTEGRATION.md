@@ -43,9 +43,12 @@ Also import the peers' own CSS for the features you enable:
 import 'katex/dist/katex.min.css' // when the katex feature is on
 ```
 
-The reference stylesheet carries the two structural rules the editor genuinely
-needs (ProseMirror `white-space`, popover positioning / show-hide), so don't drop
-those if you write your own.
+The reference stylesheet carries the structural rules the editor genuinely
+needs — ProseMirror `white-space`, the `img.ProseMirror-separator` guard (the
+caret anchor ProseMirror appends after a trailing @mention / #floor chip; a
+generic `img { display: block }` such as Tailwind's preflight would push the
+caret onto a new line), popover positioning / show-hide — so don't drop those
+if you write your own.
 
 ## 3. Wire adapters (the important part)
 

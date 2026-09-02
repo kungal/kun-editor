@@ -31,6 +31,12 @@ const custom = `const adapters = {
       <li><code>@</code> 自动补全下拉消费 <code>searchMentionUsers</code> 适配器 —— 缺它则无下拉。</li>
       <li>默认 scheme 常量 <code>MENTION_SCHEME = 'kungal-user:'</code> 与服务端共享。</li>
       <li>链接形态是<strong>宿主策略</strong>,可用 <code>mentionToUrl</code> / <code>mentionFromUrl</code> 覆盖(见下)。</li>
+      <li>
+        <strong>删除:</strong>提及是一个不可编辑的行内原子节点,插入时带一个尾随空格。退格先删空格,再退格<strong>整块</strong>删掉提及 ——
+        由核心的 <code>createInlineAtomPlugin</code> 在 <code>beforeinput</code> 层接管,一个事务完成,不经过浏览器原生
+        contenteditable;手机键盘同样走这条路,不再有光标跳行 / 键盘收起又弹出。段落以提及结尾时的光标位置靠
+        ProseMirror 的 <code>img.ProseMirror-separator</code> 锚点,参考样式表已挡住宿主的通用 <code>img</code> 规则(见「样式」页)。
+      </li>
     </ul>
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">自定义链接形态(宿主策略)</h2>

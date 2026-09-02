@@ -11,8 +11,9 @@
  * Import it (fixes then arrive with a version bump) or copy it into your app and
  * edit freely — it's plain CSS with no build step.
  *
- * It also carries the two structural rules the editor genuinely needs to
- * function: ProseMirror's `white-space` and the popover positioning / show-hide.
+ * It also carries the structural rules the editor genuinely needs to function:
+ * ProseMirror's `white-space`, the guard on ProseMirror's caret hack nodes, and
+ * the popover positioning / show-hide.
  */
 
 /* The surface every floating panel sits on (selection bubble, @mention dropdown,
@@ -103,6 +104,27 @@
   /* ProseMirror REQUIRES a white-space rule; pre-wrap keeps wrapping + spaces. */
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+/* ProseMirror's caret hack node. When a textblock ENDS in a `contenteditable=false`
+ * node — an @mention or #floor chip, inline math, any inline atom — prosemirror-view
+ * appends `<img class="ProseMirror-separator">` + `<br class="ProseMirror-trailingBreak">`
+ * so Chrome / Safari can draw a caret after it. The img is meant to be a 0×0
+ * inline nothing, but a host's generic `img` rule (Tailwind's preflight makes
+ * every img display:block; the forum adds my-8 margins and a border) turns it
+ * into a block box: the trailing <br>, and the caret with it, drop onto a new
+ * line, the paragraph doubles in height, and every Backspace past a chip looks
+ * like a jump. prosemirror-view's own stylesheet ships this guard ("Protect
+ * against generic img rules"); Milkdown doesn't include that sheet, so it lives
+ * here. `!important` on purpose — it has to beat whatever the host's prose
+ * layer says about images. */
+.kun-editor__wysiwyg img.ProseMirror-separator {
+  display: inline !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
 }
 
 /* The spoiler chip while you EDIT it (`||hidden||`). @kungal/editor-core paints

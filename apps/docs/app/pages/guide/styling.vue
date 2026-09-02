@@ -9,6 +9,7 @@ const hooks = [
   { name: '.kun-editor__toolbar', type: 'tabs', description: '预览 / Markdown 切换栏' },
   { name: '.kun-editor__tab[data-active]', type: 'tabs', description: '视图切换按钮(激活态用 data-active)' },
   { name: '.kun-editor__wysiwyg .ProseMirror', type: 'wysiwyg', description: '所见即所得编辑区(需要 white-space: pre-wrap)' },
+  { name: '.kun-editor__wysiwyg img.ProseMirror-separator', type: 'wysiwyg', description: 'ProseMirror 在「块以不可编辑节点结尾」时插的光标锚点 —— 必须挡住宿主的通用 img 规则,否则光标会掉到下一行' },
   { name: '.kun-spoiler', type: 'wysiwyg', description: '编辑中的剧透块 —— 底色走 --kun-spoiler-bg 变量(见下)' },
   { name: '.kun-editor__format-toolbar', type: 'toolbar', description: '格式化工具栏' },
   { name: '.kun-editor__tool', type: 'toolbar', description: '工具栏按钮' },
@@ -25,6 +26,14 @@ const hooks = [
 
 const structural = `/* 编辑器真正「需要」的结构性规则 —— 别漏 */
 .kun-editor__wysiwyg .ProseMirror { white-space: pre-wrap; } /* ProseMirror 必需 */
+/* 段落以 @提及 / #楼层 这类不可编辑节点结尾时,ProseMirror 会补一个
+   <img class="ProseMirror-separator"> 给 Chrome / Safari 画光标。Tailwind 的
+   preflight 会把所有 img 变成 display:block —— 锚点一变块级,光标就掉到下一行。
+   这是 ProseMirror 官方样式表里的那条守卫,Milkdown 不带,得自己写 */
+.kun-editor__wysiwyg img.ProseMirror-separator {
+  display: inline !important; width: 0 !important; height: 0 !important;
+  margin: 0 !important; padding: 0 !important; border: none !important;
+}
 .kun-mention-dropdown { position: absolute; display: none; }
 .kun-mention-dropdown[data-show='true'] { display: block; }
 .kun-editor__picker { position: relative; }

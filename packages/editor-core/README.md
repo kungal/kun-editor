@@ -69,6 +69,7 @@ host:
 | `createKatexPlugins()` | inline `$…$` and block `$$…$$` LaTeX (KaTeX) |
 | `createCodeBlockPlugins(opts)` | CodeMirror code block: theme, languages, toolbar, `latex` preview |
 | `createStopLinkPlugin()` | Space clears the active link mark |
+| `createInlineAtomPlugin()` | Backspace / Delete beside an inline atom (mention, quote, math…) deletes it in one transaction from `beforeinput` — every input path, no native contenteditable, no Android blur/refocus |
 
 **P2** (adapter-driven):
 
