@@ -232,8 +232,8 @@ importers:
         version: 3.5.39(typescript@5.9.3)
     devDependencies:
       '@kungal/ui-vue':
-        specifier: ^2.26.0
-        version: 2.26.0(fuse.js@7.4.2)(vue@3.5.39(typescript@5.9.3))
+        specifier: ^2.32.0
+        version: 2.32.0(fuse.js@7.4.2)(vue@3.5.39(typescript@5.9.3))
       '@nuxt/kit':
         specifier: ^4.4.7
         version: 4.4.8(magicast@0.5.3)
@@ -1211,9 +1211,6 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@kungal/ui-core@2.26.0':
-    resolution: {integrity: sha512-JJK1+NKzqMIN6j5+yNn06sn5IIOHAvbIDDOCM05Bf3hAuJRCwI4CNBQYxyVlQaZvravpPwJYCxZVvrA10YBmJA==}
-
   '@kungal/ui-core@2.32.0':
     resolution: {integrity: sha512-6NdDk4NYvQr0IdkkdfcXmKDCHsW/XCO2n5YYA8WlBFZtgUpTq0BmtcWLb+pM0XuUSc6PCABDgWCxtuo5Q2+8xA==}
 
@@ -1227,11 +1224,6 @@ packages:
     resolution: {integrity: sha512-bO9VI9tonXyH97VOkQHHsBRvOEujYeMAE8H9DnsfXBO3URHG+J5gRcuRZ0ChMdMqrroT6tmYP09QKkBTRj2faw==}
     peerDependencies:
       tailwindcss: ^4.0.0
-
-  '@kungal/ui-vue@2.26.0':
-    resolution: {integrity: sha512-qcFKlMdattNRdnfyfJgicc56I8Tcr8syT/M7mzEL0opv0EIIfjahelQW1sjJj10/dMx8KsG7BqB1NXXBVL7SBA==}
-    peerDependencies:
-      vue: ^3.5.0
 
   '@kungal/ui-vue@2.32.0':
     resolution: {integrity: sha512-4e+kRX1FDaHSa93sEIRmpoMWdrzPC9OkHKE8sGZEoXwKsa52mTMuwZZ+YwOQBWts0BWmgdNHTK2gHbs3zkwNLw==}
@@ -6886,11 +6878,6 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@kungal/ui-core@2.26.0':
-    dependencies:
-      clsx: 2.1.1
-      tailwind-merge: 3.6.0
-
   '@kungal/ui-core@2.32.0':
     dependencies:
       clsx: 2.1.1
@@ -6944,31 +6931,6 @@ snapshots:
   '@kungal/ui-tokens@2.32.0(tailwindcss@4.3.2)':
     dependencies:
       tailwindcss: 4.3.2
-
-  '@kungal/ui-vue@2.26.0(fuse.js@7.4.2)(vue@3.5.39(typescript@5.9.3))':
-    dependencies:
-      '@floating-ui/vue': 1.1.11(vue@3.5.39(typescript@5.9.3))
-      '@kungal/ui-core': 2.26.0
-      '@vueuse/core': 14.3.0(vue@3.5.39(typescript@5.9.3))
-      '@vueuse/integrations': 14.3.0(focus-trap@8.2.2)(fuse.js@7.4.2)(vue@3.5.39(typescript@5.9.3))
-      date-fns: 4.4.0
-      focus-trap: 8.2.2
-      thumbhash: 0.1.1
-      vue: 3.5.39(typescript@5.9.3)
-      vue-advanced-cropper: 2.8.9(vue@3.5.39(typescript@5.9.3))
-    transitivePeerDependencies:
-      - '@vue/composition-api'
-      - async-validator
-      - axios
-      - change-case
-      - drauu
-      - fuse.js
-      - idb-keyval
-      - jwt-decode
-      - nprogress
-      - qrcode
-      - sortablejs
-      - universal-cookie
 
   '@kungal/ui-vue@2.32.0(fuse.js@7.4.2)(vue@3.5.39(typescript@5.9.3))':
     dependencies:
