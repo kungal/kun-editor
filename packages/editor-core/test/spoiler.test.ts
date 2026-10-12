@@ -283,3 +283,87 @@ describe('insertKunSpoilerCommand', () => {
     expect(trailing).toBe(ZWSP)
   })
 })
+
+// GFM's literal autolink does not stop at `|`, so a URL as the last thing in a
+// spoiler used to swallow the closing `||` on load: the spoiler was gone, and the
+// next save wrote `||<https://a.com||>` — a link to a URL ending in `||`.
+describe('a URL inside ||…||', () => {
+  /** Load `markdown`, and report what the editor made of it: each spoiler's
+   * text, each link's href, and the markdown it saves. */
+  const load = async (markdown: string) => {
+    const spoilers: string[] = []
+    const links: string[] = []
+    const out = await withEditor(markdown, (editor) => {
+      editor.action((ctx) => {
+        ctx.get(editorViewCtx).state.doc.descendants((node) => {
+          if (node.type.name === 'kun-spoiler') {
+            spoilers.push(node.textContent)
+          }
+          const link = node.marks.find((mark) => mark.type.name === 'link')
+          if (link) {
+            links.push(link.attrs.href)
+          }
+        })
+      })
+    })
+    return { spoilers, links, out }
+  }
+
+  it('keeps a URL at the end of a spoiler inside it (the reported case)', async () => {
+    const url = 'https://pan.baidu.com/s/1fs0RSl55QSHD5FcTG6jW-g'
+    const first = await load(`> ||${url}||`)
+    expect(first.spoilers).toEqual([url])
+    expect(first.links).toEqual([])
+    // The second open is where it broke. Saved text is escaped (`https\://`) so
+    // it cannot turn into a link either; it has to come back as the same spoiler.
+    const second = await load(first.out)
+    expect(second.spoilers).toEqual([url])
+    expect(second.out).toBe(first.out)
+    expect(second.out).not.toContain('<')
+  })
+
+  it('does the same for a www. URL and an email address', async () => {
+    expect((await load('||www.kungal.com/topic/1||')).spoilers).toEqual([
+      'www.kungal.com/topic/1'
+    ])
+    expect((await load('||me@kungal.com||')).spoilers).toEqual(['me@kungal.com'])
+  })
+
+  it('keeps a URL in the middle of a spoiler inside it', async () => {
+    const { spoilers, links } = await load('||see https://a.com/x now|| after')
+    expect(spoilers).toEqual(['see https://a.com/x now'])
+    expect(links).toEqual([])
+  })
+
+  it('heals markdown that already went through the bad round trip', async () => {
+    const { spoilers, out } = await load('||<https://a.com/x||>')
+    expect(spoilers).toEqual(['https://a.com/x'])
+    expect(out).not.toContain('<')
+  })
+
+  it('leaves a URL outside any spoiler a link', async () => {
+    const { spoilers, links } = await load('||x|| https://a.com/x and ||y||')
+    expect(spoilers).toEqual(['x', 'y'])
+    expect(links).toEqual(['https://a.com/x'])
+  })
+
+  it('leaves the URL a link when no || closes the spoiler', async () => {
+    const { spoilers, links } = await load('||see https://a.com/x')
+    expect(spoilers).toEqual([])
+    expect(links).toEqual(['https://a.com/x'])
+  })
+
+  it('does not pair a || across a line break', async () => {
+    const { spoilers, links } = await load('||a\nhttps://a.com/x||')
+    expect(spoilers).toEqual([])
+    expect(links).toEqual(['https://a.com/x||'])
+  })
+
+  it('leaves a link with text of its own alone', async () => {
+    // Taking it apart would drop the URL, and a spoiler cannot hold a link.
+    const { spoilers, links, out } = await load('||[text](https://a.com/x)||')
+    expect(spoilers).toEqual([])
+    expect(links).toEqual(['https://a.com/x'])
+    expect(out).toBe('||[text](https://a.com/x)||')
+  })
+})

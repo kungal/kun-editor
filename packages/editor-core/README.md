@@ -65,7 +65,7 @@ host:
 
 | Export (from `/preset`) | Syntax / behaviour |
 | --- | --- |
-| `createSpoilerPlugin()` | `\|\|hidden\|\|` inline node + `$remark` round-trip |
+| `createSpoilerPlugin()` | `\|\|hidden\|\|` inline node + `$remark` round-trip (a URL inside `\|\|…\|\|` stays inside it) |
 | `createKatexPlugins()` | inline `$…$` and block `$$…$$` LaTeX (KaTeX) |
 | `createCodeBlockPlugins(opts)` | CodeMirror code block: theme, languages, toolbar, `latex` preview |
 | `createStopLinkPlugin()` | Space clears the active link mark |

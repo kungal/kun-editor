@@ -35,6 +35,14 @@ interface SpoilerNode extends Node {
   children?: SpoilerNode[]
 }
 
+/** The mdast fields the autolink pass reads: a `link` and the text inside it. */
+interface MdastNode extends Node {
+  value?: string
+  url?: string
+  title?: string | null
+  children?: MdastNode[]
+}
+
 /**
  * DOM attrs for the spoiler chip AS SEEN WHILE EDITING — a tinted chip, so you
  * can tell hidden text from ordinary text while you write it. (The published
@@ -331,10 +339,119 @@ export const insertSpoilerInputRule = $inputRule(
     })
 )
 
+/** The pairs the remark transform turns into spoilers. Line-scoped: `.` stops
+ * at a newline, as it does in the server renderer that shares the syntax. */
+const SPOILER_PAIR = /\|\|(.*?)\|\|/g
+
+/**
+ * The text of an AUTOLINK — GFM's literal `https://…` / `www.…` / `a@b.c`, or
+ * `<…>` — or null for any other node. An autolink is a link whose only text is
+ * its own URL (give or take the `http://` / `mailto:` GFM puts in front), so
+ * turning it back into that text loses nothing a spoiler could have kept: a
+ * spoiler holds plain text (`marks: ''`), never a link.
+ */
+const autolinkText = (node: MdastNode): string | null => {
+  if (node.type !== 'link' || node.title || node.children?.length !== 1) {
+    return null
+  }
+  const [child] = node.children
+  if (child?.type !== 'text' || typeof child.value !== 'string') {
+    return null
+  }
+  const text = child.value
+  return [text, `http://${text}`, `mailto:${text}`].includes(node.url ?? '')
+    ? text
+    : null
+}
+
+/** A text node's text, an autolink's text, or null for anything else — the
+ * nodes that can end up in one text run once autolinks are taken apart. */
+const runText = (node: MdastNode): string | null =>
+  node.type === 'text' ? (node.value ?? '') : autolinkText(node)
+
+/** Whether `run` ends inside an unclosed `||`: an opener after the last pair
+ * the spoiler pattern matches on the current line. */
+const opensSpoiler = (run: string): boolean => {
+  const line = run.slice(run.lastIndexOf('\n') + 1)
+  let paired = 0
+  for (const match of line.matchAll(SPOILER_PAIR)) {
+    paired = (match.index ?? 0) + match[0].length
+  }
+  return line.includes('||', paired)
+}
+
+/** Whether a `||` follows on the same line, before anything that is neither
+ * text nor an autolink ends the run. */
+const closesLater = (siblings: MdastNode[]): boolean => {
+  let rest = ''
+  for (const node of siblings) {
+    const text = runText(node)
+    if (text === null) {
+      break
+    }
+    const newline = text.indexOf('\n')
+    rest += newline === -1 ? text : text.slice(0, newline)
+    if (newline !== -1) {
+      break
+    }
+  }
+  return rest.includes('||')
+}
+
+/**
+ * Give the spoiler pattern back the text an autolink took from it.
+ *
+ * GFM's literal autolink does not stop at `|`, so in `||https://a.com||` the
+ * URL swallows the closing `||` before this transform ever runs: the mdast is
+ * text `||` + a link to `https://a.com||`, no text node holds a whole pair, and
+ * the spoiler is lost. Worse, it is lost for good — the link serializes as
+ * `||<https://a.com||>`, which every renderer then reads as a broken link (the
+ * server's linkify stops at `|`, which is why the first save looked fine).
+ *
+ * So an autolink that sits INSIDE an open `||`, with the closing `||` in or
+ * after it, goes back to being text, and its neighbours merge with it. The
+ * same rule heals markdown that already went through that round trip:
+ * `||<https://a.com||>` is an autolink inside an open `||` too. An autolink
+ * outside a spoiler is left alone, and so is a link with text of its own
+ * (`[text](url)`): taking it apart would drop the URL.
+ */
+const unwrapSpoiledAutolinks = (parent: MdastNode) => {
+  const children = parent.children
+  if (!children?.some((child) => autolinkText(child) !== null)) {
+    return
+  }
+  const merged: MdastNode[] = []
+  let run = ''
+  children.forEach((child, index) => {
+    const text = runText(child)
+    const keep =
+      text === null ||
+      (child.type !== 'text' &&
+        !(
+          opensSpoiler(run) &&
+          (text.includes('||') || closesLater(children.slice(index + 1)))
+        ))
+    if (keep) {
+      merged.push(child)
+      run = ''
+      return
+    }
+    run += text
+    const last = merged[merged.length - 1]
+    if (last?.type === 'text') {
+      merged[merged.length - 1] = { type: 'text', value: last.value + text }
+    } else {
+      merged.push({ type: 'text', value: text })
+    }
+  })
+  parent.children = merged
+}
+
 /** Remark transform: splits `||...||` runs inside text nodes into `kun-spoiler`
  * mdast nodes on parse, so pasted / loaded markdown becomes real spoiler nodes. */
 export const remarkSpoilerPlugin = $remark('remarkSpoiler', () => () => {
   const transformer = (tree: UnistNode) => {
+    visit(tree, (node: MdastNode) => unwrapSpoiledAutolinks(node))
     visit(tree, 'text', (node: SpoilerNode, index, parent: SpoilerNode) => {
       if (typeof node.value !== 'string' || !parent) {
         return
@@ -347,11 +464,10 @@ export const remarkSpoilerPlugin = $remark('remarkSpoiler', () => () => {
       // to markdown) are dropped here and re-added below, so a loaded spoiler
       // ends up with exactly the one the editor needs.
       const value = node.value.replaceAll(CARET_ANCHOR, '')
-      const regex = /\|\|(.*?)\|\|/g
       const newNodes: SpoilerNode[] = []
       let lastIndex = 0
 
-      for (const match of value.matchAll(regex)) {
+      for (const match of value.matchAll(SPOILER_PAIR)) {
         const [full, content] = match
         const matchIndex = match.index ?? 0
 
