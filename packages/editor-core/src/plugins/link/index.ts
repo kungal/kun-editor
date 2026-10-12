@@ -6,10 +6,16 @@
 // A link is a MARK (inline formatting on text) — deliberately distinct from the
 // custom NODE embeds (mention, quote) that follow the schema + toUrl/fromUrl
 // pattern. A rich "article card" would be a node like those, not this.
+//
+// The bundle also carries ./autolink: a whole URL committed by one input (an
+// Android keyboard's clipboard strip) is linked the way pasting it is.
 import type { MilkdownPlugin } from '@milkdown/kit/ctx'
 import { $command } from '@milkdown/kit/utils'
 import { linkSchema } from '@milkdown/kit/preset/commonmark'
 import { normalizeLinkHref } from '../../href'
+import { autolinkInputPlugin } from './autolink'
+
+export { autolinkInputPlugin } from './autolink'
 
 export interface InsertLinkPayload {
   /**
@@ -56,5 +62,6 @@ export const insertLinkCommand = $command(
     }
 )
 
-/** The link plugin bundle: the insert-link command. */
-export const createLinkPlugin = (): MilkdownPlugin[] => [insertLinkCommand].flat()
+/** The link plugin bundle: the insert-link command and autolink on input. */
+export const createLinkPlugin = (): MilkdownPlugin[] =>
+  [insertLinkCommand, autolinkInputPlugin].flat()

@@ -68,6 +68,7 @@ host:
 | `createSpoilerPlugin()` | `\|\|hidden\|\|` inline node + `$remark` round-trip (a URL inside `\|\|…\|\|` stays inside it) |
 | `createKatexPlugins()` | inline `$…$` and block `$$…$$` LaTeX (KaTeX) |
 | `createCodeBlockPlugins(opts)` | CodeMirror code block: theme, languages, toolbar, `latex` preview |
+| `createLinkPlugin()` | `insertLinkCommand` + autolink on input: a whole URL committed by ONE input (an Android keyboard's clipboard strip, which fires no paste) is linked exactly as pasting it would be — never in code, never inside a link, never key by key |
 | `createStopLinkPlugin()` | Space clears the active link mark |
 | `createInlineAtomPlugin()` | Backspace / Delete beside an inline atom (mention, quote, math…) deletes it in one transaction from `beforeinput` — every input path, no native contenteditable, no Android blur/refocus |
 
