@@ -151,8 +151,8 @@ export const createKunEditorPlugins = (
   // prosemirror-view blur/focus fallback on Android. Pure; always on.
   plugins.push(createInlineAtomPlugin())
   // insert-link command (click-to-link over the commonmark link mark) + autolink
-  // on input (a whole URL from a keyboard clipboard strip links like a paste);
-  // always on.
+  // on input (a URL committed whole, or ended by a space / Enter, links like a
+  // paste); always on.
   plugins.push(createLinkPlugin())
   // setHeadingCommand (absolute block-type) — powers the "text size" dropdown.
   plugins.push(createHeadingPlugin())

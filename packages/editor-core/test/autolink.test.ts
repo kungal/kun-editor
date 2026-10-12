@@ -47,6 +47,22 @@ const setComposing = (editor: Editor, composing: boolean) => {
     composing
 }
 
+/** Enter, as a hardware keyboard sends it: the keymap splits the block. */
+const enter = (editor: Editor) =>
+  view(editor).dom.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+  )
+
+/** Let the boundary link (applied right after the boundary's update) land. */
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+/** Type `text` key by key: one input per character. */
+const type = (editor: Editor, text: string) => {
+  for (const ch of text) {
+    input(editor, ch)
+  }
+}
+
 const endComposition = async (editor: Editor) => {
   setComposing(editor, false)
   view(editor).dom.dispatchEvent(new Event('compositionend'))
@@ -137,7 +153,7 @@ describe('autolink on input', () => {
     expect(found).toEqual([[URL, URL]])
   })
 
-  it('never links a URL typed key by key', async () => {
+  it('does not link a URL typed key by key while it is still being typed', async () => {
     let found: [string, string][] = []
     await withEditor('a', (editor) => {
       caretAtEnd(editor)
@@ -241,5 +257,204 @@ describe('autolink on input', () => {
       editor.action(callCommand(undoCommand.key))
     })
     expect(out).toBe('a')
+  })
+})
+
+// A URL typed by hand is linked when a space or Enter ends it — and the undo
+// right after takes back only the link.
+describe('autolink at a word boundary', () => {
+  it('links a typed URL when a space ends it', async () => {
+    let before: [string, string][] = []
+    let after: [string, string][] = []
+    const out = await withEditor('看这个', async (editor) => {
+      caretAtEnd(editor)
+      type(editor, ` ${URL}`)
+      before = links(editor)
+      input(editor, ' ')
+      await settle()
+      after = links(editor)
+    })
+    expect(before).toEqual([])
+    expect(after).toEqual([[URL, URL]])
+    expect(out).toBe(`看这个 <${URL}>`)
+  })
+
+  it('links a typed URL when Enter ends it', async () => {
+    let after: [string, string][] = []
+    const out = await withEditor('a', async (editor) => {
+      caretAtEnd(editor)
+      type(editor, ` ${URL}`)
+      enter(editor)
+      await settle()
+      after = links(editor)
+    })
+    expect(after).toEqual([[URL, URL]])
+    expect(out).toBe(`a <${URL}>`)
+  })
+
+  it('links it when Shift+Enter (a line break) ends it', async () => {
+    let after: [string, string][] = []
+    const out = await withEditor('a', async (editor) => {
+      caretAtEnd(editor)
+      type(editor, ` ${URL}`)
+      view(editor).dom.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Enter',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true
+        })
+      )
+      await settle()
+      after = links(editor)
+    })
+    expect(after).toEqual([[URL, URL]])
+    expect(out).toContain(`<${URL}>`)
+  })
+
+  it('links it when a virtual keyboard Enter ends it (keyCode 229)', async () => {
+    // No usable keydown: the keyboard's Enter is named only by `beforeinput`,
+    // and prosemirror-view splits the block once it reads the DOM change.
+    let after: [string, string][] = []
+    await withEditor('a', async (editor) => {
+      caretAtEnd(editor)
+      type(editor, ` ${URL}`)
+      const v = view(editor)
+      v.dom.dispatchEvent(
+        new InputEvent('beforeinput', { inputType: 'insertParagraph', bubbles: true })
+      )
+      v.dispatch(v.state.tr.split(v.state.selection.from))
+      await settle()
+      after = links(editor)
+    })
+    expect(after).toEqual([[URL, URL]])
+  })
+
+  it('reads www. and an email address the way a paste does', async () => {
+    let found: [string, string][] = []
+    await withEditor('a', async (editor) => {
+      caretAtEnd(editor)
+      type(editor, ' www.kungal.com/topic/1 me@kungal.com ')
+      await settle()
+      found = links(editor)
+    })
+    expect(found).toEqual([
+      ['www.kungal.com/topic/1', 'http://www.kungal.com/topic/1'],
+      ['me@kungal.com', 'mailto:me@kungal.com']
+    ])
+  })
+
+  it('takes back only the link on the undo right after, keeping the text', async () => {
+    let afterUndo: [string, string][] = []
+    let textAfterUndo = ''
+    const out = await withEditor('a', async (editor) => {
+      caretAtEnd(editor)
+      type(editor, ` ${URL}`)
+      input(editor, ' ')
+      await settle()
+      editor.action(callCommand(undoCommand.key))
+      afterUndo = links(editor)
+      textAfterUndo = view(editor).state.doc.textContent
+      // The next undo is the typing itself.
+      editor.action(callCommand(undoCommand.key))
+    })
+    expect(afterUndo).toEqual([])
+    expect(textAfterUndo).toBe(`a ${URL} `)
+    expect(out).toBe('a')
+  })
+
+  it('leaves a word that is not a whole link alone', async () => {
+    let found: [string, string][] = []
+    await withEditor('a', async (editor) => {
+      caretAtEnd(editor)
+      type(editor, ' https:// see.this x.https://a.com ')
+      enter(editor)
+      await settle()
+      found = links(editor)
+    })
+    expect(found).toEqual([])
+  })
+
+  it('does not link inside a code block', async () => {
+    let found: [string, string][] = []
+    await withEditor(`\`\`\`\n${URL}\n\`\`\``, async (editor) => {
+      caretAtEnd(editor)
+      input(editor, ' ')
+      await settle()
+      found = links(editor)
+    })
+    expect(found).toEqual([])
+  })
+
+  it('does not link inline code', async () => {
+    let found: [string, string][] = []
+    await withEditor(`\`${URL}\``, async (editor) => {
+      caretAtEnd(editor)
+      input(editor, ' ')
+      await settle()
+      found = links(editor)
+    })
+    expect(found).toEqual([])
+  })
+
+  it('does not link inside a spoiler', async () => {
+    let found: [string, string][] = []
+    await withEditor('||a||', async (editor) => {
+      caret(editor, 3)
+      type(editor, URL)
+      input(editor, ' ')
+      await settle()
+      found = links(editor)
+    })
+    expect(found).toEqual([])
+  })
+
+  it('does not re-link text inside a link', async () => {
+    let found: [string, string][] = []
+    await withEditor('[text](https://a.com)', async (editor) => {
+      caret(editor, 3)
+      type(editor, 'https://b.com')
+      input(editor, ' ')
+      await settle()
+      found = links(editor)
+    })
+    expect(found.every(([, href]) => href === 'https://a.com')).toBe(true)
+  })
+
+  it('does not link the tail of a word that starts in other formatting', async () => {
+    let found: [string, string][] = []
+    // Two text nodes, one word: bold `https://` + plain `www.kungal.com` — and
+    // `www.kungal.com` on its own WOULD be a link.
+    await withEditor('a', async (editor) => {
+      const v = view(editor)
+      const { schema } = v.state
+      const paragraph = schema.nodes.paragraph.create(null, [
+        schema.text('https://', [schema.marks.strong.create()]),
+        schema.text('www.kungal.com')
+      ])
+      v.dispatch(v.state.tr.replaceWith(0, v.state.doc.content.size, paragraph))
+      caretAtEnd(editor)
+      input(editor, ' ')
+      await settle()
+      found = links(editor)
+    })
+    expect(found).toEqual([])
+  })
+
+  it('waits for the composition to end when the space came mid-composition', async () => {
+    let during: [string, string][] = []
+    let after: [string, string][] = []
+    await withEditor('a', async (editor) => {
+      caretAtEnd(editor)
+      type(editor, ` ${URL}`)
+      setComposing(editor, true)
+      input(editor, ' ')
+      await settle()
+      during = links(editor)
+      await endComposition(editor)
+      after = links(editor)
+    })
+    expect(during).toEqual([])
+    expect(after).toEqual([[URL, URL]])
   })
 })

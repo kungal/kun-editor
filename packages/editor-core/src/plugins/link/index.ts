@@ -7,8 +7,9 @@
 // custom NODE embeds (mention, quote) that follow the schema + toUrl/fromUrl
 // pattern. A rich "article card" would be a node like those, not this.
 //
-// The bundle also carries ./autolink: a whole URL committed by one input (an
-// Android keyboard's clipboard strip) is linked the way pasting it is.
+// The bundle also carries ./autolink: a URL is linked the way pasting it is
+// once it is complete — committed whole by one input (an Android keyboard's
+// clipboard strip), or ended by a space / Enter when typed by hand.
 import type { MilkdownPlugin } from '@milkdown/kit/ctx'
 import { $command } from '@milkdown/kit/utils'
 import { linkSchema } from '@milkdown/kit/preset/commonmark'
