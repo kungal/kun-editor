@@ -273,8 +273,12 @@ let entityPopoverEl: { close: () => void } | null = null
 const setEntityPopover = (el: unknown) => {
   entityPopoverEl = el as { close: () => void } | null
 }
+// Called from the template through this function, never inline: a `let` only
+// reassigned in the ref callback narrows to `null` in template expressions, so
+// a host's vue-tsc (this layer ships .vue sources) reads `?.close` as `never`.
+const closeEntityPopover = () => entityPopoverEl?.close()
 const pickEntity = (hit: EntityHit) => {
-  entityPopoverEl?.close()
+  closeEntityPopover()
   props.insertEntity(hit.ref)
 }
 </script>
@@ -489,7 +493,7 @@ const pickEntity = (hit: EntityHit) => {
           :adapters="props.adapters"
           :locale="props.locale"
           @pick="pickEntity"
-          @close="entityPopoverEl?.close()"
+          @close="closeEntityPopover"
         />
       </KunPopover>
 
