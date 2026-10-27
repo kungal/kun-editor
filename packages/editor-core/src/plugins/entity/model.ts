@@ -30,7 +30,8 @@ import type {
   Schema
 } from '@milkdown/kit/prose/model'
 import { closeHistory } from '@milkdown/kit/prose/history'
-import { NodeSelection, TextSelection } from '@milkdown/kit/prose/state'
+import { GapCursor } from '@milkdown/kit/prose/gapcursor'
+import { NodeSelection, Selection, TextSelection } from '@milkdown/kit/prose/state'
 import type { Transaction } from '@milkdown/kit/prose/state'
 import type { Node } from '@milkdown/kit/transformer'
 import { $nodeSchema, $remark } from '@milkdown/kit/utils'
@@ -390,6 +391,24 @@ export const entityDisplayPersists = (
     $pos.parent.type.name !== 'paragraph' ||
     !onlyContent($pos.parent, $pos.parentOffset, $pos.parentOffset + entity.node.nodeSize)
   )
+}
+
+/**
+ * The selection at the very start (`-1`) or end (`1`) of the document — what
+ * Mod-Home / Mod-End mean. The browser's own Ctrl+End stops at the first
+ * `contenteditable=false` island (a card), so the editor decides: a caret
+ * when the boundary block is a textblock, a GAP CURSOR when it is a card (so
+ * typing there makes a paragraph), otherwise ProseMirror's own nearest
+ * selection.
+ */
+export const docBoundarySelection = (doc: ProseNode, dir: -1 | 1): Selection => {
+  const edge = dir < 0 ? doc.firstChild : doc.lastChild
+  // A block atom (a card, a divider) at the edge: the gap beside it. Any
+  // other container (a blockquote, a list) holds a textblock to land in.
+  if (edge?.isBlock && edge.isAtom) {
+    return new GapCursor(doc.resolve(dir < 0 ? 0 : doc.content.size))
+  }
+  return dir < 0 ? Selection.atStart(doc) : Selection.atEnd(doc)
 }
 
 // ── Transforms ──────────────────────────────────────────────────────────────

@@ -45,6 +45,7 @@ import type {
 import { linkAtEndOf, linkHrefOf } from '../link/detect'
 import {
   deleteEntity,
+  docBoundarySelection,
   entityAt,
   entityDisplayAt,
   moveEntityCard,
@@ -65,6 +66,7 @@ import type { EntityAt, EntityResolver } from './model'
 
 export {
   entityAt,
+  docBoundarySelection,
   entityDisplayAt,
   entityDisplayPersists,
   moveEntityCard,
@@ -271,6 +273,17 @@ const makeEntityPlugin = (resolve: EntityResolver) =>
      * keyboard's input (keyCode 229) moves the caret past the selected entity
      * first, so the IME never composes over it. */
     const handleKeyDown = (view: EditorView, event: KeyboardEvent): boolean => {
+      const boundary = docBoundaryKey(event)
+      if (boundary) {
+        const { state } = view
+        const target = docBoundarySelection(state.doc, boundary)
+        // Shift extends from where the selection started.
+        const selection = event.shiftKey
+          ? TextSelection.between(state.selection.$anchor, target.$head)
+          : target
+        view.dispatch(state.tr.setSelection(selection).scrollIntoView())
+        return true
+      }
       const entity = selectedEntity(view.state)
       if (!entity || !view.editable) {
         return false
@@ -434,6 +447,26 @@ const makeEntityPlugin = (resolve: EntityResolver) =>
       }
     })
   })
+
+const isMac =
+  typeof navigator !== 'undefined' && /Mac|iP(hone|ad|od)/.test(navigator.platform)
+
+/** `-1` / `1` when `event` asks for the document's start / end: Mod-Home /
+ * Mod-End (Mod = Cmd on macOS, Ctrl elsewhere), and Cmd+↑ / Cmd+↓ on macOS;
+ * Shift may be held to extend. `0` for anything else. */
+const docBoundaryKey = (event: KeyboardEvent): -1 | 0 | 1 => {
+  if (event.altKey || event.isComposing) {
+    return 0
+  }
+  const mod = isMac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
+  if (mod && (event.key === 'Home' || event.key === 'End')) {
+    return event.key === 'Home' ? -1 : 1
+  }
+  if (isMac && mod && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+    return event.key === 'ArrowUp' ? -1 : 1
+  }
+  return 0
+}
 
 /** Move the caret just past `entity`: after a chip, or into an empty paragraph
  * after a card — reused when one is there, never the start of the next

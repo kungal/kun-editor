@@ -24,7 +24,8 @@ import {
   entityDisplayAt,
   entityDisplayPersists,
   moveEntityCard,
-  moveEntityCardTo
+  moveEntityCardTo,
+  docBoundarySelection
 } from '../src/preset'
 
 // The forum's rules — they live in the forum adapter, not the editor.
@@ -917,6 +918,58 @@ describe('moving cards', () => {
       // A list item must start with a paragraph or a card: "x" first is fine.
       v.dispatch(tr)
       expect(JSON.stringify(outline(editor))).toContain('"list_item":[{"paragraph":["x"]},"card:topic:1"]')
+    })
+  })
+})
+
+describe('document start / end (Mod-Home / Mod-End)', () => {
+  const md = `<${T1}>\n\nmid\n\n<${T2}>`
+
+  it('Ctrl+End goes past every card to the end; typing lands there', async () => {
+    let doc: unknown[] = []
+    await withEditor(md, (editor) => {
+      caret(editor, 1 + 1) // inside "mid"… anywhere but the end
+      key(editor, 'End', { ctrlKey: true })
+      input(editor, 'x')
+      doc = outline(editor)
+    })
+    // Milkdown keeps a paragraph after a final card; the caret goes into it.
+    expect(doc).toEqual(['card:topic:1', { paragraph: ['mid'] }, 'card:work:2', { paragraph: ['x'] }])
+  })
+
+  it('Ctrl+Home before a leading card is a gap cursor; typing makes a paragraph there', async () => {
+    let doc: unknown[] = []
+    await withEditor(md, (editor) => {
+      caretAtEnd(editor)
+      key(editor, 'Home', { ctrlKey: true })
+      expect(view(editor).state.selection.constructor.name).toBe('GapCursor')
+      expect(view(editor).state.selection.from).toBe(0)
+      input(editor, 'y')
+      doc = outline(editor)
+    })
+    expect(doc.slice(0, 2)).toEqual([{ paragraph: ['y'] }, 'card:topic:1'])
+  })
+
+  it('Shift extends from the anchor', async () => {
+    await withEditor(md, (editor) => {
+      const v = view(editor)
+      const mid = 2
+      caret(editor, mid)
+      key(editor, 'End', { ctrlKey: true, shiftKey: true })
+      expect(v.state.selection.anchor).toBe(mid)
+      expect(v.state.selection.head).toBe(v.state.doc.content.size - 1)
+    })
+  })
+
+  it('docBoundarySelection: a gap cursor at the end when the last block is a card', async () => {
+    await withEditor('', (editor) => {
+      const { schema } = view(editor).state
+      const card = schema.nodes.entity_card!.create(entityFromUrl(T1)!)
+      const doc = schema.topNodeType.create(null, [schema.nodes.paragraph!.create(null, schema.text('a')), card])
+      const end = docBoundarySelection(doc, 1)
+      expect(end.constructor.name).toBe('GapCursor')
+      expect(end.from).toBe(doc.content.size)
+      expect(docBoundarySelection(doc, -1).from).toBe(1)
     })
   })
 })
