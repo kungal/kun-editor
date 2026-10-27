@@ -109,9 +109,17 @@ export interface EntityHit {
 /** One entry of the `/` menu and the picker's type tabs, in host order. */
 export interface EntityTypeItem {
   type: string
+  /** The row title, shown as given (no suffix is added). */
   label: string
-  /** Icon name or URL, passed through to the render layer untouched. */
+  /** Icon: a URL / data: URI renders as an image; any other string is an icon
+   * NAME handed to the host's icon component (the Nuxt layer wires KunIcon, so
+   * `lucide:…` names work there). */
   icon?: string
+  /** The `/` keyword (`galgame`, `galgame-rate`) — shown right-aligned as
+   * `/command`, and typed after `/` to filter, like the label. */
+  command?: string
+  /** One muted line under the title (`搜索并插入 Galgame 条目`). */
+  description?: string
 }
 
 /** How an entity reference shows in the document. `link` is an ordinary
@@ -149,6 +157,20 @@ export type EntityTitle = (
   ref: EntityRef,
   signal: AbortSignal
 ) => Promise<string | null>
+
+/**
+ * Let the HOST find the entity: picking a type in the `/` menu or the toolbar
+ * then calls this instead of the built-in inline search — open your own modal
+ * (search + real previews) and resolve the chosen reference, or `null` on
+ * cancel. `display` is what will be inserted at the insertion point (`card`
+ * in an empty paragraph, otherwise `chip`), so the modal can preview it. The
+ * editor holds the insertion point while the prompt is open and restores focus
+ * and selection when it settles.
+ */
+export type EntityPrompt = (context: {
+  type: string
+  display: 'card' | 'chip' | 'auto'
+}) => Promise<EntityRef | null>
 
 /**
  * The full policy bundle a host passes when constructing the editor. Every
@@ -193,6 +215,12 @@ export interface KunEditorAdapters {
   entityTypes?: EntityTypeItem[]
   /** Link text for "turn into a link". See {@link EntityTitle}. */
   entityTitle?: EntityTitle
+  /**
+   * Host-owned entity search (your own modal). When present, the `/` menu and
+   * the toolbar button pick a TYPE and hand off to it instead of searching
+   * inline. See {@link EntityPrompt}.
+   */
+  entityPrompt?: EntityPrompt
 }
 
 /** BCP-47-ish UI language for the editor chrome (toolbar labels, placeholders). */

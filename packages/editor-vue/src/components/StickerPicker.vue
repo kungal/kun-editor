@@ -1,14 +1,15 @@
 <script setup lang="ts">
-// The merged sticker + emoji picker — a toolbar popover. Ported from the forum's
-// sticker/emoji Containers + the Menu popover, made self-contained (no
-// @kungal/ui-vue): a plain trigger button + a click-outside popover panel.
+// The headless toolbar's emoji + sticker button: a trigger + a click-outside
+// popover holding <StickerPanel> (the one panel both toolbars share). The
+// panel mounts while open only, so the `stickerSource` adapter is read on the
+// first open, not with the editor.
 //
-// - Emoji: a built-in unicode set (../emoji), inserted as plain text. Always
-//   available; no adapter, no server.
-// - Stickers: adapter-driven — packs come from the injected `stickerSource`
-//   adapter (loaded lazily on first open), each sticker inserted as an image
-//   node. The sticker tab only shows when the adapter is present (stickers ARE
-//   images, so an image-free editor gets emoji only).
+// - Emoji are inserted as plain text; stickers as image nodes. The sticker
+//   sections only exist with the adapter (stickers ARE images, so an
+//   image-free editor gets emoji only).
+// - Inserts act on editor STATE (no focus needed): clicking the panel blurs
+//   the editor, and the pick still lands at the retained selection. The panel
+//   stays open for the next pick; Esc closes it and hands focus back.
 //
 // Lives inside <MilkdownProvider> (rendered by EditorToolbar) so useInstance()
 // reaches the editor.
@@ -16,156 +17,94 @@ import { callCommand } from '@milkdown/kit/utils'
 import { insertImageCommand } from '@milkdown/kit/preset/commonmark'
 import { editorViewCtx } from '@milkdown/kit/core'
 import { useInstance } from '@milkdown/vue'
-import type { StickerPack } from '@kungal/editor-core'
-import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { KUN_EDITOR_CONTEXT } from '../context'
-import { EMOJI } from '../emoji'
+import { floatNear } from '../entity-shared'
+import type { KunStickerPick } from '../sticker-recent'
 import { TOOLBAR_ICONS } from '../toolbar-icons'
+import StickerPanel from './StickerPanel.vue'
 
 const [, getEditor] = useInstance()
 const ctx = inject(KUN_EDITOR_CONTEXT)
-const stickerSource = ctx?.adapters.stickerSource
-const hasSticker = !!stickerSource
-const isEnglish = computed(() =>
-  (ctx?.locale ?? 'zh-cn').toLowerCase().startsWith('en')
-)
-
-const labels = computed(() =>
-  isEnglish.value
-    ? { trigger: 'Emoji & stickers', emoji: 'Emoji', sticker: 'Stickers', empty: 'No stickers', failed: 'Failed to load stickers' }
-    : { trigger: '表情与贴纸', emoji: '表情', sticker: '贴纸', empty: '暂无贴纸', failed: '贴纸加载失败' }
+const trigger = computed(() =>
+  (ctx?.locale ?? 'zh-cn').toLowerCase().startsWith('en') ? 'Emoji & stickers' : '表情与贴纸'
 )
 
 const open = ref(false)
 const rootRef = ref<HTMLElement | null>(null)
-type Tab = 'emoji' | 'sticker'
-const tab = ref<Tab>('emoji')
+const triggerRef = ref<HTMLElement | null>(null)
+const panelRef = ref<HTMLElement | null>(null)
 
-const packs = ref<StickerPack[]>([])
-const loaded = ref(false)
-const loadFailed = ref(false)
-
-const loadStickers = async () => {
-  if (loaded.value || !stickerSource) {
-    return
+// Kept inside the viewport by floating-ui (the button often sits at the end of
+// the toolbar, where a left-anchored 360px panel runs off-screen). A phone gets
+// the stylesheet's bottom sheet instead, which needs no positioning.
+let stopFloating: (() => void) | null = null
+watch(open, async (isOpen) => {
+  stopFloating?.()
+  stopFloating = null
+  await nextTick()
+  const phone =
+    typeof matchMedia === 'function' && matchMedia('(max-width: 640px)').matches
+  if (isOpen && !phone && triggerRef.value && panelRef.value) {
+    stopFloating = floatNear(triggerRef.value, panelRef.value)
   }
-  loaded.value = true
-  try {
-    packs.value = await stickerSource()
-  } catch {
-    loadFailed.value = true
-  }
-}
+})
+onBeforeUnmount(() => stopFloating?.())
 
-const toggle = () => {
-  open.value = !open.value
-  if (open.value && hasSticker) {
-    loadStickers()
+const close = (refocus: boolean) => {
+  open.value = false
+  if (refocus) {
+    getEditor()?.action((c) => c.get(editorViewCtx).focus())
   }
 }
 
 // Close on outside click. The trigger + panel are inside rootRef, so clicks on
-// them don't close (the panel stays open for inserting multiple).
+// them don't close (the panel stays open for inserting several).
 const onDocClick = (e: MouseEvent) => {
   if (open.value && rootRef.value && !rootRef.value.contains(e.target as Node)) {
-    open.value = false
+    close(false)
   }
 }
 onMounted(() => document.addEventListener('click', onDocClick))
 onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 
-// Inserts act on editor STATE directly (no focus needed) so clicking the
-// popover — which blurs the editor — still inserts at the retained selection.
-const insertEmoji = (emoji: string) => {
+const insert = (item: KunStickerPick) => {
   getEditor()?.action((c) => {
-    const view = c.get(editorViewCtx)
-    const { state } = view
-    view.dispatch(state.tr.insertText(emoji, state.selection.from))
+    if (item.kind === 'emoji') {
+      const view = c.get(editorViewCtx)
+      view.dispatch(view.state.tr.insertText(item.text))
+    } else {
+      callCommand(insertImageCommand.key, { src: item.src, title: item.name, alt: item.name })(c)
+    }
   })
-}
-
-const insertSticker = (src: string, name: string) => {
-  getEditor()?.action(
-    callCommand(insertImageCommand.key, { src, title: name, alt: name })
-  )
 }
 </script>
 
 <template>
   <div ref="rootRef" class="kun-editor__picker">
     <button
+      ref="triggerRef"
       type="button"
       class="kun-editor__tool"
-      :title="labels.trigger"
-      :aria-label="labels.trigger"
+      :title="trigger"
+      :aria-label="trigger"
       :aria-expanded="open"
-      @click="toggle"
+      @click="open = !open"
     >
       <span class="kun-editor__icon" v-html="TOOLBAR_ICONS.smile" />
     </button>
 
-    <div v-show="open" class="kun-editor__picker-panel">
-      <div v-if="hasSticker" class="kun-editor__picker-tabs" role="tablist">
-        <button
-          type="button"
-          class="kun-editor__picker-tab"
-          :data-active="tab === 'emoji'"
-          @click="tab = 'emoji'"
-        >
-          {{ labels.emoji }}
-        </button>
-        <button
-          type="button"
-          class="kun-editor__picker-tab"
-          :data-active="tab === 'sticker'"
-          @click="tab = 'sticker'"
-        >
-          {{ labels.sticker }}
-        </button>
-      </div>
-
-      <div
-        v-show="!hasSticker || tab === 'emoji'"
-        class="kun-editor__emoji-grid"
-      >
-        <button
-          v-for="(e, i) in EMOJI"
-          :key="i"
-          type="button"
-          class="kun-editor__emoji"
-          @click="insertEmoji(e)"
-        >
-          {{ e }}
-        </button>
-      </div>
-
-      <div
-        v-if="hasSticker"
-        v-show="tab === 'sticker'"
-        class="kun-editor__sticker-body"
-      >
-        <template v-if="packs.length">
-          <div v-for="pack in packs" :key="pack.name" class="kun-editor__pack">
-            <div class="kun-editor__pack-name">{{ pack.name }}</div>
-            <div class="kun-editor__sticker-grid">
-              <button
-                v-for="(s, i) in pack.stickers"
-                :key="i"
-                type="button"
-                class="kun-editor__sticker"
-                :title="s.name"
-                @click="insertSticker(s.src, s.name)"
-              >
-                <img :src="s.src" :alt="s.name" loading="lazy" />
-              </button>
-            </div>
-          </div>
-        </template>
-        <div v-else class="kun-editor__picker-hint">
-          {{ loadFailed ? labels.failed : labels.empty }}
-        </div>
-      </div>
+    <div
+      v-if="open"
+      ref="panelRef"
+      class="kun-editor__picker-panel"
+      @keydown.esc.stop.prevent="close(true)"
+    >
+      <StickerPanel
+        :adapters="ctx?.adapters ?? {}"
+        :locale="ctx?.locale"
+        @pick="insert"
+      />
     </div>
   </div>
 </template>
-

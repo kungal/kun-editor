@@ -6,6 +6,8 @@
 import type { App, Plugin } from 'vue'
 import KunEditor from './components/KunEditor.vue'
 import KunEntityPicker from './components/EntityPicker.vue'
+import KunEntityTypePicker from './components/EntityTypePicker.vue'
+import KunStickerPanel from './components/StickerPanel.vue'
 
 export { KunEditor }
 
@@ -14,6 +16,21 @@ export { KunEditor }
 // (an EntityHit — insert it with the toolbar API's `insertEntity(hit.ref)`)
 // and `close`.
 export { KunEntityPicker }
+
+// The entity TYPE menu (the `/` menu's rows in a focusable listbox) — for a
+// toolbar when the host owns entity search (`entityPrompt`). Props
+// `{ types, locale }`; emits `pick` (an EntityTypeItem — hand it to the
+// toolbar API's `promptEntity(item.type)`) and `close`.
+export { KunEntityTypePicker }
+
+// The emoji + sticker panel (recently used, emoji, one section per pack; a
+// bottom rail; keyboard grid). Props `{ adapters, locale }`; emits `pick`
+// (`{ kind: 'emoji', text }` or `{ kind: 'sticker', src, name }`).
+export { KunStickerPanel }
+export type { KunStickerPick } from './sticker-recent'
+
+// Provide an icon component app-wide for editor chrome (gets `{ name }`).
+export { KUN_EDITOR_ICON } from './context'
 
 // The props a host's entity card / chip component receives, and the
 // `entityView` prop shape.
@@ -68,7 +85,8 @@ export type {
   EntityDisplay,
   EntityFromUrl,
   SearchEntities,
-  EntityTitle
+  EntityTitle,
+  EntityPrompt
 } from '@kungal/editor-core'
 
 /** Vue plugin: `app.use(KunEditorPlugin)` to register <KunEditor> globally. */

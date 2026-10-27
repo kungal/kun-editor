@@ -34,6 +34,8 @@ const props = withDefaults(
     selectionToolbar?: boolean | KunSelectionItem[]
     /** Host entity card / chip components (forwards to <KunEditor :entity-view>). */
     entityView?: KunEntityView
+    /** Per-button icon / label overrides for <KunEditorToolbar :item-overrides>. */
+    toolbarItemOverrides?: Partial<Record<KunToolbarItem, { icon?: string; label?: string }>>
   }>(),
   {
     modelValue: '',
@@ -46,7 +48,8 @@ const props = withDefaults(
     toolbarItems: undefined,
     views: undefined,
     selectionToolbar: undefined,
-    entityView: undefined
+    entityView: undefined,
+    toolbarItemOverrides: undefined
   }
 )
 
@@ -73,7 +76,11 @@ const md = ref(props.modelValue)
             <KunEditorViewSwitch v-bind="s" />
           </template>
           <template v-if="kunuiToolbar" #toolbar="api">
-            <KunEditorToolbar v-bind="api" :items="toolbarItems" />
+            <KunEditorToolbar
+              v-bind="api"
+              :items="toolbarItems"
+              :item-overrides="toolbarItemOverrides"
+            />
           </template>
         </KunEditor>
         <template #fallback>

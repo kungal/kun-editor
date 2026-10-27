@@ -81,10 +81,18 @@ the start of a paragraph or after a space opens a type list, then a search, and
 the toolbar gets a picker button (`KunEntityPicker`, also exported for custom
 toolbars); `insertEntity(ref, display?)` is on the toolbar API and the ref handle.
 
-The **sticker / emoji picker** is a toolbar popover: a built-in emoji tab
-(unicode, inserted as text — no adapter) plus a sticker tab that appears when the
-host supplies `stickerSource`, inserting each sticker as an image node. Turn the
-whole picker off with `features.sticker: false`.
+When the host owns entity search (`entityPrompt` — its own modal), the `/` menu
+and the toolbar button pick a TYPE and hand off to it; the editor holds the
+insertion point and gives focus back. Type rows show `icon` / `label` /
+`description` / `/command`; icon names render through the component provided
+under `KUN_EDITOR_ICON` (or the `icon-component` prop).
+
+The **sticker / emoji picker** is a toolbar popover around `KunStickerPanel`: one
+scroll of sections — recently used (per viewer, localStorage, best-effort), the
+built-in emoji (unicode, inserted as text — no adapter), then one section per
+`stickerSource` pack (each sticker an image node) — over a bottom rail with
+scroll-spy, and a keyboard grid. Turn the whole picker off with
+`features.sticker: false`.
 
 The **markdown-source view** (the "Markdown" tab) is a CodeMirror editor with
 markdown highlighting, sharing the code block's `kunCM` theme. Edits sync back

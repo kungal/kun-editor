@@ -124,6 +124,12 @@ export interface KunEditorToolbarApi {
    * `entityFromUrl` adapter.
    */
   insertEntity: (ref: EntityRef, display?: KunEntityInsertDisplay) => void
+  /**
+   * Hand the choice of an entity of `type` to the host's `entityPrompt`
+   * (its own modal) and insert the answer at the caret — a card in an empty
+   * paragraph, else a chip — then give focus back. No-op without the adapter.
+   */
+  promptEntity: (type: string) => void
   /** Focus the WYSIWYG editor. */
   focus: () => void
   /** The host policy bundle (uploadImage / stickerSource / notify / …). */

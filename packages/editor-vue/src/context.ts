@@ -6,7 +6,7 @@
 // <MilkdownEditor>, not its descendants. So a `provide()` on MilkdownEditor
 // would NOT reach them; the provide must come from <KunEditor> (an ANCESTOR of
 // the provider). This module is that shared key + shape.
-import type { InjectionKey } from 'vue'
+import type { Component, InjectionKey } from 'vue'
 import type {
   KunEditorAdapters,
   KunEditorFeatures,
@@ -31,7 +31,18 @@ export interface KunEditorContext {
   readonly activeMarks: Record<KunToggleMark, boolean>
   /** The host's entity card / chip components (absent → neutral fallbacks). */
   readonly entityView: KunEntityView
+  /** Renders an icon NAME (`lucide:…`) in editor chrome — the host's icon
+   * component, given `{ name }`. Absent → names render nothing. */
+  readonly iconComponent: Component | undefined
 }
+
+/**
+ * App-level icon renderer for editor chrome (the `/` menu's type icons, …):
+ * `app.provide(KUN_EDITOR_ICON, MyIcon)` — the component gets `{ name }`.
+ * The `iconComponent` prop on <KunEditor> overrides it for one editor. The
+ * @kungal/editor-nuxt layer provides KunIcon this way.
+ */
+export const KUN_EDITOR_ICON: InjectionKey<Component> = Symbol('kun-editor-icon')
 
 export const KUN_EDITOR_CONTEXT: InjectionKey<KunEditorContext> =
   Symbol('kun-editor-context')

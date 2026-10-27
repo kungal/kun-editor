@@ -37,19 +37,37 @@ import {
   insertKunSpoilerCommand,
   setHeadingCommand
 } from '@kungal/editor-core/preset'
-import { EMOJI, KunEntityPicker } from '@kungal/editor-vue'
+import {
+  KunEntityPicker,
+  KunEntityTypePicker,
+  KunStickerPanel
+} from '@kungal/editor-vue'
 import type {
   EntityHit,
+  EntityTypeItem,
   KunEditorToolbarApi,
+  KunStickerPick,
   KunToggleMark,
-  KunToolbarItem,
-  StickerPack
+  KunToolbarItem
 } from '@kungal/editor-vue'
+
+/** Per-item chrome a host may override: the KunIcon name, and the label
+ * (which drives BOTH the tooltip and the aria-label). */
+export interface KunToolbarItemOverride {
+  icon?: string
+  label?: string
+}
 
 const props = defineProps<
   KunEditorToolbarApi & {
     /** Ordered button ids ('|' = divider). Defaults to the standard layout. */
     items?: KunToolbarItem[]
+    /**
+     * Swap a built-in button's icon and / or label, e.g.
+     * `{ entityPicker: { icon: 'lucide:id-card', label: '插入条目卡片' } }`.
+     * The label is the tooltip and the aria-label alike.
+     */
+    itemOverrides?: Partial<Record<KunToolbarItem, KunToolbarItemOverride>>
   }
 >()
 
@@ -94,11 +112,7 @@ const t = computed(() => ({
   spoiler: en.value ? 'Spoiler' : '隐藏文本',
   image: en.value ? 'Upload image' : '上传图片',
   picker: en.value ? 'Emoji & stickers' : '表情与贴纸',
-  entity: en.value ? 'Insert reference' : '插入引用',
-  emoji: en.value ? 'Emoji' : '表情',
-  sticker: en.value ? 'Stickers' : '贴纸',
-  empty: en.value ? 'No stickers' : '暂无贴纸',
-  failed: en.value ? 'Failed to load stickers' : '贴纸加载失败'
+  entity: en.value ? 'Insert reference' : '插入引用'
 }))
 
 interface Tool {
@@ -110,9 +124,23 @@ interface Tool {
   mark?: KunToggleMark
 }
 
+/** An item's chrome after the host's `itemOverrides`. */
+const chromeOf = (id: KunToolbarItem, icon: string, label: string) => {
+  const override = props.itemOverrides?.[id]
+  return { icon: override?.icon || icon, label: override?.label || label }
+}
+// The non-command items' chrome (heading's icon is its chevron).
+const chrome = computed(() => ({
+  heading: chromeOf('heading', 'lucide:chevron-down', t.value.textSize),
+  link: chromeOf('link', 'lucide:link', t.value.link),
+  image: chromeOf('image', 'lucide:image', t.value.image),
+  picker: chromeOf('picker', 'lucide:smile-plus', t.value.picker),
+  entityPicker: chromeOf('entityPicker', 'lucide:square-arrow-out-up-right', t.value.entity)
+}))
+
 // The plain command buttons (everything except heading / image / picker).
 // `.key` is read at click time via props.run (populated once the editor exists).
-const commandButtons = computed<Record<string, Tool>>(() => ({
+const baseCommandButtons = computed<Record<string, Tool>>(() => ({
   bold: { icon: 'lucide:bold', title: t.value.bold, run: () => props.run(toggleStrongCommand.key), mark: 'bold' },
   italic: { icon: 'lucide:italic', title: t.value.italic, run: () => props.run(toggleEmphasisCommand.key), mark: 'italic' },
   strike: { icon: 'lucide:strikethrough', title: t.value.strike, run: () => props.run(toggleStrikethroughCommand.key), mark: 'strike' },
@@ -124,6 +152,14 @@ const commandButtons = computed<Record<string, Tool>>(() => ({
   hr: { icon: 'lucide:minus', title: t.value.hr, run: () => props.run(insertHrCommand.key) },
   spoiler: { icon: 'lucide:eye-off', title: t.value.spoiler, run: () => props.run(insertKunSpoilerCommand.key), mark: 'spoiler' }
 }))
+const commandButtons = computed<Record<string, Tool>>(() =>
+  Object.fromEntries(
+    Object.entries(baseCommandButtons.value).map(([id, tool]) => {
+      const { icon, label } = chromeOf(id as KunToolbarItem, tool.icon, tool.title)
+      return [id, { ...tool, icon, title: label }]
+    })
+  )
+)
 
 type RenderItem =
   | { kind: 'divider' }
@@ -239,26 +275,17 @@ const onFileChange = (e: Event) => {
   }
 }
 
-// Emoji (built-in) + sticker (adapter) picker in a KunPopover.
+// Emoji (built-in) + sticker (adapter) picker: a KunPopover around the shared
+// <KunStickerPanel> (recently used / emoji / one section per pack, bottom
+// rail, keyboard grid). Emoji go in as text, stickers as image nodes.
 const showPicker = computed(() => props.features.sticker !== false)
-const stickerSource = computed(() => props.adapters.stickerSource)
-const hasSticker = computed(() => !!stickerSource.value)
-const tab = ref('emoji') // 'emoji' | 'sticker' — widened to string for KunTab v-model
-const packs = ref<StickerPack[]>([])
-const loaded = ref(false)
-const loadFailed = ref(false)
-const loadStickers = async () => {
-  const source = stickerSource.value
-  if (loaded.value || !source) return
-  loaded.value = true
-  try {
-    packs.value = await source()
-  } catch {
-    loadFailed.value = true
+const insertPick = (item: KunStickerPick) => {
+  if (item.kind === 'emoji') {
+    props.insertText(item.text)
+  } else {
+    props.run(insertImageCommand.key, { src: item.src, title: item.name, alt: item.name })
   }
 }
-const insertSticker = (src: string, name: string) =>
-  props.run(insertImageCommand.key, { src, title: name, alt: name })
 
 // Entity picker — the `/` menu's toolbar twin. Needs the entity adapters; the
 // pick lands where the caret was (a card in an empty paragraph, else a chip).
@@ -266,7 +293,7 @@ const canPickEntity = computed(
   () =>
     props.features.entity !== false &&
     !!props.adapters.entityFromUrl &&
-    !!props.adapters.searchEntities &&
+    (!!props.adapters.entityPrompt || !!props.adapters.searchEntities) &&
     !!props.adapters.entityTypes?.length
 )
 let entityPopoverEl: { close: () => void } | null = null
@@ -280,6 +307,12 @@ const closeEntityPopover = () => entityPopoverEl?.close()
 const pickEntity = (hit: EntityHit) => {
   closeEntityPopover()
   props.insertEntity(hit.ref)
+}
+// With the host's own search (`entityPrompt`) the popover is a type menu: a
+// pick closes it and hands off to the host's modal.
+const pickEntityType = (item: EntityTypeItem) => {
+  closeEntityPopover()
+  props.promptEntity(item.type)
 }
 </script>
 
@@ -300,9 +333,9 @@ const pickEntity = (hit: EntityHit) => {
         inner-class="min-w-40 p-1"
       >
         <template #trigger>
-          <KunButton variant="light" size="sm" :aria-label="t.textSize">
-            {{ t.textSize }}
-            <KunIcon name="lucide:chevron-down" />
+          <KunButton variant="light" size="sm" :aria-label="chrome.heading.label">
+            {{ chrome.heading.label }}
+            <KunIcon :name="chrome.heading.icon" />
           </KunButton>
         </template>
         <button
@@ -319,17 +352,17 @@ const pickEntity = (hit: EntityHit) => {
 
       <KunTooltip
         v-else-if="item.kind === 'link' && useLinkAdapter"
-        :text="t.link"
+        :text="chrome.link.label"
         :delay-show="300"
       >
         <KunButton
           variant="light"
           size="sm"
           :is-icon-only="true"
-          :aria-label="t.link"
+          :aria-label="chrome.link.label"
           @click="applyLinkFromAdapter"
         >
-          <KunIcon name="lucide:link" />
+          <KunIcon :name="chrome.link.icon" />
         </KunButton>
       </KunTooltip>
 
@@ -341,14 +374,14 @@ const pickEntity = (hit: EntityHit) => {
         inner-class="w-64 p-2"
       >
         <template #trigger>
-          <KunTooltip :text="t.link" :delay-show="300">
+          <KunTooltip :text="chrome.link.label" :delay-show="300">
             <KunButton
               variant="light"
               size="sm"
               :is-icon-only="true"
-              :aria-label="t.link"
+              :aria-label="chrome.link.label"
             >
-              <KunIcon name="lucide:link" />
+              <KunIcon :name="chrome.link.icon" />
             </KunButton>
           </KunTooltip>
         </template>
@@ -380,15 +413,15 @@ const pickEntity = (hit: EntityHit) => {
       </KunPopover>
 
       <template v-else-if="item.kind === 'image'">
-        <KunTooltip :text="t.image" :delay-show="300">
+        <KunTooltip :text="chrome.image.label" :delay-show="300">
           <KunButton
             variant="light"
             size="sm"
             :is-icon-only="true"
-            :aria-label="t.image"
+            :aria-label="chrome.image.label"
             @click="pickImage"
           >
-            <KunIcon name="lucide:image" />
+            <KunIcon :name="chrome.image.icon" />
           </KunButton>
         </KunTooltip>
         <input
@@ -404,70 +437,25 @@ const pickEntity = (hit: EntityHit) => {
         v-else-if="item.kind === 'picker'"
         position="bottom-start"
         :opaque="true"
-        inner-class="w-72 p-2"
+        inner-class="w-[360px] max-w-[calc(100vw-1rem)] p-0 overflow-hidden"
       >
         <template #trigger>
-          <KunButton
-            variant="light"
-            size="sm"
-            :is-icon-only="true"
-            :aria-label="t.picker"
-            @click="hasSticker && loadStickers()"
-          >
-            <KunIcon name="lucide:smile-plus" />
-          </KunButton>
+          <KunTooltip :text="chrome.picker.label" :delay-show="300">
+            <KunButton
+              variant="light"
+              size="sm"
+              :is-icon-only="true"
+              :aria-label="chrome.picker.label"
+            >
+              <KunIcon :name="chrome.picker.icon" />
+            </KunButton>
+          </KunTooltip>
         </template>
-
-        <KunTab
-          v-if="hasSticker"
-          v-model="tab"
-          :items="[
-            { value: 'emoji', textValue: t.emoji },
-            { value: 'sticker', textValue: t.sticker }
-          ]"
-          variant="underlined"
-          color="primary"
-          :full-width="true"
-          class="mb-2"
+        <KunStickerPanel
+          :adapters="props.adapters"
+          :locale="props.locale"
+          @pick="insertPick"
         />
-
-        <div
-          v-show="!hasSticker || tab === 'emoji'"
-          class="grid max-h-56 grid-cols-8 gap-0.5 overflow-y-auto"
-        >
-          <button
-            v-for="(e, ei) in EMOJI"
-            :key="ei"
-            type="button"
-            class="hover:bg-default-100 rounded p-1 text-lg leading-none"
-            @click="props.insertText(e)"
-          >
-            {{ e }}
-          </button>
-        </div>
-
-        <div v-if="hasSticker" v-show="tab === 'sticker'" class="max-h-56 overflow-y-auto">
-          <template v-if="packs.length">
-            <div v-for="pack in packs" :key="pack.name" class="mb-2">
-              <div class="text-default-500 mb-1 text-xs">{{ pack.name }}</div>
-              <div class="grid grid-cols-4 gap-1">
-                <button
-                  v-for="(s, si) in pack.stickers"
-                  :key="si"
-                  type="button"
-                  class="hover:bg-default-100 rounded p-1"
-                  :title="s.name"
-                  @click="insertSticker(s.src, s.name)"
-                >
-                  <img :src="s.src" :alt="s.name" loading="lazy" class="h-14 w-14 object-contain" />
-                </button>
-              </div>
-            </div>
-          </template>
-          <div v-else class="text-default-500 p-4 text-center text-sm">
-            {{ loadFailed ? t.failed : t.empty }}
-          </div>
-        </div>
       </KunPopover>
 
       <KunPopover
@@ -478,18 +466,26 @@ const pickEntity = (hit: EntityHit) => {
         inner-class="w-80 max-w-[calc(100vw-1rem)] p-2"
       >
         <template #trigger>
-          <KunTooltip :text="t.entity" :delay-show="300">
+          <KunTooltip :text="chrome.entityPicker.label" :delay-show="300">
             <KunButton
               variant="light"
               size="sm"
               :is-icon-only="true"
-              :aria-label="t.entity"
+              :aria-label="chrome.entityPicker.label"
             >
-              <KunIcon name="lucide:square-arrow-out-up-right" />
+              <KunIcon :name="chrome.entityPicker.icon" />
             </KunButton>
           </KunTooltip>
         </template>
+        <KunEntityTypePicker
+          v-if="props.adapters.entityPrompt"
+          :types="props.adapters.entityTypes ?? []"
+          :locale="props.locale"
+          @pick="pickEntityType"
+          @close="closeEntityPopover"
+        />
         <KunEntityPicker
+          v-else
           :adapters="props.adapters"
           :locale="props.locale"
           @pick="pickEntity"

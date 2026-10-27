@@ -36,11 +36,17 @@ import type { EditorState, Transaction } from '@milkdown/kit/prose/state'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import { $command, $prose } from '@milkdown/kit/utils'
 
-import type { EntityDisplay, EntityFromUrl, EntityRef } from '../../types'
+import type {
+  EntityDisplay,
+  EntityFromUrl,
+  EntityPrompt,
+  EntityRef
+} from '../../types'
 import { linkAtEndOf, linkHrefOf } from '../link/detect'
 import {
   deleteEntity,
   entityAt,
+  entityDisplayAt,
   entityCardId,
   entityForbiddenAt,
   entityLinkId,
@@ -58,6 +64,7 @@ import type { EntityAt, EntityResolver } from './model'
 
 export {
   entityAt,
+  entityDisplayAt,
   entityCardId,
   entityLinkId,
   entityLinkFallbackText,
@@ -76,6 +83,12 @@ interface DeclinedRange {
   to: number
 }
 
+/** A range held while a host prompt is open (see `withEntityAnchor`). */
+export interface EntityAnchor {
+  from: number
+  to: number
+}
+
 /** The entity plugin's state. */
 export interface EntityPluginState {
   /** Position of the entity a paste just made: the render layer's popover
@@ -84,10 +97,14 @@ export interface EntityPluginState {
   /** URLs an undo turned back into plain text — never converted again by a
    * boundary. Mapped through every change; checked against the text on use. */
   declined: DeclinedRange[]
+  /** Where a host prompt's answer goes: the selection when it opened, mapped
+   * through every change since. `null` once its text is gone. */
+  anchor: EntityAnchor | null
 }
 
 interface EntityMeta {
   offer?: number | null
+  anchor?: EntityAnchor | null
 }
 
 export const entityPluginKey = new PluginKey<EntityPluginState>('KUN_ENTITY')
@@ -123,6 +140,17 @@ export const entityDeclined = (
 /** Tag a transaction with a new offer (`null` withdraws it). */
 export const withEntityOffer = (tr: Transaction, offer: number | null) =>
   tr.setMeta(entityPluginKey, { offer } satisfies EntityMeta)
+
+/** Hold `anchor` (or release it with `null`) — the insertion point of a host
+ * prompt (`entityPrompt`) that is still open. */
+export const withEntityAnchor = (
+  tr: Transaction,
+  anchor: EntityAnchor | null
+) => tr.setMeta(entityPluginKey, { anchor } satisfies EntityMeta)
+
+/** The held insertion point, mapped to the current document. */
+export const entityAnchor = (state: EditorState): EntityAnchor | null =>
+  entityPluginKey.getState(state)?.anchor ?? null
 
 /**
  * Convert the URL text at `from`–`to` into an entity as its OWN undo step,
@@ -323,7 +351,7 @@ const makeEntityPlugin = (resolve: EntityResolver) =>
       // Read by `entityResolverOf` (the autolink handoff).
       resolve,
       state: {
-        init: () => ({ offer: null, declined: [] }),
+        init: () => ({ offer: null, declined: [], anchor: null }),
         apply: (tr, value, _old, next) => {
           const meta = tr.getMeta(entityPluginKey) as EntityMeta | undefined
           let offer = value.offer
@@ -365,9 +393,24 @@ const makeEntityPlugin = (resolve: EntityResolver) =>
               declined = [...declined, ...found].slice(-8)
             }
           }
-          return offer === value.offer && declined === value.declined
+          let anchor = value.anchor
+          if (meta?.anchor !== undefined) {
+            anchor = meta.anchor
+          } else if (anchor && tr.docChanged) {
+            // An insertion point whose surroundings were deleted outright has
+            // nowhere sensible to go: the answer is dropped, not misplaced.
+            const from = tr.mapping.mapResult(anchor.from, -1)
+            const to = tr.mapping.mapResult(anchor.to, 1)
+            anchor =
+              from.deletedAcross || to.deletedAcross
+                ? null
+                : { from: from.pos, to: Math.max(from.pos, to.pos) }
+          }
+          return offer === value.offer &&
+            declined === value.declined &&
+            anchor === value.anchor
             ? value
-            : { offer, declined }
+            : { offer, declined, anchor }
         }
       }
     })
@@ -396,6 +439,73 @@ const moveCaretPast = (view: EditorView, entity: EntityAt) => {
     }
   }
   view.dispatch(tr)
+}
+
+// ── Host prompt ─────────────────────────────────────────────────────────────
+
+/** Views with a host prompt open — one at a time per editor. */
+const prompting = new WeakSet<EditorView>()
+
+/**
+ * Hand the choice of an entity to the host (`entityPrompt`, its own modal) and
+ * insert the answer where the user was.
+ *
+ * `range` is text to remove first — the `/query` a menu consumed — and goes in
+ * the same step as holding the insertion point, so a cancel leaves exactly
+ * that removed and nothing else. The insertion point (the selection then) is
+ * held in plugin state and mapped through whatever happens while the modal is
+ * open; if it is deleted outright the answer is dropped rather than put
+ * somewhere surprising. A reference this editor's `entityFromUrl` does not
+ * accept is dropped too — it would not survive a save. Either way focus (and
+ * the selection) come back to the editor. Resolves whether it inserted.
+ */
+export const promptForEntity = async (
+  view: EditorView,
+  prompt: EntityPrompt,
+  type: string,
+  range?: { from: number; to: number }
+): Promise<boolean> => {
+  if (prompting.has(view) || !view.editable) {
+    return false
+  }
+  const open = view.state.tr
+  if (range && range.to > range.from) {
+    open.delete(range.from, range.to)
+  }
+  const { from, to } = open.selection
+  const display = entityDisplayAt(
+    to > from ? open.doc.cut(0).replace(from, to, open.doc.slice(0, 0)) : open.doc,
+    from
+  )
+  view.dispatch(withEntityAnchor(open, { from, to }))
+  prompting.add(view)
+  let ref: EntityRef | null = null
+  try {
+    ref = await prompt({ type, display })
+  } catch {
+    ref = null
+  } finally {
+    prompting.delete(view)
+  }
+  if (view.isDestroyed) {
+    return false
+  }
+  const anchor = entityAnchor(view.state)
+  const tr = withEntityAnchor(view.state.tr, null)
+  const resolve = entityResolverOf(view.state)
+  const accepted = ref?.url && resolve ? resolve(ref.url) : null
+  let inserted = false
+  if (anchor) {
+    tr.setSelection(
+      TextSelection.between(tr.doc.resolve(anchor.from), tr.doc.resolve(anchor.to))
+    )
+    if (accepted) {
+      inserted = insertEntity(tr, accepted, display)
+    }
+  }
+  view.dispatch(tr.scrollIntoView())
+  view.focus()
+  return inserted
 }
 
 // ── Commands ────────────────────────────────────────────────────────────────

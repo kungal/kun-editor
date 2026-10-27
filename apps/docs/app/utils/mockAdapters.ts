@@ -95,9 +95,9 @@ const ENTITY_TITLES: Record<string, string[]> = {
 }
 
 export const mockEntityTypes: NonNullable<KunEditorAdapters['entityTypes']> = [
-  { type: 'topic', label: '话题' },
-  { type: 'work', label: 'Galgame' },
-  { type: 'user', label: '用户' }
+  { type: 'work', label: 'Galgame 条目', command: 'galgame', description: '搜索并插入 Galgame 条目', icon: 'lucide:gamepad-2' },
+  { type: 'topic', label: '话题', command: 'topic', description: '搜索并插入话题', icon: 'lucide:message-square-text' },
+  { type: 'user', label: '用户', command: 'user', description: '搜索并插入用户', icon: 'lucide:user-round' }
 ]
 
 export const mockSearchEntities: NonNullable<

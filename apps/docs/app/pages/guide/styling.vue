@@ -21,7 +21,10 @@ const hooks = [
   { name: '.kun-editor__source .cm-editor', type: 'source', description: 'CodeMirror 源码视图' },
   { name: '.kun-mention-dropdown[data-show]', type: 'mention', description: '@提及下拉(定位 + 显隐必需)' },
   { name: '.kun-editor__picker-panel', type: 'picker', description: '贴纸 / 表情弹层(定位必需)' },
-  { name: '.kun-editor__emoji / __sticker', type: 'picker', description: 'emoji / 贴纸格子' }
+  { name: '.kun-sticker-panel / __body / __section / __header / __cell / __rail / __tab', type: 'picker', description: '表情与贴纸面板:连续滚动的分区(吸顶小标题)+ 底部分类栏;格子带 data-kind=emoji|sticker,分类 tab 带 aria-selected' },
+  { name: '.kun-entity-card / .kun-entity-chip [data-selected]', type: 'entity', description: '实体卡片 / 行内引用节点(只在 .kun-editor__wysiwyg 内生效)与选中描边' },
+  { name: '.kun-entity-menu', type: 'entity', description: '粘贴 / 选中后的「卡片 / 行内 / 链接 / 删除」小气泡' },
+  { name: '.kun-entity-slash / .kun-entity-types__row', type: 'entity', description: '「/」命令卡片与类型行(图标 / 标题 / 描述 / /command),data-active 为当前行' }
 ]
 
 const structural = `/* 编辑器真正「需要」的结构性规则 —— 别漏 */

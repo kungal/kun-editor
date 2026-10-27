@@ -34,11 +34,14 @@ import type { EntityAt } from '@kungal/editor-core/preset'
 import type { EntityDisplay } from '@kungal/editor-core'
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { KUN_EDITOR_CONTEXT } from '../context'
-import { entityDomId, entityLabels, floatNear } from '../entity-shared'
+import { entityDomId, entityLabels, floatNear, useLiveView } from '../entity-shared'
 
 type Choice = EntityDisplay | 'remove'
 
 const { view, prevState } = usePluginViewContext()
+// `view` is a per-update snapshot: fine for reading in `update`, never for
+// dispatch-then-read / focus / await — those use the live one.
+const liveView = useLiveView()
 const ctx = inject(KUN_EDITOR_CONTEXT)
 const t = computed(() => entityLabels(ctx?.locale))
 
@@ -145,7 +148,7 @@ const update = () => {
 }
 
 const close = () => {
-  const v = view.value
+  const v = liveView()
   if (mode.value === 'offer' && v) {
     v.dispatch(withEntityOffer(v.state.tr, null))
   } else if (target.value) {
@@ -186,7 +189,7 @@ const titleFor = async (entity: EntityAt): Promise<string | null> => {
 }
 
 const choose = async (choice: Choice) => {
-  const v = view.value
+  const v = liveView()
   const entity = target.value
   if (!v || !entity || pending.value) {
     return
@@ -222,7 +225,7 @@ const choose = async (choice: Choice) => {
 // The editor keeps focus, so keys reach ProseMirror first unless taken here in
 // the capture phase — and only the ones the panel owns (see the header).
 const onKeydown = (event: KeyboardEvent) => {
-  const v = view.value
+  const v = liveView()
   if (!mode.value || !v?.hasFocus() || event.isComposing || event.keyCode === 229) {
     return
   }

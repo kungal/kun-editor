@@ -54,7 +54,7 @@ const showEntityPicker = computed(
   () =>
     ctx?.features.entity !== false &&
     !!ctx?.adapters.entityFromUrl &&
-    !!ctx?.adapters.searchEntities &&
+    (!!ctx?.adapters.entityPrompt || !!ctx?.adapters.searchEntities) &&
     !!ctx?.adapters.entityTypes?.length
 )
 const isEnglish = computed(() =>

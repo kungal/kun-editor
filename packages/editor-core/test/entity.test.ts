@@ -19,7 +19,9 @@ import {
   insertEntity,
   replaceRangeWithEntity,
   selectedEntity,
-  setEntityDisplay
+  setEntityDisplay,
+  promptForEntity,
+  entityDisplayAt
 } from '../src/preset'
 
 // The forum's rules — they live in the forum adapter, not the editor.
@@ -694,5 +696,112 @@ describe('transforms', () => {
 
   it('deleteEntity removes the node whole', async () => {
     expect((await run(`a\n\n<${T1}>\n\nb`, (tr) => deleteEntity(tr, 3))).out).toBe('a\n\nb')
+  })
+})
+
+describe('host prompt (entityPrompt)', () => {
+  /** A prompt the test resolves by hand, recording what it was asked. */
+  const deferred = () => {
+    let resolve!: (ref: EntityRef | null) => void
+    const asked: { type: string; display: string }[] = []
+    const prompt = (ctx: { type: string; display: 'card' | 'chip' | 'auto' }) => {
+      asked.push(ctx)
+      return new Promise<EntityRef | null>((r) => {
+        resolve = r
+      })
+    }
+    return { prompt, asked, answer: (ref: EntityRef | null) => resolve(ref) }
+  }
+  const ref1 = entityFromUrl(T1)!
+
+  it('/ in an empty paragraph: asks for a card, removes /query, inserts there', async () => {
+    const host = deferred()
+    let doc: unknown[] = []
+    await withEditor('/ga', async (editor) => {
+      caretAtEnd(editor)
+      const done = promptForEntity(view(editor), host.prompt, 'topic', { from: 1, to: 4 })
+      expect(outline(editor)).toEqual([{ paragraph: [] }])
+      host.answer(ref1)
+      expect(await done).toBe(true)
+      doc = outline(editor)
+    })
+    expect(host.asked).toEqual([{ type: 'topic', display: 'card' }])
+    expect(doc).toEqual(['card:topic:1', { paragraph: [] }])
+  })
+
+  it('mid-text: asks for a chip; cancel leaves only the /query removed', async () => {
+    const host = deferred()
+    let doc: unknown[] = []
+    await withEditor('看 /q 好', async (editor) => {
+      caret(editor, 5)
+      const done = promptForEntity(view(editor), host.prompt, 'work', { from: 3, to: 5 })
+      host.answer(null)
+      expect(await done).toBe(false)
+      doc = outline(editor)
+      expect(view(editor).state.selection.from).toBe(3)
+    })
+    expect(host.asked[0]?.display).toBe('chip')
+    expect(doc).toEqual([{ paragraph: ['看  好'] }])
+  })
+
+  it('the insertion point follows edits made while the modal is open', async () => {
+    const host = deferred()
+    let doc: unknown[] = []
+    await withEditor('ab', async (editor) => {
+      caret(editor, 2)
+      const done = promptForEntity(view(editor), host.prompt, 'topic')
+      const v = view(editor)
+      v.dispatch(v.state.tr.insertText('XY', 1))
+      host.answer(ref1)
+      await done
+      doc = outline(editor)
+    })
+    expect(doc).toEqual([{ paragraph: ['XYa', 'chip:topic:1', ' b'] }])
+  })
+
+  it('drops the answer when the insertion point was deleted, or the ref is not an entity here', async () => {
+    const host = deferred()
+    let doc: unknown[] = []
+    await withEditor('ab\n\ncd', async (editor) => {
+      caret(editor, 2)
+      const done = promptForEntity(view(editor), host.prompt, 'topic')
+      const v = view(editor)
+      v.dispatch(v.state.tr.delete(0, 4))
+      host.answer(ref1)
+      expect(await done).toBe(false)
+      doc = outline(editor)
+    })
+    expect(JSON.stringify(doc)).not.toMatch(/card|chip/)
+    const other = deferred()
+    await withEditor('ab', async (editor) => {
+      caret(editor, 2)
+      const done = promptForEntity(view(editor), other.prompt, 'topic')
+      other.answer({ type: 'x', id: '1', url: 'https://example.com/x' })
+      expect(await done).toBe(false)
+    })
+  })
+
+  it('one prompt at a time', async () => {
+    const host = deferred()
+    await withEditor('ab', async (editor) => {
+      caret(editor, 2)
+      const first = promptForEntity(view(editor), host.prompt, 'topic')
+      expect(await promptForEntity(view(editor), host.prompt, 'topic')).toBe(false)
+      host.answer(null)
+      await first
+    })
+    expect(host.asked).toHaveLength(1)
+  })
+
+  it('entityDisplayAt: card in a blank paragraph, chip elsewhere', async () => {
+    await withEditor('# h\n\nx', (editor) => {
+      const v = view(editor)
+      // An empty paragraph after "x", and the heading's end.
+      v.dispatch(v.state.tr.insert(v.state.doc.content.size, v.state.schema.nodes.paragraph!.create()))
+      const { doc } = v.state
+      expect(entityDisplayAt(doc, doc.content.size - 1)).toBe('card')
+      expect(entityDisplayAt(doc, 2)).toBe('chip')
+      expect(entityDisplayAt(doc, doc.content.size - 3)).toBe('chip')
+    })
   })
 })

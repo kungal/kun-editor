@@ -23,6 +23,13 @@ const customItems: KunToolbarItem[] = [
   '|',
   'heading'
 ]
+const overridesSrc = `<KunEditorToolbar
+  v-bind="api"
+  :item-overrides="{
+    entityPicker: { icon: 'lucide:id-card', label: '插入条目卡片' },
+    picker: { label: '表情' }
+  }"
+/>`
 const itemsSrc = `<KunEditorToolbar
   v-bind="api"
   :items="['picker', '|', 'bold', 'italic', 'code', '|', 'image', '|', 'heading']"
@@ -131,6 +138,13 @@ const adapters = { uploadImage, stickerSource, notify }
       />
     </ClientOnly>
     <Code :code="itemsSrc" lang="vue" />
+
+    <h2 class="mt-8 mb-1 text-xl font-semibold">换图标 / 文案</h2>
+    <p class="text-default-600 mb-2">
+      <code>:item-overrides</code> 按按钮 id 覆盖 <code>icon</code>(KunIcon 名)与 <code>label</code>;label 同时是提示文字和
+      aria-label。
+    </p>
+    <Code :code="overridesSrc" lang="vue" />
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">限制视图(紧凑编辑器)</h2>
     <p class="text-default-600 mb-2">

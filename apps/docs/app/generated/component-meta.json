@@ -29,6 +29,13 @@
         "description": "Which optional plugins to enable (absent adapters win over `true`)."
       },
       {
+        "name": "iconComponent",
+        "type": "Component",
+        "required": false,
+        "default": "undefined",
+        "description": "Renders icon NAMES in editor chrome (an `entityTypes` icon such as `lucide:id-card`) — your icon component, given `{ name }`. Defaults to one provided app-wide under `KUN_EDITOR_ICON` (the"
+      },
+      {
         "name": "locale",
         "type": "KunEditorLocale",
         "required": false,

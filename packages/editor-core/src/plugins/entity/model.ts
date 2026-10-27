@@ -345,6 +345,24 @@ const paragraphCanBeCard = ($inside: ResolvedPos, schema: Schema): boolean => {
   return $inside.node($inside.depth - 1).canReplaceWith(index, index + 1, card)
 }
 
+/**
+ * What the one rule inserts at `pos`: a card when the paragraph there holds
+ * nothing but blank text (and a card may stand there), otherwise a chip. The
+ * `/` menu and the host prompt ask this BEFORE inserting, to tell the host
+ * what it will get.
+ */
+export const entityDisplayAt = (
+  doc: ProseNode,
+  pos: number
+): 'card' | 'chip' => {
+  const $pos = doc.resolve(pos)
+  return $pos.parent.isTextblock &&
+    paragraphCanBeCard($pos, doc.type.schema) &&
+    onlyContent($pos.parent, 0, 0)
+    ? 'card'
+    : 'chip'
+}
+
 // ── Transforms ──────────────────────────────────────────────────────────────
 
 /** Put the caret in an empty paragraph right after the block ending at `end`,

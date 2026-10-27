@@ -11,11 +11,18 @@ const types = `interface KunEditorAdapters {
   searchEntities?: (type: string, query: string, signal: AbortSignal) => Promise<EntityHit[]>
   entityTypes?: EntityTypeItem[]
   entityTitle?: (ref: EntityRef, signal: AbortSignal) => Promise<string | null>
+  entityPrompt?: (ctx: { type: string; display: 'card' | 'chip' | 'auto' }) => Promise<EntityRef | null>
 }
 
 interface EntityRef { type: string; id: string; url: string } // url = 规范 URL(绝对)
 interface EntityHit { ref: EntityRef; title: string; subtitle?: string; thumbnail?: string }
-interface EntityTypeItem { type: string; label: string; icon?: string }
+interface EntityTypeItem {
+  type: string
+  label: string        // 行标题,原样显示
+  icon?: string        // URL / data: → 图片;否则是图标名,交给 KUN_EDITOR_ICON(Nuxt 层 = KunIcon)
+  command?: string     // 「/」关键字,右侧显示 /command,也参与过滤
+  description?: string // 标题下的一行说明
+}
 
 interface MentionUser { id: number; name: string; avatar?: string }
 interface StickerItem { src: string; name: string }
@@ -35,6 +42,7 @@ const rows = [
   { name: 'searchEntities', type: '(type, query, signal) => Promise<EntityHit[]>', description: '「/」菜单与工具栏选择器的搜索。防抖由渲染层负责;被新查询取代时 signal 中止(过期结果无论如何都会丢弃)。' },
   { name: 'entityTypes', type: 'EntityTypeItem[]', description: '「/」菜单与选择器的类型列表(宿主顺序)。「/」菜单需要它与 searchEntities 同时存在。' },
   { name: 'entityTitle', type: '(ref, signal) => Promise<string | null>', description: '「转为链接」时写入的标题 → [title](url)。可选:缺席 / 返回 null / 失败 / 超过 1.5 秒,则用去掉 scheme 的 URL 作文本。' },
+  { name: 'entityPrompt', type: '({ type, display }) => Promise<EntityRef | null>', description: '宿主自己的实体搜索(你的弹窗)。提供后,「/」菜单与工具栏按钮只选类型,然后交给它;resolve 引用即插入,null = 取消。display 是插入点处将得到的形态(空段落 card,否则 chip)。弹窗期间编辑器记住插入点(随编辑映射),结束后恢复焦点与选区;插入点被删掉则丢弃结果。' },
   { name: 'mentionFromUrl', type: '(url, text) => number | null', description: '把链接解析回 user id(非提及返回 null),须与 mentionToUrl 对应。也拿到链接文本 → 可复现文本守卫(如 moyu「文本须以 @ 开头」)。默认 kungal-user: scheme。' }
 ]
 </script>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import DemoEntityCard from '~/components/entity/DemoEntityCard.vue'
 import DemoEntityChip from '~/components/entity/DemoEntityChip.vue'
+import DemoEntityPrompt from '~/components/entity/DemoEntityPrompt.vue'
 
 const entityView = { card: DemoEntityCard, chip: DemoEntityChip }
 
@@ -89,6 +90,14 @@ const demo = `打开下面的编辑器,试试:
       <li><strong>「/」菜单</strong>:段首或空白后输入 <code>/</code>,列出宿主的类型;继续输入过滤,回车选中后在文档里直接输入搜索词(IME 照常),↑/↓/回车 选结果。选中后:段落为空 → 卡片,否则行内。Esc:类型列表中关闭并保留 <code>/</code>;搜索词为空时只删掉 <code>/</code>;有搜索词时关闭并保留文字。空搜索词时退格回到类型列表。</li>
       <li><strong>工具栏</strong>:<code>entityPicker</code> 按钮(手机用户没有 <code>/</code> 的习惯);<code>insertEntity(ref, display?)</code> 在工具栏 API 与 ref 句柄上。</li>
     </ul>
+
+    <h2 class="mt-8 mb-1 text-xl font-semibold">「/」菜单与宿主自己的搜索</h2>
+    <ul class="text-default-600 list-disc space-y-1 pl-5">
+      <li>每行:20px 图标、<code>label</code>(原样显示)、其下的 <code>description</code>、右侧等宽的 <code>/command</code>。<code>/</code> 后输入的文字同时匹配 label 与 command(前缀优先,命中部分高亮);没有匹配时显示空状态,再输入空格即关闭。</li>
+      <li><code>icon</code>:URL / data: 显示为图片;其他字符串是图标名,交给 <code>KUN_EDITOR_ICON</code> 提供的组件(Nuxt 层自动提供 KunIcon,所以 <code>lucide:…</code> 直接可用;也可用 <code>:icon-component</code> 单独指定)。都没有时显示首字母方块。</li>
+      <li>提供 <code>entityPrompt</code> 时,选中类型(「/」菜单回车,或工具栏的类型菜单)直接交给宿主弹窗:编辑器先删掉 <code>/…</code>,记住插入点(随编辑映射),弹窗 resolve 引用后按 <code>display</code> 插入,null 则什么都不插;两种情况都把焦点与选区还给编辑器。没有它时保留内联搜索。</li>
+    </ul>
+    <DemoEntityPrompt />
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">撤销与显示切换</h2>
     <ul class="text-default-600 list-disc space-y-1 pl-5">

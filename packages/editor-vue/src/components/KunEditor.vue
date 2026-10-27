@@ -13,6 +13,7 @@ import { MilkdownProvider } from '@milkdown/vue'
 import { ProsemirrorAdapterProvider } from '@prosemirror-adapter/vue'
 import {
   computed,
+  inject,
   nextTick,
   onBeforeUnmount,
   onMounted,
@@ -33,7 +34,12 @@ import EditorToolbar from './EditorToolbar.vue'
 import ToolbarHost from './ToolbarHost.vue'
 import MarkdownSource from './MarkdownSource.vue'
 import { createEmptyActiveMarks } from '../active-marks'
-import { DEFAULT_SELECTION_ITEMS, KUN_EDITOR_CONTEXT } from '../context'
+import {
+  DEFAULT_SELECTION_ITEMS,
+  KUN_EDITOR_CONTEXT,
+  KUN_EDITOR_ICON
+} from '../context'
+import type { Component } from 'vue'
 import type {
   KunEditorExpose,
   KunEntityView,
@@ -85,6 +91,13 @@ const props = withDefaults(
      * adapter; without a component a neutral box / chip shows the URL.
      */
     entityView?: KunEntityView
+    /**
+     * Renders icon NAMES in editor chrome (an `entityTypes` icon such as
+     * `lucide:id-card`) — your icon component, given `{ name }`. Defaults to
+     * one provided app-wide under `KUN_EDITOR_ICON` (the @kungal/editor-nuxt
+     * layer provides KunIcon). URL icons need neither.
+     */
+    iconComponent?: Component
   }>(),
   {
     adapters: () => ({}),
@@ -96,7 +109,8 @@ const props = withDefaults(
     views: () => ['wysiwyg', 'source', 'split'],
     scrollSync: true,
     selectionToolbar: true,
-    entityView: () => ({})
+    entityView: () => ({}),
+    iconComponent: undefined
   }
 )
 
@@ -141,6 +155,8 @@ watch(
 // <ProsemirrorAdapterProvider> (siblings of <MilkdownEditor>).
 const activeMarks = reactive(createEmptyActiveMarks())
 
+const appIcon = inject(KUN_EDITOR_ICON, undefined)
+
 provide(KUN_EDITOR_CONTEXT, {
   get adapters() {
     return props.adapters
@@ -163,6 +179,9 @@ provide(KUN_EDITOR_CONTEXT, {
   },
   get entityView() {
     return props.entityView
+  },
+  get iconComponent() {
+    return props.iconComponent ?? appIcon
   }
 })
 

@@ -1,38 +1,57 @@
 <script setup lang="ts">
 // The `/` menu — insert an entity reference without leaving the keyboard.
 //
-// `/` at the start of a paragraph or after whitespace opens it on the host's
-// `entityTypes` (host order). The text typed after the `/` filters them; a
-// space, or a filter nothing matches, closes it (that `/` was just a slash —
-// "a/b", "/usr"). Picking a type (↑/↓ + Enter / Tab, or a click) drops the
-// filter text and turns the menu into a search over that type: the query is
-// typed IN THE DOCUMENT after the `/` (spaces allowed — titles have them), so
-// IME composition works exactly as anywhere else. Results are debounced and
-// abortable (see useEntitySearch). Picking a hit replaces `/query` with a
-// CARD when that leaves the paragraph empty, a CHIP otherwise.
+// `/` at the start of a paragraph or after whitespace opens a command card of
+// the host's `entityTypes` (host order): icon, label, description, `/command`.
+// What is typed after the `/` filters on label and command (prefix matches
+// first, the match highlighted); with nothing matching the card says so, and
+// a space then closes it (that `/` was just a slash — "a / b"). A second `/`
+// closes it too ("/usr/bin").
+//
+// Picking a type (↑/↓ + Enter / Tab, or a click):
+// - with the host's `entityPrompt`: the `/filter` text is removed and the host
+//   opens its own modal (`promptForEntity` holds the insertion point, inserts
+//   the answer — a CARD when the paragraph is empty, else a CHIP — and gives
+//   focus back);
+// - without it: the menu turns into an inline search over that type. The
+//   query is typed IN THE DOCUMENT after the `/` (spaces allowed, IME works as
+//   anywhere else); results are debounced and abortable; picking a hit
+//   replaces `/query` with the entity by the same rule.
 //
 // Esc: on the type list, closes and leaves the `/`; while searching with an
 // empty query, removes the `/` trigger — and nothing else — and closes; with a
 // query, closes and leaves the text as typed. Backspace on an empty query goes
-// back to the type list instead of deleting the `/`.
+// back to the type list. Enter with nothing to pick closes the menu and does
+// what Enter does.
 //
-// Focus never leaves the document: the list is `role="listbox"` and the
-// editor's `aria-activedescendant` names the highlighted option.
+// Focus never leaves the document: the list is a `role="listbox"` and the
+// editor's `aria-activedescendant` names the active option.
 import { usePluginViewContext } from '@prosemirror-adapter/vue'
 import { TextSelection } from '@milkdown/kit/prose/state'
 import type { EditorView } from '@milkdown/kit/prose/view'
-import { entityForbiddenAt, replaceRangeWithEntity } from '@kungal/editor-core/preset'
+import {
+  entityForbiddenAt,
+  promptForEntity,
+  replaceRangeWithEntity
+} from '@kungal/editor-core/preset'
 import type { EntityHit, EntityTypeItem } from '@kungal/editor-core'
-import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { KUN_EDITOR_CONTEXT } from '../context'
 import {
   entityDomId,
   entityLabels,
+  filterEntityTypes,
   floatNear,
-  useEntitySearch
+  useEntitySearch,
+  useLiveView
 } from '../entity-shared'
+import EntityIcon from './EntityIcon.vue'
+import EntityTypeList from './EntityTypeList.vue'
 
 const { view, prevState } = usePluginViewContext()
+// `view` is a per-update snapshot: fine for reading in `update`, never for
+// dispatch-then-read / focus / await — those use the live one.
+const liveView = useLiveView()
 const ctx = inject(KUN_EDITOR_CONTEXT)
 const t = computed(() => entityLabels(ctx?.locale))
 const types = computed<EntityTypeItem[]>(() => ctx?.adapters.entityTypes ?? [])
@@ -41,8 +60,9 @@ const { results, loading, failed, search, clear } = useEntitySearch(
 )
 
 const rootRef = ref<HTMLElement | null>(null)
+const hitsRef = ref<HTMLElement | null>(null)
 const open = ref(false)
-/** The type being searched; null while the type list shows. */
+/** The type being searched inline; null while the type list shows. */
 const picked = ref<EntityTypeItem | null>(null)
 /** Text after the `/`: the type filter, or the search query. */
 const query = ref('')
@@ -50,36 +70,15 @@ const active = ref(0)
 /** Document position of the `/`. Valid while the caret stays after it in the
  * same block — every edit then happens at the caret, after it. */
 let slashPos = -1
-/** A `/` whose menu Esc closed: it stays a plain slash. */
+/** A `/` whose menu was closed (Esc, a space with nothing matching): it
+ * stays a plain slash. */
 let dismissedSlash = -1
 let stopFloating: (() => void) | null = null
 const listId = entityDomId('kun-entity-slash')
 
-const filteredTypes = computed(() => {
-  const q = query.value.trim().toLowerCase()
-  return q
-    ? types.value.filter(
-        (item) =>
-          item.label.toLowerCase().includes(q) ||
-          item.type.toLowerCase().startsWith(q)
-      )
-    : types.value
-})
-
-/** What the list shows: types, or search hits. */
-const options = computed<{ key: string; label: string; sub?: string; thumb?: string; icon?: string }[]>(() =>
-  picked.value
-    ? results.value.map((hit, index) => ({
-        key: `${hit.ref.type}:${hit.ref.id}:${index}`,
-        label: hit.title,
-        sub: hit.subtitle,
-        thumb: hit.thumbnail
-      }))
-    : filteredTypes.value.map((item) => ({
-        key: item.type,
-        label: item.label,
-        icon: item.icon
-      }))
+const matches = computed(() => filterEntityTypes(types.value, query.value))
+const count = computed(() =>
+  picked.value ? results.value.length : matches.value.length
 )
 const optionId = (index: number) => `${listId}-${index}`
 
@@ -88,7 +87,7 @@ const setAria = () => {
   if (!dom) {
     return
   }
-  if (open.value && options.value.length) {
+  if (open.value && count.value) {
     dom.setAttribute('aria-controls', listId)
     dom.setAttribute('aria-activedescendant', optionId(active.value))
   } else {
@@ -96,7 +95,16 @@ const setAria = () => {
     dom.removeAttribute('aria-activedescendant')
   }
 }
-watch([open, active, options], setAria)
+watch([open, active, count], setAria)
+
+// The search hits scroll the active one into view (the type rows do it
+// themselves, in EntityTypeList).
+watch([active, results], async () => {
+  await nextTick()
+  hitsRef.value
+    ?.querySelector<HTMLElement>(`[data-index="${active.value}"]`)
+    ?.scrollIntoView({ block: 'nearest' })
+})
 
 const close = () => {
   open.value = false
@@ -109,9 +117,15 @@ const close = () => {
   stopFloating = null
 }
 
+const dismiss = () => {
+  dismissedSlash = slashPos
+  close()
+}
+
 /** The `/` trigger before the caret, read from the document: the type phase
- * matches `/filter` after a block start or whitespace; the search phase checks
- * that the `/` it started from is still there, with the caret after it. */
+ * matches `/filter` after a block start or whitespace (the filter may hold
+ * spaces, never start with one); the search phase checks that the `/` it
+ * started from is still there, with the caret after it. */
 const readTrigger = (v: EditorView): { slash: number; text: string } | null => {
   const { selection } = v.state
   if (!selection.empty || !(selection instanceof TextSelection)) {
@@ -132,12 +146,12 @@ const readTrigger = (v: EditorView): { slash: number; text: string } | null => {
       : null
   }
   const before = $from.parent.textBetween(
-    Math.max(0, $from.parentOffset - 40),
+    Math.max(0, $from.parentOffset - 48),
     $from.parentOffset,
     undefined,
     '￼'
   )
-  const match = /(?:^|\s)\/([^\s/￼]{0,20})$/.exec(before)
+  const match = /(?:^|\s)\/((?:[^\s/￼][^\n/￼]{0,39})?)$/.exec(before)
   return match
     ? { slash: $from.pos - (match[1] ?? '').length - 1, text: match[1] ?? '' }
     : null
@@ -158,7 +172,7 @@ const update = () => {
     v.editable &&
     v.hasFocus() &&
     types.value.length > 0 &&
-    !!ctx?.adapters.searchEntities
+    (!!ctx?.adapters.entityPrompt || !!ctx?.adapters.searchEntities)
   const trigger = enabled ? readTrigger(v) : null
   if (!trigger) {
     // The dismissed `/` is gone (or the caret left it): a new one may open.
@@ -179,8 +193,9 @@ const update = () => {
       search(picked.value.type, trigger.text)
     }
   }
-  if (!picked.value && !filteredTypes.value.length) {
-    close()
+  // Nothing matches and a space was typed: that `/` was prose.
+  if (!picked.value && !matches.value.length && /\s$/.test(trigger.text)) {
+    dismiss()
     return
   }
   open.value = true
@@ -200,21 +215,25 @@ const update = () => {
   }
 }
 
-/** Delete `from`–`to` of the document, keeping the caret at `from`. */
-const deleteRange = (v: EditorView, from: number, to: number) => {
-  if (to > from) {
-    v.dispatch(v.state.tr.delete(from, to))
-  }
-}
-
 const pickType = (item: EntityTypeItem) => {
-  const v = view.value
+  const v = liveView()
   if (!v || slashPos < 0) {
+    return
+  }
+  const prompt = ctx?.adapters.entityPrompt
+  if (prompt) {
+    // The host's own modal: hand off, the trigger range goes with the pick.
+    const range = { from: slashPos, to: v.state.selection.from }
+    close()
+    void promptForEntity(v, prompt, item.type, range)
     return
   }
   picked.value = item
   // The filter text was for choosing the type, not part of the search.
-  deleteRange(v, slashPos + 1, v.state.selection.from)
+  const caret = v.state.selection.from
+  if (caret > slashPos + 1) {
+    v.dispatch(v.state.tr.delete(slashPos + 1, caret))
+  }
   query.value = ''
   active.value = 0
   clear()
@@ -222,7 +241,7 @@ const pickType = (item: EntityTypeItem) => {
 }
 
 const pickHit = (hit: EntityHit) => {
-  const v = view.value
+  const v = liveView()
   if (!v || slashPos < 0) {
     return
   }
@@ -239,8 +258,8 @@ const pick = (index: number) => {
     const hit = results.value[index]
     if (hit) pickHit(hit)
   } else {
-    const item = filteredTypes.value[index]
-    if (item) pickType(item)
+    const match = matches.value[index]
+    if (match) pickType(match.item)
   }
 }
 
@@ -252,7 +271,7 @@ const backToTypes = () => {
 }
 
 const onKeydown = (event: KeyboardEvent) => {
-  const v = view.value
+  const v = liveView()
   if (!open.value || !v?.hasFocus() || event.isComposing || event.keyCode === 229) {
     return
   }
@@ -260,19 +279,18 @@ const onKeydown = (event: KeyboardEvent) => {
     event.preventDefault()
     event.stopPropagation()
   }
-  const count = options.value.length
+  const n = count.value
   switch (event.key) {
     case 'ArrowDown':
     case 'ArrowUp':
-      if (count) {
+      if (n) {
         take()
-        active.value =
-          (active.value + (event.key === 'ArrowDown' ? 1 : count - 1)) % count
+        active.value = (active.value + (event.key === 'ArrowDown' ? 1 : n - 1)) % n
       }
       break
     case 'Enter':
     case 'Tab':
-      if (count && !event.shiftKey) {
+      if (n && !event.shiftKey) {
         take()
         pick(active.value)
       } else if (event.key === 'Enter' && picked.value && loading.value) {
@@ -282,8 +300,7 @@ const onKeydown = (event: KeyboardEvent) => {
       } else if (event.key === 'Enter') {
         // Nothing to pick: this `/` was text after all. Close and let Enter
         // start the new line it was pressed for.
-        dismissedSlash = slashPos
-        close()
+        dismiss()
       }
       break
     case 'Escape':
@@ -292,10 +309,9 @@ const onKeydown = (event: KeyboardEvent) => {
         // Remove the `/` trigger — the user typed nothing else.
         const at = slashPos
         close()
-        deleteRange(v, at, at + 1)
+        v.dispatch(v.state.tr.delete(at, at + 1))
       } else {
-        dismissedSlash = slashPos
-        close()
+        dismiss()
       }
       break
     case 'Backspace':
@@ -329,47 +345,59 @@ onBeforeUnmount(() => {
     :data-phase="picked ? 'search' : 'types'"
     :aria-hidden="open ? undefined : 'true'"
   >
-    <div class="kun-entity-slash__header">
-      <template v-if="picked">
+    <EntityTypeList
+      v-if="!picked"
+      :matches="matches"
+      :active="active"
+      :id-base="listId"
+      :label="t.types"
+      :empty-label="t.noTypes"
+      @pick="pick"
+      @hover="active = $event"
+    />
+    <template v-else>
+      <div class="kun-entity-slash__header">
+        <EntityIcon :icon="picked.icon" :label="picked.label" />
         <span class="kun-entity-slash__type">{{ picked.label }}</span>
         <span class="kun-entity-slash__query">{{ query || t.search(picked.label) }}</span>
-      </template>
-      <span v-else class="kun-entity-slash__title">{{ t.insert }}</span>
-    </div>
-    <div
-      :id="listId"
-      role="listbox"
-      class="kun-entity-slash__list"
-      :aria-label="picked ? t.search(picked.label) : t.types"
-      :aria-busy="loading ? 'true' : undefined"
-    >
-      <div
-        v-for="(option, index) in options"
-        :id="optionId(index)"
-        :key="option.key"
-        role="option"
-        class="kun-entity-slash__option"
-        :aria-selected="index === active"
-        :data-active="index === active"
-        @mousedown.prevent="pick(index)"
-        @mouseenter="active = index"
-      >
-        <img
-          v-if="option.thumb"
-          class="kun-entity-slash__thumb"
-          :src="option.thumb"
-          alt=""
-          loading="lazy"
-          draggable="false"
-        />
-        <span class="kun-entity-slash__text">
-          <span class="kun-entity-slash__label">{{ option.label }}</span>
-          <span v-if="option.sub" class="kun-entity-slash__sub">{{ option.sub }}</span>
-        </span>
       </div>
-    </div>
-    <div v-if="picked && !options.length" class="kun-entity-slash__hint" aria-live="polite">
-      {{ loading ? t.searching : failed ? t.failed : query.trim() ? t.empty : t.prompt }}
-    </div>
+      <div
+        :id="listId"
+        ref="hitsRef"
+        role="listbox"
+        class="kun-entity-slash__list"
+        :aria-label="t.search(picked.label)"
+        :aria-busy="loading ? 'true' : undefined"
+      >
+        <div
+          v-for="(hit, index) in results"
+          :id="optionId(index)"
+          :key="`${hit.ref.type}:${hit.ref.id}`"
+          role="option"
+          class="kun-entity-slash__option"
+          :data-index="index"
+          :aria-selected="index === active"
+          :data-active="index === active"
+          @mousedown.prevent="pick(index)"
+          @mousemove="index !== active && (active = index)"
+        >
+          <img
+            v-if="hit.thumbnail"
+            class="kun-entity-slash__thumb"
+            :src="hit.thumbnail"
+            alt=""
+            loading="lazy"
+            draggable="false"
+          />
+          <span class="kun-entity-slash__text">
+            <span class="kun-entity-slash__label">{{ hit.title }}</span>
+            <span v-if="hit.subtitle" class="kun-entity-slash__sub">{{ hit.subtitle }}</span>
+          </span>
+        </div>
+      </div>
+      <div v-if="!results.length" class="kun-entity-slash__hint" aria-live="polite">
+        {{ loading ? t.searching : failed ? t.failed : query.trim() ? t.empty : t.prompt }}
+      </div>
+    </template>
   </div>
 </template>

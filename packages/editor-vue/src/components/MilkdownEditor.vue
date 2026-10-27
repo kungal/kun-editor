@@ -119,7 +119,7 @@ const entityEnabled =
   !!nodeViewFactory
 const entitySlashEnabled =
   entityEnabled &&
-  !!props.adapters.searchEntities &&
+  (!!props.adapters.entityPrompt || !!props.adapters.searchEntities) &&
   !!props.adapters.entityTypes?.length
 
 /** The element a card / chip renders into: the class hooks, the data-* the

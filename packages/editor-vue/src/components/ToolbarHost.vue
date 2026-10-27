@@ -11,6 +11,7 @@ import { insertImageCommand } from '@milkdown/kit/preset/commonmark'
 import { useInstance } from '@milkdown/vue'
 import { inject } from 'vue'
 import {
+  promptForEntity,
   insertEntityCommand,
   insertLinkCommand,
   insertMentionCommand,
@@ -61,6 +62,14 @@ const insertEntity: KunEditorToolbarApi['insertEntity'] = (ref, display) => {
   run(insertEntityCommand.key, { ref, display })
   focus()
 }
+const promptEntity: KunEditorToolbarApi['promptEntity'] = (type) => {
+  const prompt = ctx?.adapters.entityPrompt
+  if (prompt) {
+    getEditor()?.action((c) => {
+      void promptForEntity(c.get(editorViewCtx), prompt, type)
+    })
+  }
+}
 const uploadImage: KunEditorToolbarApi['uploadImage'] = (file) => {
   const adapter = ctx?.adapters.uploadImage
   const editor = getEditor()
@@ -88,6 +97,7 @@ const api: KunEditorToolbarApi = {
   insertQuote,
   insertMention,
   insertEntity,
+  promptEntity,
   focus,
   get adapters() {
     return ctx?.adapters ?? {}
