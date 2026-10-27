@@ -1,34 +1,40 @@
 <script setup lang="ts">
-// The emoji + sticker panel — one continuous scroll with a bottom rail, the
-// layout Telegram / Discord / Slack use. Shared by the headless toolbar's
-// picker and @kungal/editor-nuxt's KunUI toolbar (exported as KunStickerPanel),
-// so there is one implementation of it.
+// The emoji + sticker panel, shared by the headless toolbar's picker and
+// @kungal/editor-nuxt's KunUI toolbar (exported as KunStickerPanel).
 //
-// - Sections, in rail order: 最近使用 (when there is any), 表情, then one per
-//   sticker pack (from the `stickerSource` adapter, loaded on mount). Sticky
-//   section headers; emoji in a dense grid, stickers in fixed 64px cells with
-//   `loading="lazy"` images, so nothing shifts as they arrive.
-// - The rail is a tablist: a clock, a smiley, then each pack's first sticker as
-//   its cover (pack name as tooltip). It scrolls sideways when it overflows.
-//   Scroll-spy keeps its selection on the section in view; picking a tab
-//   scrolls there (instantly under reduced motion).
-// - 最近使用 is per viewer (localStorage, see ../sticker-recent). It is read
-//   when the panel opens and kept still while it is open — a grid that
-//   reshuffles under the pointer after every pick is worse than a stale one.
-//   A sticker no longer in the host's packs is never offered again.
+// - Tabs 表情 | 贴纸 on top (the 贴纸 tab only with the `stickerSource`
+//   adapter — stickers are images, an image-free editor gets emoji only). The
+//   `#tabs` slot (`{ tabs, active, select }`) lets a host draw them with its
+//   own tab component (KunEditorToolbar uses KunTab); the default is plain
+//   buttons with the same structure.
+// - 表情: 最近使用 (when there is any) then every emoji, one scroll with sticky
+//   section headers, a dense grid.
+// - 贴纸: a pack row under the tabs — 最近使用 (a clock) first when there is
+//   any, then each pack's first sticker as its cover (name as tooltip and
+//   aria-label), the active one highlighted. It scrolls sideways — wheel and
+//   touch too, no visible scrollbar — and when it overflows, ‹ › at its ends
+//   page by its visible width (smoothly; instantly under reduced motion), each
+//   hidden at its own end. The grid below shows the selected pack: fixed 64px
+//   cells, `loading="lazy"` images, so nothing shifts as they arrive.
+// - 最近使用 is per viewer and per tab (two localStorage keys, see
+//   ../sticker-recent), read when the panel opens and kept still while it is
+//   open — a grid that reshuffles under the pointer after every pick is worse
+//   than a stale one. A sticker no longer in the host's packs is never offered.
 // - Keyboard: the grid is ONE tab stop (roving tabindex) — arrows move by the
-//   cells' actual positions (so ↑/↓ cross from the emoji grid into a sticker
-//   grid sensibly), Home / End jump, Enter / Space insert; Tab goes on to the
-//   rail, whose tabs ←/→ walk. Esc is left to the wrapper (it closes).
+//   cells' actual positions, Home / End jump, Enter / Space insert. The tabs and
+//   the pack row are tablists (←/→). Esc is left to the wrapper (it closes).
 //
 // It inserts nothing itself: it emits `pick`, the wrapper inserts.
 import type { KunEditorAdapters, KunEditorLocale, StickerPack } from '@kungal/editor-core'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { EMOJI } from '../emoji'
 import type { KunStickerPick } from '../sticker-recent'
 import { pushRecent, readRecent } from '../sticker-recent'
 import { entityDomId } from '../entity-shared'
+import { prefersReducedMotion } from '../entity-drag'
 import { TOOLBAR_ICONS } from '../toolbar-icons'
+
+type Tab = 'emoji' | 'sticker'
 
 const props = defineProps<{
   adapters: KunEditorAdapters
@@ -39,54 +45,88 @@ const emit = defineEmits<{ pick: [item: KunStickerPick] }>()
 const en = computed(() => (props.locale ?? 'zh-cn').toLowerCase().startsWith('en'))
 const t = computed(() =>
   en.value
-    ? { recent: 'Recently used', emoji: 'Emoji', sections: 'Emoji & sticker sections', loading: 'Loading stickers…', failed: 'Failed to load stickers', empty: 'No stickers' }
-    : { recent: '最近使用', emoji: '表情', sections: '表情与贴纸分类', loading: '贴纸加载中…', failed: '贴纸加载失败', empty: '暂无贴纸' }
+    ? { emoji: 'Emoji', sticker: 'Stickers', recent: 'Recently used', tabs: 'Emoji or stickers', packs: 'Sticker packs', prev: 'Previous packs', next: 'More packs', loading: 'Loading stickers…', failed: 'Failed to load stickers', empty: 'No stickers' }
+    : { emoji: '表情', sticker: '贴纸', recent: '最近使用', tabs: '表情或贴纸', packs: '贴纸包', prev: '上一页', next: '下一页', loading: '贴纸加载中…', failed: '贴纸加载失败', empty: '暂无贴纸' }
 )
 
+const hasStickers = computed(() => !!props.adapters.stickerSource)
 const packs = shallowRef<StickerPack[]>([])
 const loading = ref(false)
 const failed = ref(false)
-const recent = shallowRef<KunStickerPick[]>([])
+const recentEmoji = shallowRef<KunStickerPick[]>([])
+const recentStickers = shallowRef<KunStickerPick[]>([])
 
-interface Section {
+const tab = ref<Tab>('emoji')
+const tabs = computed(() =>
+  hasStickers.value
+    ? [
+        { id: 'emoji' as Tab, label: t.value.emoji },
+        { id: 'sticker' as Tab, label: t.value.sticker }
+      ]
+    : []
+)
+
+// ── Sticker packs ───────────────────────────────────────────────────────────
+interface PackEntry {
   id: string
   label: string
-  kind: 'recent' | 'emoji' | 'sticker'
   cover?: string
   items: KunStickerPick[]
 }
 
-const sections = computed<Section[]>(() => {
+const packEntries = computed<PackEntry[]>(() => {
   const inPacks = new Set(packs.value.flatMap((pack) => pack.stickers.map((s) => s.src)))
-  const recentItems = recent.value.filter(
-    (item) => item.kind === 'emoji' || inPacks.has(item.src)
+  const recent = recentStickers.value.filter(
+    (item) => item.kind === 'sticker' && inPacks.has(item.src)
   )
-  const out: Section[] = []
-  if (recentItems.length) {
-    out.push({ id: 'recent', label: t.value.recent, kind: 'recent', items: recentItems })
+  const out: PackEntry[] = []
+  if (recent.length) {
+    out.push({ id: 'recent', label: t.value.recent, items: recent })
   }
-  out.push({
-    id: 'emoji',
-    label: t.value.emoji,
-    kind: 'emoji',
-    items: EMOJI.map((text) => ({ kind: 'emoji', text }))
-  })
   packs.value.forEach((pack, index) => {
-    if (!pack.stickers.length) {
-      return
+    if (pack.stickers.length) {
+      out.push({
+        id: `pack-${index}`,
+        label: pack.name,
+        cover: pack.stickers[0]?.src,
+        items: pack.stickers.map((s) => ({ kind: 'sticker', src: s.src, name: s.name }))
+      })
     }
-    out.push({
-      id: `pack-${index}`,
-      label: pack.name,
-      kind: 'sticker',
-      cover: pack.stickers[0]?.src,
-      items: pack.stickers.map((s) => ({ kind: 'sticker', src: s.src, name: s.name }))
-    })
   })
   return out
 })
+const pack = ref('')
+watch(packEntries, (entries) => {
+  if (!entries.some((entry) => entry.id === pack.value)) {
+    pack.value = entries[0]?.id ?? ''
+  }
+})
 
-/** Index of the first cell of each section, in the flat roving order. */
+// ── What the body shows ─────────────────────────────────────────────────────
+interface Section {
+  id: string
+  label?: string
+  kind: 'emoji' | 'sticker'
+  items: KunStickerPick[]
+}
+
+const sections = computed<Section[]>(() => {
+  if (tab.value === 'sticker') {
+    const entry = packEntries.value.find((e) => e.id === pack.value)
+    return entry ? [{ id: entry.id, kind: 'sticker', items: entry.items }] : []
+  }
+  const out: Section[] = []
+  if (recentEmoji.value.length) {
+    out.push({ id: 'recent', label: t.value.recent, kind: 'emoji', items: recentEmoji.value })
+  }
+  out.push({
+    id: 'emoji',
+    label: recentEmoji.value.length ? t.value.emoji : undefined,
+    kind: 'emoji',
+    items: EMOJI.map((text) => ({ kind: 'emoji', text }))
+  })
+  return out
+})
 const offsets = computed(() => {
   let n = 0
   return sections.value.map((section) => {
@@ -101,9 +141,8 @@ const cellCount = computed(() =>
 
 const idBase = entityDomId('kun-sticker-panel')
 const bodyRef = ref<HTMLElement | null>(null)
-const railRef = ref<HTMLElement | null>(null)
+const rowRef = ref<HTMLElement | null>(null)
 const focusCell = ref(0)
-const activeSection = ref('')
 
 const pick = (item: KunStickerPick, cell: number) => {
   focusCell.value = cell
@@ -111,57 +150,69 @@ const pick = (item: KunStickerPick, cell: number) => {
   emit('pick', item)
 }
 
-// ── Scrolling: rail ↔ sections ──────────────────────────────────────────────
-const reducedMotion = () =>
-  typeof matchMedia === 'function' &&
-  matchMedia('(prefers-reduced-motion: reduce)').matches
-
-/** While a tab's own scroll is under way, scroll-spy must not fight it. */
-let spyPausedUntil = 0
-let spyFrame = 0
-
-const spy = () => {
-  spyFrame = 0
-  const body = bodyRef.value
-  if (!body || Date.now() < spyPausedUntil) {
-    return
+const resetBody = () => {
+  focusCell.value = 0
+  if (bodyRef.value) bodyRef.value.scrollTop = 0
+}
+const selectTab = (next: string) => {
+  if (next === 'emoji' || next === 'sticker') {
+    tab.value = next
+    resetBody()
   }
-  const top = body.getBoundingClientRect().top
-  let current = sections.value[0]?.id ?? ''
-  for (const el of body.querySelectorAll<HTMLElement>('[data-section]')) {
-    if (el.getBoundingClientRect().top - top <= 8) {
-      current = el.dataset.section ?? current
-    }
-  }
-  // Scrolled to the very end: the last section is the one in view, even when
-  // it is too short to reach the top.
-  if (body.scrollTop + body.clientHeight >= body.scrollHeight - 2) {
-    current = sections.value[sections.value.length - 1]?.id ?? current
-  }
-  if (current !== activeSection.value) {
-    activeSection.value = current
-    railRef.value
-      ?.querySelector<HTMLElement>(`[data-tab="${current}"]`)
+}
+const selectPack = (id: string) => {
+  pack.value = id
+  resetBody()
+  void nextTick(() =>
+    rowRef.value
+      ?.querySelector<HTMLElement>(`[data-pack="${id}"]`)
       ?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-  }
-}
-const onScroll = () => {
-  if (!spyFrame) {
-    spyFrame = requestAnimationFrame(spy)
-  }
+  )
 }
 
-const showSection = (id: string) => {
-  const body = bodyRef.value
-  const el = body?.querySelector<HTMLElement>(`[data-section="${id}"]`)
-  if (!body || !el) {
+// ── Pack row paging ─────────────────────────────────────────────────────────
+const canPrev = ref(false)
+const canNext = ref(false)
+const updatePaging = () => {
+  const row = rowRef.value
+  if (!row) {
+    canPrev.value = canNext.value = false
     return
   }
-  activeSection.value = id
-  const smooth = !reducedMotion()
-  spyPausedUntil = smooth ? Date.now() + 500 : 0
-  body.scrollTo({ top: el.offsetTop, behavior: smooth ? 'smooth' : 'auto' })
+  canPrev.value = row.scrollLeft > 1
+  canNext.value = row.scrollLeft + row.clientWidth < row.scrollWidth - 1
 }
+const page = (dir: -1 | 1) => {
+  const row = rowRef.value
+  if (!row) return
+  row.scrollBy({
+    left: dir * row.clientWidth,
+    behavior: prefersReducedMotion() ? 'auto' : 'smooth'
+  })
+}
+/** A vertical wheel over the row scrolls it sideways. */
+const onRowWheel = (event: WheelEvent) => {
+  const row = rowRef.value
+  if (!row || row.scrollWidth <= row.clientWidth) return
+  if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+    event.preventDefault()
+    row.scrollLeft += event.deltaY
+  }
+}
+let resize: ResizeObserver | null = null
+watch(
+  [rowRef, packEntries, tab],
+  async () => {
+    await nextTick()
+    resize?.disconnect()
+    if (rowRef.value && typeof ResizeObserver === 'function') {
+      resize = new ResizeObserver(updatePaging)
+      resize.observe(rowRef.value)
+    }
+    updatePaging()
+  },
+  { flush: 'post' }
+)
 
 // ── Keyboard ────────────────────────────────────────────────────────────────
 const cellEl = (index: number) =>
@@ -180,9 +231,7 @@ const focusTo = (index: number) => {
 const vertical = (from: number, dir: 1 | -1): number => {
   const current = cellEl(from)?.getBoundingClientRect()
   const all = bodyRef.value?.querySelectorAll<HTMLElement>('[data-cell]')
-  if (!current || !all) {
-    return from
-  }
+  if (!current || !all) return from
   const centre = current.left + current.width / 2
   let rowTop: number | null = null
   let best = from
@@ -190,9 +239,7 @@ const vertical = (from: number, dir: 1 | -1): number => {
   for (const el of all) {
     const r = el.getBoundingClientRect()
     const beyond = dir > 0 ? r.top >= current.bottom - 2 : r.bottom <= current.top + 2
-    if (!beyond) {
-      continue
-    }
+    if (!beyond) continue
     if (rowTop === null || (dir > 0 ? r.top < rowTop - 2 : r.top > rowTop + 2)) {
       rowTop = r.top
       bestDx = Infinity
@@ -225,38 +272,40 @@ const onGridKeydown = (event: KeyboardEvent) => {
   }
 }
 
-const onRailKeydown = (event: KeyboardEvent) => {
-  const ids = sections.value.map((s) => s.id)
-  const at = ids.indexOf(activeSection.value)
+/** ←/→ (Home / End) across a tablist's tabs, selecting as it goes. */
+const walk = (
+  event: KeyboardEvent,
+  ids: string[],
+  current: string,
+  select: (id: string) => void,
+  container: HTMLElement | null,
+  attr: string
+) => {
+  const at = ids.indexOf(current)
   const next =
-    event.key === 'ArrowRight'
-      ? (at + 1) % ids.length
-      : event.key === 'ArrowLeft'
-        ? (at + ids.length - 1) % ids.length
-        : event.key === 'Home'
-          ? 0
-          : event.key === 'End'
-            ? ids.length - 1
-            : -1
+    event.key === 'ArrowRight' ? Math.min(ids.length - 1, at + 1)
+    : event.key === 'ArrowLeft' ? Math.max(0, at - 1)
+    : event.key === 'Home' ? 0
+    : event.key === 'End' ? ids.length - 1
+    : -1
   const id = ids[next]
-  if (next < 0 || !id) {
-    return
-  }
+  if (next < 0 || !id) return
   event.preventDefault()
-  showSection(id)
-  void nextTick(() =>
-    railRef.value?.querySelector<HTMLElement>(`[data-tab="${id}"]`)?.focus()
-  )
+  select(id)
+  void nextTick(() => container?.querySelector<HTMLElement>(`[${attr}="${id}"]`)?.focus())
 }
+const tabsRef = ref<HTMLElement | null>(null)
+const onTabsKeydown = (event: KeyboardEvent) =>
+  walk(event, tabs.value.map((x) => x.id), tab.value, selectTab, tabsRef.value, 'data-tab')
+const onRowKeydown = (event: KeyboardEvent) =>
+  walk(event, packEntries.value.map((x) => x.id), pack.value, selectPack, rowRef.value, 'data-pack')
 
 // ── Load ────────────────────────────────────────────────────────────────────
 onMounted(async () => {
-  recent.value = readRecent()
-  activeSection.value = sections.value[0]?.id ?? ''
+  recentEmoji.value = readRecent('emoji')
+  recentStickers.value = readRecent('sticker')
   const source = props.adapters.stickerSource
-  if (!source) {
-    return
-  }
+  if (!source) return
   loading.value = true
   try {
     packs.value = (await source()) ?? []
@@ -266,33 +315,105 @@ onMounted(async () => {
     loading.value = false
   }
 })
-onBeforeUnmount(() => {
-  if (spyFrame) cancelAnimationFrame(spyFrame)
-})
+onBeforeUnmount(() => resize?.disconnect())
 
 defineExpose({ focus: () => focusTo(focusCell.value) })
 </script>
 
 <template>
-  <div class="kun-sticker-panel">
+  <div class="kun-sticker-panel" :data-tab="tab">
+    <slot v-if="tabs.length" name="tabs" :tabs="tabs" :active="tab" :select="selectTab">
+      <div
+        ref="tabsRef"
+        class="kun-sticker-panel__tabs"
+        role="tablist"
+        :aria-label="t.tabs"
+        @keydown="onTabsKeydown"
+      >
+        <button
+          v-for="item in tabs"
+          :key="item.id"
+          type="button"
+          role="tab"
+          class="kun-sticker-panel__tab"
+          :data-tab="item.id"
+          :aria-selected="item.id === tab"
+          :aria-controls="`${idBase}-body`"
+          :tabindex="item.id === tab ? 0 : -1"
+          @click="selectTab(item.id)"
+        >
+          {{ item.label }}
+        </button>
+      </div>
+    </slot>
+
+    <div v-if="tab === 'sticker' && packEntries.length" class="kun-sticker-panel__packs">
+      <button
+        v-show="canPrev"
+        type="button"
+        class="kun-sticker-panel__page"
+        data-dir="prev"
+        tabindex="-1"
+        :aria-label="t.prev"
+        @click="page(-1)"
+      >
+        ‹
+      </button>
+      <div
+        ref="rowRef"
+        class="kun-sticker-panel__pack-row"
+        role="tablist"
+        :aria-label="t.packs"
+        @scroll.passive="updatePaging"
+        @wheel="onRowWheel"
+        @keydown="onRowKeydown"
+      >
+        <button
+          v-for="entry in packEntries"
+          :key="entry.id"
+          type="button"
+          role="tab"
+          class="kun-sticker-panel__pack"
+          :data-pack="entry.id"
+          :aria-selected="entry.id === pack"
+          :aria-controls="`${idBase}-body`"
+          :tabindex="entry.id === pack ? 0 : -1"
+          :title="entry.label"
+          :aria-label="entry.label"
+          @click="selectPack(entry.id)"
+        >
+          <span v-if="entry.id === 'recent'" class="kun-editor__icon" v-html="TOOLBAR_ICONS.clock" />
+          <img v-else :src="entry.cover" alt="" width="28" height="28" draggable="false" />
+        </button>
+      </div>
+      <button
+        v-show="canNext"
+        type="button"
+        class="kun-sticker-panel__page"
+        data-dir="next"
+        tabindex="-1"
+        :aria-label="t.next"
+        @click="page(1)"
+      >
+        ›
+      </button>
+    </div>
+
     <div
+      :id="`${idBase}-body`"
       ref="bodyRef"
       class="kun-sticker-panel__body"
-      @scroll.passive="onScroll"
+      role="tabpanel"
       @keydown="onGridKeydown"
     >
       <section
         v-for="(section, si) in sections"
-        :id="`${idBase}-${section.id}`"
         :key="section.id"
         class="kun-sticker-panel__section"
-        :data-section="section.id"
         :data-kind="section.kind"
-        :aria-labelledby="`${idBase}-${section.id}-h`"
+        :aria-label="section.label"
       >
-        <div :id="`${idBase}-${section.id}-h`" class="kun-sticker-panel__header">
-          {{ section.label }}
-        </div>
+        <div v-if="section.label" class="kun-sticker-panel__header">{{ section.label }}</div>
         <div class="kun-sticker-panel__grid" role="group" :aria-label="section.label">
           <button
             v-for="(item, ii) in section.items"
@@ -322,39 +443,12 @@ defineExpose({ focus: () => focusTo(focusCell.value) })
         </div>
       </section>
       <div
-        v-if="adapters.stickerSource && !packs.length"
+        v-if="tab === 'sticker' && !packEntries.length"
         class="kun-sticker-panel__hint"
         aria-live="polite"
       >
         {{ loading ? t.loading : failed ? t.failed : t.empty }}
       </div>
-    </div>
-
-    <div
-      ref="railRef"
-      class="kun-sticker-panel__rail"
-      role="tablist"
-      :aria-label="t.sections"
-      @keydown="onRailKeydown"
-    >
-      <button
-        v-for="section in sections"
-        :key="section.id"
-        type="button"
-        role="tab"
-        class="kun-sticker-panel__tab"
-        :data-tab="section.id"
-        :aria-selected="section.id === activeSection"
-        :aria-controls="`${idBase}-${section.id}`"
-        :tabindex="section.id === activeSection ? 0 : -1"
-        :title="section.label"
-        :aria-label="section.label"
-        @click="showSection(section.id)"
-      >
-        <span v-if="section.kind === 'recent'" class="kun-editor__icon" v-html="TOOLBAR_ICONS.clock" />
-        <span v-else-if="section.kind === 'emoji'" class="kun-editor__icon" v-html="TOOLBAR_ICONS.smile" />
-        <img v-else :src="section.cover" alt="" width="28" height="28" draggable="false" />
-      </button>
     </div>
   </div>
 </template>

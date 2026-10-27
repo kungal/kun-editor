@@ -47,6 +47,7 @@ import {
   deleteEntity,
   entityAt,
   entityDisplayAt,
+  moveEntityCard,
   entityCardId,
   entityForbiddenAt,
   entityLinkId,
@@ -65,6 +66,9 @@ import type { EntityAt, EntityResolver } from './model'
 export {
   entityAt,
   entityDisplayAt,
+  entityDisplayPersists,
+  moveEntityCard,
+  moveEntityCardTo,
   entityCardId,
   entityLinkId,
   entityLinkFallbackText,
@@ -270,6 +274,21 @@ const makeEntityPlugin = (resolve: EntityResolver) =>
       const entity = selectedEntity(view.state)
       if (!entity || !view.editable) {
         return false
+      }
+      // Alt+↑ / Alt+↓: the selected card past the previous / next block.
+      if (
+        entity.display === 'card' &&
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        (event.key === 'ArrowUp' || event.key === 'ArrowDown')
+      ) {
+        const tr = view.state.tr
+        if (moveEntityCard(tr, entity.pos, event.key === 'ArrowUp' ? -1 : 1) !== null) {
+          view.dispatch(tr.scrollIntoView())
+        }
+        return true
       }
       const plainEnter =
         event.key === 'Enter' &&

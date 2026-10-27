@@ -33,6 +33,8 @@ import MilkdownEditor from './MilkdownEditor.vue'
 import EditorToolbar from './EditorToolbar.vue'
 import ToolbarHost from './ToolbarHost.vue'
 import MarkdownSource from './MarkdownSource.vue'
+import EntityViewPool from './EntityViewPool.vue'
+import { createEntityPool } from '../entity-pool'
 import { createEmptyActiveMarks } from '../active-marks'
 import {
   DEFAULT_SELECTION_ITEMS,
@@ -156,6 +158,8 @@ watch(
 const activeMarks = reactive(createEmptyActiveMarks())
 
 const appIcon = inject(KUN_EDITOR_ICON, undefined)
+// Host entity components live here, not in the node views (see entity-pool).
+const entityPool = createEntityPool()
 
 provide(KUN_EDITOR_CONTEXT, {
   get adapters() {
@@ -182,7 +186,8 @@ provide(KUN_EDITOR_CONTEXT, {
   },
   get iconComponent() {
     return props.iconComponent ?? appIcon
-  }
+  },
+  entityPool
 })
 
 // Whether to wire the selection bubble at all (false = off; true / array = on).
@@ -432,6 +437,7 @@ defineExpose<KunEditorExpose>({
         </div>
       </ProsemirrorAdapterProvider>
     </MilkdownProvider>
+    <EntityViewPool :pool="entityPool" :view="entityView" />
     </template>
 
     <!-- Loading placeholder: shown on the server + first paint, and until Milkdown

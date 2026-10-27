@@ -124,6 +124,10 @@ const entitySlashEnabled =
 
 /** The element a card / chip renders into: the class hooks, the data-* the
  * copy path also writes, and contenteditable=false (the caret never enters). */
+/** Pointer events on a card's grip handle are the drag's, not ProseMirror's
+ * (which would select or start a native drag). */
+const entityStopEvent = (event: Event) =>
+  !!(event.target as Element | null)?.closest?.('.kun-entity__handle')
 const entityElement = (node: ProseNode) => {
   const card = node.type.name === entityCardId
   const el = document.createElement(card ? 'div' : 'span')
@@ -144,7 +148,8 @@ const entityPlugins = entityEnabled
               nodeViews: {
                 [entityCardId]: nodeViewFactory!({
                   component: EntityNodeView,
-                  as: entityElement
+                  as: entityElement,
+                  stopEvent: entityStopEvent
                 }),
                 [entityLinkId]: nodeViewFactory!({
                   component: EntityNodeView,

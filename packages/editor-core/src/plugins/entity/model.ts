@@ -29,6 +29,7 @@ import type {
   ResolvedPos,
   Schema
 } from '@milkdown/kit/prose/model'
+import { closeHistory } from '@milkdown/kit/prose/history'
 import { NodeSelection, TextSelection } from '@milkdown/kit/prose/state'
 import type { Transaction } from '@milkdown/kit/prose/state'
 import type { Node } from '@milkdown/kit/transformer'
@@ -361,6 +362,34 @@ export const entityDisplayAt = (
     onlyContent($pos.parent, 0, 0)
     ? 'card'
     : 'chip'
+}
+
+/**
+ * Whether showing the entity at `pos` as `display` survives a save. By the
+ * contract a bare link that is all its paragraph holds IS a card, so a chip
+ * alone in its paragraph (blank text and caret anchors aside) reads back as a
+ * card — and a card can therefore never become a chip on its own. A chip with
+ * formatting around it (`**<url>**`) is not bare at the paragraph level and
+ * stays a chip; so does one in a heading or a table cell.
+ */
+export const entityDisplayPersists = (
+  doc: ProseNode,
+  pos: number,
+  display: EntityDisplay
+): boolean => {
+  const entity = entityAt(doc, pos)
+  if (!entity || display !== 'chip') {
+    return !!entity
+  }
+  if (entity.display === 'card') {
+    return false
+  }
+  const $pos = doc.resolve(pos)
+  return (
+    entity.node.marks.length > 0 ||
+    $pos.parent.type.name !== 'paragraph' ||
+    !onlyContent($pos.parent, $pos.parentOffset, $pos.parentOffset + entity.node.nodeSize)
+  )
 }
 
 // ── Transforms ──────────────────────────────────────────────────────────────
@@ -715,6 +744,63 @@ const applyEntityDisplay = (
   const cardPos = start + (before.size ? before.size + 2 : 0)
   tr.setSelection(NodeSelection.create(tr.doc, cardPos))
   return true
+}
+
+/**
+ * Move the card at `pos` so it sits before its parent's child `slot` (the
+ * child indexes of the document as it is now; `childCount` = at the end) —
+ * the drop of a drag. Moves stay inside the card's own container, and only
+ * where that container's content rules allow the result. Each move is its own
+ * undo step, however quickly the next follows. Returns the card's new
+ * position (selected), or null when that is no move at all or not allowed.
+ */
+export const moveEntityCardTo = (
+  tr: Transaction,
+  pos: number,
+  slot: number
+): number | null => {
+  const entity = entityAt(tr.doc, pos)
+  if (!entity || entity.display !== 'card') {
+    return null
+  }
+  const $pos = tr.doc.resolve(pos)
+  const parent = $pos.parent
+  const index = $pos.index()
+  if (slot < 0 || slot > parent.childCount || slot === index || slot === index + 1) {
+    return null
+  }
+  const children: ProseNode[] = []
+  parent.forEach((child, _offset, i) => {
+    if (i === slot) children.push(entity.node)
+    if (i !== index) children.push(child)
+  })
+  if (slot === parent.childCount) {
+    children.push(entity.node)
+  }
+  if (!parent.type.validContent(Fragment.fromArray(children))) {
+    return null
+  }
+  let target = $pos.start()
+  for (let i = 0; i < slot; i++) {
+    target += parent.child(i).nodeSize
+  }
+  closeHistory(tr)
+  tr.delete(pos, pos + entity.node.nodeSize)
+  const at = tr.mapping.map(target, slot > index ? -1 : 1)
+  tr.insert(at, entity.node)
+  tr.setSelection(NodeSelection.create(tr.doc, at))
+  return at
+}
+
+/** Move the card at `pos` past the previous (`-1`) or next (`1`) block of its
+ * container — Alt+↑ / Alt+↓. Returns its new position, or null at an end. */
+export const moveEntityCard = (
+  tr: Transaction,
+  pos: number,
+  dir: -1 | 1
+): number | null => {
+  const index = tr.doc.resolve(pos).index()
+  return moveEntityCardTo(tr, pos, dir < 0 ? index - 1 : index + 2)
 }
 
 /** Delete the entity at `pos` — whole, like Backspace on a selected one. */

@@ -24,6 +24,8 @@ import { usePluginViewContext } from '@prosemirror-adapter/vue'
 import {
   deleteEntity,
   entityAt,
+  entityDisplayPersists,
+  moveEntityCard,
   entityLinkFallbackText,
   entityOffer,
   selectedEntity,
@@ -35,6 +37,7 @@ import type { EntityDisplay } from '@kungal/editor-core'
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { KUN_EDITOR_CONTEXT } from '../context'
 import { entityDomId, entityLabels, floatNear, useLiveView } from '../entity-shared'
+import { flipMove } from '../entity-drag'
 
 type Choice = EntityDisplay | 'remove'
 
@@ -59,10 +62,21 @@ let dismissedAt: number | null = null
 let stopFloating: (() => void) | null = null
 let titleRequest: AbortController | null = null
 const idBase = entityDomId('kun-entity-menu')
+/** Moving between entities while open: the stylesheet glides left/top. */
+const glide = ref(false)
+let glideTimer: ReturnType<typeof setTimeout> | undefined
 
-const choices = computed<{ id: Choice; label: string }[]>(() => {
+interface MenuChoice {
+  id: Choice
+  label: string
+  /** Shown but not offered: the change would not survive a save. */
+  disabled?: boolean
+  hint?: string
+}
+
+const choices = computed<MenuChoice[]>(() => {
   const entity = target.value
-  const v = view.value
+  const v = liveView() ?? view.value
   if (!entity || !v) {
     return []
   }
@@ -70,15 +84,35 @@ const choices = computed<{ id: Choice; label: string }[]>(() => {
   const possible = (display: EntityDisplay) =>
     display === entity.display ||
     setEntityDisplay(state.tr, entity.pos, display, display === 'link' ? '·' : undefined)
-  const out: { id: Choice; label: string }[] = []
+  const out: MenuChoice[] = []
   if (possible('card')) out.push({ id: 'card', label: t.value.card })
-  if (possible('chip')) out.push({ id: 'chip', label: t.value.chip })
+  if (possible('chip')) {
+    // A bare link alone on its line IS a card (the shared contract), so a
+    // chip there would come back as a card on reload: say why, offer nothing.
+    const lone = !entityDisplayPersists(state.doc, entity.pos, 'chip')
+    out.push({
+      id: 'chip',
+      label: t.value.chip,
+      disabled: lone,
+      hint: lone ? t.value.chipLocked : undefined
+    })
+  }
   if (ctx?.adapters.entityTitle || entityLinkFallbackText(entity.ref.url)) {
     out.push({ id: 'link', label: t.value.link })
   }
   if (mode.value === 'selected') out.push({ id: 'remove', label: t.value.remove })
   return out
 })
+
+/** The next offered (enabled) choice from `from`, stepping `dir`. */
+const step = (from: number, dir: 1 | -1): number => {
+  const list = choices.value
+  for (let i = 1; i <= list.length; i++) {
+    const at = (((from + dir * i) % list.length) + list.length) % list.length
+    if (!list[at]?.disabled) return at
+  }
+  return -1
+}
 
 const optionId = (index: number) => `${idBase}-${index}`
 
@@ -104,7 +138,7 @@ const hide = () => {
 }
 
 const show = (next: 'offer' | 'selected', entity: EntityAt) => {
-  const v = view.value
+  const v = liveView() ?? view.value
   const anchor = v?.nodeDOM(entity.pos)
   const el = rootRef.value
   if (!v || !el || !(anchor instanceof Element)) {
@@ -112,17 +146,26 @@ const show = (next: 'offer' | 'selected', entity: EntityAt) => {
     return
   }
   const moved = target.value?.pos !== entity.pos || mode.value !== next
+  // Already open over another entity: glide there instead of jumping.
+  const wasOpen = mode.value !== null && target.value !== null
   mode.value = next
   target.value = entity
   if (moved) {
     active.value = -1
     stopFloating?.()
+    if (wasOpen) {
+      glide.value = true
+      clearTimeout(glideTimer)
+      glideTimer = setTimeout(() => {
+        glide.value = false
+      }, 220)
+    }
     stopFloating = floatNear(anchor, el)
   }
 }
 
 const update = () => {
-  const v = view.value
+  const v = liveView() ?? view.value
   if (!v || v.isDestroyed || !v.editable) {
     hide()
     return
@@ -194,6 +237,9 @@ const choose = async (choice: Choice) => {
   if (!v || !entity || pending.value) {
     return
   }
+  if (choices.value.find((c) => c.id === choice)?.disabled) {
+    return
+  }
   const caret = mode.value === 'offer' ? 'after' : 'select'
   if (choice === 'remove') {
     const tr = withEntityOffer(v.state.tr, null)
@@ -226,7 +272,31 @@ const choose = async (choice: Choice) => {
 // the capture phase — and only the ones the panel owns (see the header).
 const onKeydown = (event: KeyboardEvent) => {
   const v = liveView()
-  if (!mode.value || !v?.hasFocus() || event.isComposing || event.keyCode === 229) {
+  if (!v?.hasFocus() || event.isComposing || event.keyCode === 229) {
+    return
+  }
+  // Alt+↑ / Alt+↓ on a selected card: move it, animated (the core keymap
+  // would move it too, without the glide).
+  const picked = selectedEntity(v.state)
+  if (
+    picked?.display === 'card' &&
+    event.altKey &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.shiftKey &&
+    (event.key === 'ArrowUp' || event.key === 'ArrowDown')
+  ) {
+    event.preventDefault()
+    event.stopPropagation()
+    flipMove(v, picked.pos, () => {
+      const tr = v.state.tr
+      const at = moveEntityCard(tr, picked.pos, event.key === 'ArrowUp' ? -1 : 1)
+      if (at !== null) v.dispatch(tr.scrollIntoView())
+      return at
+    })
+    return
+  }
+  if (!mode.value) {
     return
   }
   const count = choices.value.length
@@ -242,10 +312,13 @@ const onKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Tab' && !event.altKey && !event.ctrlKey && !event.metaKey && count) {
     take()
     if (active.value < 0) {
-      const current = choices.value.findIndex((c) => c.id === target.value?.display)
-      active.value = event.shiftKey ? count - 1 : Math.max(current, 0)
+      const current = choices.value.findIndex(
+        (c) => c.id === target.value?.display && !c.disabled
+      )
+      active.value =
+        current >= 0 && !event.shiftKey ? current : step(event.shiftKey ? 0 : -1, event.shiftKey ? -1 : 1)
     } else {
-      active.value = (active.value + (event.shiftKey ? count - 1 : 1)) % count
+      active.value = step(active.value, event.shiftKey ? -1 : 1)
     }
     return
   }
@@ -254,8 +327,7 @@ const onKeydown = (event: KeyboardEvent) => {
   }
   if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
     take()
-    active.value =
-      (active.value + (event.key === 'ArrowRight' ? 1 : count - 1)) % count
+    active.value = step(active.value, event.key === 'ArrowRight' ? 1 : -1)
   } else if (event.key === 'Enter' || event.key === ' ') {
     take()
     const choice = choices.value[active.value]
@@ -300,6 +372,7 @@ onBeforeUnmount(() => {
     :aria-label="t.display"
     :data-show="mode ? 'true' : 'false'"
     :data-mode="mode ?? undefined"
+    :data-glide="glide ? 'true' : undefined"
     :aria-hidden="mode ? undefined : 'true'"
   >
     <button
@@ -313,6 +386,8 @@ onBeforeUnmount(() => {
       :data-active="index === active"
       :data-loading="choice.id === 'link' && pending ? 'true' : undefined"
       :aria-pressed="choice.id === target?.display"
+      :aria-disabled="choice.disabled ? 'true' : undefined"
+      :title="choice.hint"
       @mousedown.prevent="choose(choice.id)"
     >
       {{ choice.label }}

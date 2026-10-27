@@ -7,7 +7,8 @@ import {
   computePosition,
   flip,
   offset,
-  shift
+  shift,
+  size
 } from '@floating-ui/dom'
 import type { Placement, ReferenceElement } from '@floating-ui/dom'
 import type {
@@ -37,7 +38,9 @@ export const entityLabels = (locale: KunEditorLocale | undefined) => {
         failed: 'Search failed',
         prompt: 'Type to search',
         types: 'Reference type',
-        noTypes: 'No matching reference types'
+        noTypes: 'No matching reference types',
+        drag: 'Drag to move (Alt+↑ / Alt+↓)',
+        chipLocked: 'A link alone on its line always shows as a card'
       }
     : {
         card: '卡片',
@@ -52,7 +55,9 @@ export const entityLabels = (locale: KunEditorLocale | undefined) => {
         failed: '搜索失败',
         prompt: '输入关键词搜索',
         types: '引用类型',
-        noTypes: '没有匹配的卡片类型'
+        noTypes: '没有匹配的卡片类型',
+        drag: '拖动以移动(Alt+↑ / Alt+↓)',
+        chipLocked: '单独一行的链接总是显示为卡片'
       }
 }
 
@@ -62,6 +67,10 @@ export const entityLabels = (locale: KunEditorLocale | undefined) => {
  * screen is narrow). Follows scrolling and resizing until the returned cleanup
  * runs. `floating` must be `position: absolute` (the reference stylesheet
  * gives every entity panel that).
+ *
+ * The room left on the chosen side is published as `--kun-float-max-height`,
+ * so a list inside can take its natural height and scroll only when the
+ * viewport is too short for it.
  */
 export const floatNear = (
   reference: ReferenceElement,
@@ -71,7 +80,20 @@ export const floatNear = (
   const place = () => {
     void computePosition(reference, floating, {
       placement,
-      middleware: [offset(6), flip({ padding: 8 }), shift({ padding: 8 })]
+      middleware: [
+        offset(6),
+        flip({ padding: 8 }),
+        shift({ padding: 8 }),
+        size({
+          padding: 8,
+          apply: ({ availableHeight, elements }) => {
+            elements.floating.style.setProperty(
+              '--kun-float-max-height',
+              `${Math.max(120, Math.floor(availableHeight))}px`
+            )
+          }
+        })
+      ]
     }).then(({ x, y }) => {
       Object.assign(floating.style, { left: `${x}px`, top: `${y}px` })
     })

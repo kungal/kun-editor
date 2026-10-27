@@ -455,7 +455,19 @@ const pickEntityType = (item: EntityTypeItem) => {
           :adapters="props.adapters"
           :locale="props.locale"
           @pick="insertPick"
-        />
+        >
+          <template #tabs="{ tabs, active, select }">
+            <KunTab
+              :model-value="active"
+              :items="tabs.map((item) => ({ value: item.id, textValue: item.label }))"
+              variant="underlined"
+              color="primary"
+              :full-width="true"
+              class="px-2 pt-1"
+              @update:model-value="(value: string | number) => select(String(value))"
+            />
+          </template>
+        </KunStickerPanel>
       </KunPopover>
 
       <KunPopover

@@ -13,6 +13,7 @@ import type {
   KunEditorLocale
 } from '@kungal/editor-core'
 import type { KunEntityView, KunSelectionItem, KunToggleMark } from './types'
+import type { EntityPool } from './entity-pool'
 
 export interface KunEditorContext {
   /** The host policy bundle (searchMentionUsers, stickerSource, notify, …). */
@@ -34,6 +35,8 @@ export interface KunEditorContext {
   /** Renders an icon NAME (`lucide:…`) in editor chrome — the host's icon
    * component, given `{ name }`. Absent → names render nothing. */
   readonly iconComponent: Component | undefined
+  /** Keeps host entity components mounted across node-view recreation. */
+  readonly entityPool: EntityPool
 }
 
 /**

@@ -456,18 +456,110 @@
   }
 }
 
+/* 表情 | 贴纸 (the default tabs; KunEditorToolbar draws KunTab instead). */
+.kun-sticker-panel__tabs {
+  display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-default-200);
+}
+
+.kun-sticker-panel__tab {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--color-default-500);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.kun-sticker-panel__tab[aria-selected='true'] {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* The pack row: covers, sideways scroll with no visible scrollbar, and ‹ ›
+ * laid OVER its ends (so showing / hiding them never shifts the row). */
+.kun-sticker-panel__packs {
+  position: relative;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-default-200);
+}
+
+.kun-sticker-panel__pack-row {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.375rem 0.5rem;
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.kun-sticker-panel__pack {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--color-default-500);
+  cursor: pointer;
+}
+
+.kun-sticker-panel__pack[aria-selected='true'] {
+  background: var(--color-default-100);
+  background: color-mix(in oklab, var(--color-primary) 14%, transparent);
+  color: var(--color-primary);
+}
+
+.kun-sticker-panel__pack img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.kun-sticker-panel__page {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 1.75rem;
+  padding: 0;
+  border: none;
+  color: var(--color-default-600);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.kun-sticker-panel__page[data-dir='prev'] {
+  left: 0;
+  background: linear-gradient(to right, var(--kun-editor-surface) 60%, transparent);
+}
+
+.kun-sticker-panel__page[data-dir='next'] {
+  right: 0;
+  background: linear-gradient(to left, var(--kun-editor-surface) 60%, transparent);
+}
+
 .kun-sticker-panel__body {
   position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 0.5rem 0.5rem;
+  padding: 0.25rem 0.5rem 0.5rem;
 }
 
 .kun-sticker-panel__header {
   position: sticky;
-  top: 0;
+  top: -0.25rem;
   z-index: 1;
   padding: 0.5rem 0.25rem 0.375rem;
   background: var(--kun-editor-surface);
@@ -496,7 +588,6 @@
   border: none;
   border-radius: 0.5rem;
   background: transparent;
-  font-size: 2rem;
   line-height: 1;
   cursor: pointer;
 }
@@ -513,11 +604,13 @@
 }
 
 .kun-sticker-panel__cell:hover,
+.kun-sticker-panel__pack:hover,
 .kun-sticker-panel__tab:hover {
   background: var(--color-default-100);
 }
 
 .kun-sticker-panel__cell:focus-visible,
+.kun-sticker-panel__pack:focus-visible,
 .kun-sticker-panel__tab:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
@@ -530,43 +623,6 @@
   text-align: center;
 }
 
-.kun-sticker-panel__rail {
-  display: flex;
-  flex-shrink: 0;
-  gap: 0.25rem;
-  padding: 0.375rem 0.5rem;
-  border-top: 1px solid var(--color-default-200);
-  overflow-x: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-}
-
-.kun-sticker-panel__tab {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  padding: 0;
-  border: none;
-  border-radius: 0.5rem;
-  background: transparent;
-  color: var(--color-default-500);
-  cursor: pointer;
-}
-
-.kun-sticker-panel__tab[aria-selected='true'] {
-  background: var(--color-default-100);
-  color: var(--color-primary);
-}
-
-.kun-sticker-panel__tab img {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-}
-
 /* ── Entity references (cards / chips) ──────────────────────────────────── */
 /* The node's own element carries these hooks; the host's component renders
  * inside it with nothing else in between (`.kun-entity__body` is
@@ -575,11 +631,14 @@
  *
  * Scoped to the editor: a host's PUBLISHED post may well render its own
  * `.kun-entity-chip`, and a stylesheet imported app-wide must not restyle it. */
-.kun-editor__wysiwyg .kun-entity__body {
+.kun-editor__wysiwyg .kun-entity__body,
+.kun-entity__slot,
+.kun-entity__host {
   display: contents;
 }
 
 .kun-editor__wysiwyg .kun-entity-card {
+  position: relative;
   display: block;
   margin: 0.5rem 0;
   border-radius: 0.5rem;
@@ -612,6 +671,109 @@
 }
 .kun-editor__wysiwyg .ProseMirror-hideselection {
   caret-color: transparent;
+}
+
+/* The grip handle at a card's left edge: shown on hover and while selected
+ * (on a phone: tap the card, then long-press the handle). */
+.kun-entity__handle {
+  position: absolute;
+  top: 50%;
+  /* Inside the editor's 0.75rem gutter, never over its border. */
+  left: -0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.6875rem;
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  color: var(--color-default-400);
+  cursor: grab;
+  opacity: 0;
+  touch-action: none;
+  transform: translateY(-50%);
+  user-select: none;
+}
+
+.kun-entity-card:hover > .kun-entity__body > .kun-entity__handle,
+.kun-entity-card[data-selected] > .kun-entity__body > .kun-entity__handle {
+  opacity: 1;
+}
+
+/* A bigger, invisible hit area than the dots (a finger needs it). */
+.kun-entity__handle::before {
+  content: '';
+  position: absolute;
+  inset: -0.375rem -0.375rem;
+}
+
+.kun-entity__handle:hover {
+  background: var(--color-default-100);
+  color: var(--color-default-600);
+}
+
+.ProseMirror[contenteditable='false'] .kun-entity__handle {
+  display: none;
+}
+
+/* While dragging: the card left behind dims, a ghost follows the pointer,
+ * and a line marks where it will land. */
+.kun-editor__wysiwyg .kun-entity-card[data-dragging] {
+  opacity: 0.4;
+}
+
+.kun-entity-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  margin: 0;
+  border-radius: 0.5rem;
+  box-shadow: 0 12px 32px -8px rgb(0 0 0 / 0.3);
+  opacity: 0.85;
+  pointer-events: none;
+  transform-origin: top left;
+}
+
+.kun-entity-ghost .kun-entity__handle {
+  display: none;
+}
+
+.kun-entity-drop {
+  position: fixed;
+  top: 0;
+  z-index: 1001;
+  height: 2px;
+  border-radius: 1px;
+  /* The one cue a drag has: never let a missing token make it invisible. */
+  background: var(--color-primary, #3b82f6);
+  pointer-events: none;
+}
+
+.kun-entity-drop[data-noop='true'] {
+  opacity: 0.35;
+}
+
+html.kun-entity-dragging,
+html.kun-entity-dragging * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+/* The card's bubble stays out of the way while it is being dragged. */
+html.kun-entity-dragging .kun-entity-menu {
+  visibility: hidden;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .kun-entity__handle {
+    transition: opacity 150ms ease-out;
+  }
+  .kun-entity-drop[data-placed='true'] {
+    transition:
+      transform 120ms ease-out,
+      opacity 120ms ease-out;
+  }
 }
 
 /* No host component for this display: a neutral stand-in showing the URL. */
@@ -685,7 +847,35 @@
 }
 
 .kun-entity-menu[data-show='false'] {
-  display: none;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(4px) scale(0.98);
+  pointer-events: none;
+}
+
+/* Enter: fade, a 4px rise, .98 → 1 (~150ms); leave in ~100ms. Moving to
+ * another entity while open, it glides (data-glide) instead of jumping. */
+@media (prefers-reduced-motion: no-preference) {
+  .kun-entity-menu {
+    transform-origin: top left;
+    transition:
+      opacity 150ms ease-out,
+      transform 150ms ease-out,
+      visibility 0s;
+  }
+  .kun-entity-menu[data-show='false'] {
+    transition:
+      opacity 100ms ease-in,
+      transform 100ms ease-in,
+      visibility 0s linear 100ms;
+  }
+  .kun-entity-menu[data-glide='true'] {
+    transition:
+      opacity 150ms ease-out,
+      transform 150ms ease-out,
+      left 150ms ease-out,
+      top 150ms ease-out;
+  }
 }
 
 .kun-entity-menu__item {
@@ -713,6 +903,15 @@
 .kun-entity-menu__item[data-active='true'] {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
+}
+
+.kun-entity-menu__item[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.kun-entity-menu__item[aria-disabled='true']:hover {
+  background: transparent;
 }
 
 .kun-entity-menu__item[data-choice='remove'] {
@@ -745,12 +944,38 @@
   display: block;
 }
 
+/* Lists take their natural height; only a viewport too short for them makes
+ * them scroll (`--kun-float-max-height` is the room floating-ui found) — and
+ * even then without a visible scrollbar. Wheel, touch and scrollIntoView
+ * still work. The `/` card keeps its 360px cap. */
 .kun-entity-types,
 .kun-entity-slash__list {
-  max-height: 360px;
+  box-sizing: border-box;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0.25rem;
+  scrollbar-width: none;
+}
+
+.kun-entity-slash .kun-entity-types,
+.kun-entity-slash__list {
+  max-height: min(360px, var(--kun-float-max-height, 360px));
+}
+
+.kun-entity-types.kun-entity-type-picker {
+  max-height: calc(100dvh - 8rem);
+}
+
+/* In the headless toolbar's panel, the room floating-ui found is the PANEL's;
+ * the list gets it minus the panel's own padding and border. */
+.kun-editor__entity-panel .kun-entity-types.kun-entity-type-picker {
+  max-height: calc(var(--kun-float-max-height, 100dvh) - 1rem - 2px);
+}
+
+.kun-entity-types::-webkit-scrollbar,
+.kun-entity-slash__list::-webkit-scrollbar,
+.kun-sticker-panel__pack-row::-webkit-scrollbar {
+  display: none;
 }
 
 .kun-entity-types__row {
@@ -934,6 +1159,7 @@
 }
 
 .kun-editor__entity-panel {
+  box-sizing: border-box;
   position: absolute;
   top: calc(100% + 0.25rem);
   left: 0;

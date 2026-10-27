@@ -21,7 +21,10 @@ import {
   selectedEntity,
   setEntityDisplay,
   promptForEntity,
-  entityDisplayAt
+  entityDisplayAt,
+  entityDisplayPersists,
+  moveEntityCard,
+  moveEntityCardTo
 } from '../src/preset'
 
 // The forum's rules — they live in the forum adapter, not the editor.
@@ -802,6 +805,118 @@ describe('host prompt (entityPrompt)', () => {
       expect(entityDisplayAt(doc, doc.content.size - 1)).toBe('card')
       expect(entityDisplayAt(doc, 2)).toBe('chip')
       expect(entityDisplayAt(doc, doc.content.size - 3)).toBe('chip')
+    })
+  })
+})
+
+describe('display persistence (a lone chip reads back as a card)', () => {
+  it('a card can never be shown as a chip: alone, it reads back as a card', async () => {
+    let allowed = true
+    let reloaded: unknown[] = []
+    const out = await withEditor(`<${T1}>`, (editor) => {
+      const v = view(editor)
+      allowed = entityDisplayPersists(v.state.doc, 0, 'chip')
+      const tr = v.state.tr
+      setEntityDisplay(tr, 0, 'chip')
+      v.dispatch(tr)
+    })
+    expect(allowed).toBe(false)
+    reloaded = (await roundTrip(out)).doc
+    expect(reloaded).toEqual(['card:topic:1'])
+  })
+
+  it('a chip whose paragraph is otherwise blank (spaces, caret anchor) does not persist', async () => {
+    await withEditor(`看 <${T1}> 好`, (editor) => {
+      const v = view(editor)
+      v.dispatch(v.state.tr.delete(1, 3).delete(2, 4).insertText(' ​ ', 2))
+      const pos = v.state.doc.firstChild!.content.size > 0 ? 1 : 0
+      expect(v.state.doc.nodeAt(pos)?.type.name).toBe('entity_link')
+      expect(entityDisplayPersists(v.state.doc, pos, 'chip')).toBe(false)
+    })
+    const back = await roundTrip(` <${T1}> `)
+    expect(back.doc).toEqual(['card:topic:1'])
+  })
+
+  it('a chip sharing its line, in a heading, or formatted persists', async () => {
+    await withEditor(`看 <${T1}> 好\n\n# <${T1}>\n\n**<${T1}>**`, (editor) => {
+      const { doc } = view(editor).state
+      const chips: number[] = []
+      doc.descendants((node, pos) => {
+        if (node.type.name === 'entity_link') chips.push(pos)
+      })
+      expect(chips).toHaveLength(3)
+      for (const pos of chips) {
+        expect(entityDisplayPersists(doc, pos, 'chip')).toBe(true)
+      }
+    })
+    expect((await roundTrip(`**<${T1}>**`)).doc).toEqual([{ paragraph: ['chip:topic:1+strong'] }])
+  })
+})
+
+describe('moving cards', () => {
+  const md = `a\n\n<${T1}>\n\nb\n\nc`
+
+  it('moveEntityCard: past the next / previous block, one transaction', async () => {
+    let down: unknown[] = []
+    let up: unknown[] = []
+    await withEditor(md, (editor) => {
+      const v = view(editor)
+      let tr = v.state.tr
+      const at = moveEntityCard(tr, 3, 1)
+      v.dispatch(tr)
+      down = outline(editor)
+      expect(selectedEntity(v.state)?.pos).toBe(at)
+      tr = v.state.tr
+      moveEntityCard(tr, at!, -1)
+      moveEntityCard(tr, tr.selection.from, -1)
+      v.dispatch(tr)
+      up = outline(editor)
+      // One undo takes the whole last move back.
+      undoOnce(editor)
+      expect(outline(editor)).toEqual(down)
+    })
+    expect(down).toEqual([{ paragraph: ['a'] }, { paragraph: ['b'] }, 'card:topic:1', { paragraph: ['c'] }])
+    expect(up).toEqual(['card:topic:1', { paragraph: ['a'] }, { paragraph: ['b'] }, { paragraph: ['c'] }])
+  })
+
+  it('moveEntityCardTo: drop slots, no-op slots, ends', async () => {
+    await withEditor(md, (editor) => {
+      const v = view(editor)
+      expect(moveEntityCardTo(v.state.tr, 3, 1)).toBeNull()
+      expect(moveEntityCardTo(v.state.tr, 3, 2)).toBeNull()
+      const tr = v.state.tr
+      expect(moveEntityCardTo(tr, 3, 4)).not.toBeNull()
+      v.dispatch(tr)
+      // Last block, then the trailing paragraph Milkdown keeps after a card.
+      expect(outline(editor).slice(-2)).toEqual(['card:topic:1', { paragraph: [] }])
+    })
+  })
+
+  it('Alt+↓ on a selected card moves it; Alt+↑ back', async () => {
+    let doc: unknown[] = []
+    await withEditor(md, (editor) => {
+      const v = view(editor)
+      v.dispatch(v.state.tr.setSelection(NodeSelection.create(v.state.doc, 3)))
+      key(editor, 'ArrowDown', { altKey: true })
+      doc = outline(editor)
+      key(editor, 'ArrowUp', { altKey: true })
+      expect(outline(editor)[1]).toBe('card:topic:1')
+    })
+    expect(doc[2]).toBe('card:topic:1')
+  })
+
+  it('stays inside its container and respects its content rules', async () => {
+    await withEditor(`* <${T1}>\n\n  x`, (editor) => {
+      const v = view(editor)
+      let card = -1
+      v.state.doc.descendants((node, pos) => {
+        if (node.type.name === 'entity_card') card = pos
+      })
+      const tr = v.state.tr
+      expect(moveEntityCard(tr, card, 1)).not.toBeNull()
+      // A list item must start with a paragraph or a card: "x" first is fine.
+      v.dispatch(tr)
+      expect(JSON.stringify(outline(editor))).toContain('"list_item":[{"paragraph":["x"]},"card:topic:1"]')
     })
   })
 })

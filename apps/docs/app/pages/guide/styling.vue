@@ -21,7 +21,8 @@ const hooks = [
   { name: '.kun-editor__source .cm-editor', type: 'source', description: 'CodeMirror 源码视图' },
   { name: '.kun-mention-dropdown[data-show]', type: 'mention', description: '@提及下拉(定位 + 显隐必需)' },
   { name: '.kun-editor__picker-panel', type: 'picker', description: '贴纸 / 表情弹层(定位必需)' },
-  { name: '.kun-sticker-panel / __body / __section / __header / __cell / __rail / __tab', type: 'picker', description: '表情与贴纸面板:连续滚动的分区(吸顶小标题)+ 底部分类栏;格子带 data-kind=emoji|sticker,分类 tab 带 aria-selected' },
+  { name: '.kun-sticker-panel / __tabs / __tab / __packs / __pack-row / __pack / __page / __body / __cell', type: 'picker', description: '表情与贴纸面板:顶部标签、贴纸包行(‹ › 翻页按钮 data-dir=prev|next)、网格;格子带 data-kind=emoji|sticker,标签与包带 aria-selected' },
+  { name: '.kun-entity__handle / .kun-entity-ghost / .kun-entity-drop', type: 'entity', description: '卡片拖动:手柄、跟随指针的影子、落点线(data-noop 表示原位)' },
   { name: '.kun-entity-card / .kun-entity-chip [data-selected]', type: 'entity', description: '实体卡片 / 行内引用节点(只在 .kun-editor__wysiwyg 内生效)与选中描边' },
   { name: '.kun-entity-menu', type: 'entity', description: '粘贴 / 选中后的「卡片 / 行内 / 链接 / 删除」小气泡' },
   { name: '.kun-entity-slash / .kun-entity-types__row', type: 'entity', description: '「/」命令卡片与类型行(图标 / 标题 / 描述 / /command),data-active 为当前行' }
