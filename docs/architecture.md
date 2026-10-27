@@ -75,6 +75,7 @@ Ported from the forum, each with the adapter it needs (✅ pure = no host policy
 | KaTeX (inline/block + input rules + remark) | `plugins/katex/*` | ✅ pure (peer: `katex`) |
 | code block (CodeMirror) | `plugins/code/*`, `codemirror/*` | ✅ pure (peers: `codemirror`, `@codemirror/*`); labels via `locale` |
 | `@mention` atom | `plugins/mention/*` | `searchMentionUsers(q)` → `MentionUser[]` |
+| entity card / chip (new) | — | `entityFromUrl(url)` → `{ type, id, url }`; `searchEntities` / `entityTypes` / `entityTitle`; host card / chip components via `:entity-view` |
 | image upload (paste/drop/toolbar) | `plugins/upload/uploader.ts` | `uploadImage(file)` → `url` |
 | sticker / emoji picker | `plugins/sticker/*`, `plugins/emoji/*` | `stickerSource()` → `StickerPack[]` |
 | reply quote | `plugins/quote/quotePlugin.ts` | host-supplied reference (see below) |

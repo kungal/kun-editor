@@ -8,6 +8,7 @@ const usage = `<KunEditor
 const rows = [
   { name: 'spoiler', type: 'boolean', default: 'true', description: '||隐藏文本|| 行内节点。' },
   { name: 'mention', type: 'boolean', default: 'true', description: '@提及 schema(往返)。@ 下拉另需 searchMentionUsers。' },
+  { name: 'entity', type: 'boolean', default: 'true', description: '实体卡片 / 行内引用。需要 entityFromUrl 才生效;「/」菜单与工具栏选择器另需 searchEntities + entityTypes。' },
   { name: 'quote', type: 'boolean', default: 'false', description: '行内引用原子。宿主专属,默认关。' },
   { name: 'katex', type: 'boolean', default: 'true', description: '行内 / 块级 LaTeX(需 katex peer)。' },
   { name: 'codeBlock', type: 'boolean', default: 'true', description: 'CodeMirror 代码块(需 codemirror peers)。' },

@@ -12,7 +12,7 @@ import type {
   KunEditorFeatures,
   KunEditorLocale
 } from '@kungal/editor-core'
-import type { KunSelectionItem, KunToggleMark } from './types'
+import type { KunEntityView, KunSelectionItem, KunToggleMark } from './types'
 
 export interface KunEditorContext {
   /** The host policy bundle (searchMentionUsers, stickerSource, notify, …). */
@@ -29,6 +29,8 @@ export interface KunEditorContext {
    * bubble both read this same object.
    */
   readonly activeMarks: Record<KunToggleMark, boolean>
+  /** The host's entity card / chip components (absent → neutral fallbacks). */
+  readonly entityView: KunEntityView
 }
 
 export const KUN_EDITOR_CONTEXT: InjectionKey<KunEditorContext> =

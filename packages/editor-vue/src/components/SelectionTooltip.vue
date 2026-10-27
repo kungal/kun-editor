@@ -11,6 +11,9 @@
 // the @mention dropdown), styled by the host stylesheet. Uses the SAME toggle
 // commands as the fixed toolbar, so behavior is consistent.
 import { TooltipProvider } from '@milkdown/kit/plugin/tooltip'
+import { NodeSelection, TextSelection } from '@milkdown/kit/prose/state'
+import type { EditorView } from '@milkdown/kit/prose/view'
+import { selectedEntity } from '@kungal/editor-core/preset'
 import { usePluginViewContext } from '@prosemirror-adapter/vue'
 import { useInstance } from '@milkdown/vue'
 import { callCommand } from '@milkdown/kit/utils'
@@ -168,10 +171,29 @@ const items = computed<BubbleItem[]>(() => {
   return out
 })
 
+// TooltipProvider's own rule (a non-empty selection, focused, editable), minus
+// a selected entity card / chip: that one has its own bubble (EntityMenu), and
+// bold / italic mean nothing on it.
+const shouldShow = (v: EditorView): boolean => {
+  const { selection, doc } = v.state
+  const isTooltipChild = !!divRef.value?.contains(document.activeElement)
+  if ((!v.hasFocus() && !isTooltipChild) || !v.editable || selection.empty) {
+    return false
+  }
+  if (selection instanceof NodeSelection && selectedEntity(v.state)) {
+    return false
+  }
+  const emptyText =
+    selection instanceof TextSelection &&
+    !doc.textBetween(selection.from, selection.to).length
+  return !emptyText
+}
+
 onMounted(() => {
   provider = new TooltipProvider({
     content: divRef.value as HTMLElement,
-    offset: 8
+    offset: 8,
+    shouldShow
   })
   // A hidden bubble must not come back holding a half-typed URL for a selection
   // that is long gone.

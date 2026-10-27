@@ -46,7 +46,8 @@
   },
   "dependencies": {
     "@kungal/editor-core": "workspace:*",
-    "@prosemirror-adapter/vue": "^0.4.6"
+    "@prosemirror-adapter/vue": "^0.4.6",
+    "@floating-ui/dom": "^1.7.6"
   },
   "peerDependencies": {
     "@codemirror/lang-markdown": "^6.0.0",

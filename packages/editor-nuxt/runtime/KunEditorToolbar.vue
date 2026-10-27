@@ -37,8 +37,9 @@ import {
   insertKunSpoilerCommand,
   setHeadingCommand
 } from '@kungal/editor-core/preset'
-import { EMOJI } from '@kungal/editor-vue'
+import { EMOJI, KunEntityPicker } from '@kungal/editor-vue'
 import type {
+  EntityHit,
   KunEditorToolbarApi,
   KunToggleMark,
   KunToolbarItem,
@@ -70,6 +71,7 @@ const DEFAULT_ITEMS: KunToolbarItem[] = [
   'spoiler',
   '|',
   'image',
+  'entityPicker',
   '|',
   'picker'
 ]
@@ -92,6 +94,7 @@ const t = computed(() => ({
   spoiler: en.value ? 'Spoiler' : '隐藏文本',
   image: en.value ? 'Upload image' : '上传图片',
   picker: en.value ? 'Emoji & stickers' : '表情与贴纸',
+  entity: en.value ? 'Insert reference' : '插入引用',
   emoji: en.value ? 'Emoji' : '表情',
   sticker: en.value ? 'Stickers' : '贴纸',
   empty: en.value ? 'No stickers' : '暂无贴纸',
@@ -128,6 +131,7 @@ type RenderItem =
   | { kind: 'link' }
   | { kind: 'image' }
   | { kind: 'picker' }
+  | { kind: 'entityPicker' }
   | { kind: 'button'; tool: Tool }
 
 // Resolve `items` → renderables: drop image/picker when unavailable, map command
@@ -137,7 +141,13 @@ const resolvedItems = computed<RenderItem[]>(() => {
   const buttons = commandButtons.value
   const mapped = (props.items ?? DEFAULT_ITEMS)
     .filter((it) =>
-      it === 'image' ? canUpload.value : it === 'picker' ? showPicker.value : true
+      it === 'image'
+        ? canUpload.value
+        : it === 'picker'
+          ? showPicker.value
+          : it === 'entityPicker'
+            ? canPickEntity.value
+            : true
     )
     .map<RenderItem | null>((it) => {
       if (it === '|') return { kind: 'divider' }
@@ -145,6 +155,7 @@ const resolvedItems = computed<RenderItem[]>(() => {
       if (it === 'link') return { kind: 'link' }
       if (it === 'image') return { kind: 'image' }
       if (it === 'picker') return { kind: 'picker' }
+      if (it === 'entityPicker') return { kind: 'entityPicker' }
       const tool = buttons[it]
       return tool ? { kind: 'button', tool } : null
     })
@@ -248,6 +259,24 @@ const loadStickers = async () => {
 }
 const insertSticker = (src: string, name: string) =>
   props.run(insertImageCommand.key, { src, title: name, alt: name })
+
+// Entity picker — the `/` menu's toolbar twin. Needs the entity adapters; the
+// pick lands where the caret was (a card in an empty paragraph, else a chip).
+const canPickEntity = computed(
+  () =>
+    props.features.entity !== false &&
+    !!props.adapters.entityFromUrl &&
+    !!props.adapters.searchEntities &&
+    !!props.adapters.entityTypes?.length
+)
+let entityPopoverEl: { close: () => void } | null = null
+const setEntityPopover = (el: unknown) => {
+  entityPopoverEl = el as { close: () => void } | null
+}
+const pickEntity = (hit: EntityHit) => {
+  entityPopoverEl?.close()
+  props.insertEntity(hit.ref)
+}
 </script>
 
 <template>
@@ -435,6 +464,33 @@ const insertSticker = (src: string, name: string) =>
             {{ loadFailed ? t.failed : t.empty }}
           </div>
         </div>
+      </KunPopover>
+
+      <KunPopover
+        v-else-if="item.kind === 'entityPicker'"
+        :ref="setEntityPopover"
+        position="bottom-start"
+        :opaque="true"
+        inner-class="w-80 max-w-[calc(100vw-1rem)] p-2"
+      >
+        <template #trigger>
+          <KunTooltip :text="t.entity" :delay-show="300">
+            <KunButton
+              variant="light"
+              size="sm"
+              :is-icon-only="true"
+              :aria-label="t.entity"
+            >
+              <KunIcon name="lucide:square-arrow-out-up-right" />
+            </KunButton>
+          </KunTooltip>
+        </template>
+        <KunEntityPicker
+          :adapters="props.adapters"
+          :locale="props.locale"
+          @pick="pickEntity"
+          @close="entityPopoverEl?.close()"
+        />
       </KunPopover>
 
       <KunTooltip

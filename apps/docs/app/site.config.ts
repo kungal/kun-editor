@@ -131,6 +131,12 @@ export const pageMeta: Record<string, PageMeta> = {
     description:
       '`@` 提及原子节点,markdown 形式 `[@name](kungal-user:id)`。schema 纯往返;`@` 自动补全下拉消费 searchMentionUsers 适配器。'
   },
+  '/plugins/entity': {
+    title: 'Entity',
+    cn: '实体引用',
+    description:
+      '话题 / Galgame / 用户等站内实体的卡片与行内引用:存储形式就是裸的规范 URL `<url>`,独占一段为卡片、其余为行内;粘贴、自动链接、`/` 菜单、工具栏选择器共用同一规则。由 entityFromUrl 适配器开启。'
+  },
   '/plugins/upload': {
     title: 'Upload',
     cn: '图片上传',

@@ -12,7 +12,7 @@ non-obvious rules up front.
   kun-ui's core→vue→nuxt layering. See docs/architecture.md.
 - THE principle: the editor ships MECHANISM (ProseMirror nodes/keymaps/
   serialization); the host injects POLICY via KunEditorAdapters (uploadImage,
-  searchMentionUsers, stickerSource, notify). Never hardcode a host endpoint
+  searchMentionUsers, stickerSource, notify, entityFromUrl, searchEntities…). Never hardcode a host endpoint
   in a plugin — write a factory over an adapter.
 - editor-core is framework-agnostic: it must NEVER import vue/react.
 - Milkdown/ProseMirror (@milkdown/kit, @milkdown/prose, @milkdown/vue) are

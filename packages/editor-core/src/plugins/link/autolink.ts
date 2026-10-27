@@ -22,10 +22,16 @@
 // Never in a code block or inline code (text there is literal), never where the
 // text is already linked, never inside a spoiler (it holds plain text).
 //
+// An ENTITY URL (the entity plugin's resolver accepts it) is not linked: a bare
+// link to one IS a chip, so the URL becomes the entity instead, by the entity
+// plugin's one rule — and always as its own undo step, so the first undo gives
+// back plain text. A whole input in an empty paragraph, or an Enter after a URL
+// that is all its paragraph holds, makes a card; a space keeps a chip (the line
+// is still being written). A URL whose conversion an undo declined stays plain.
+//
 // During IME composition the mark waits for `compositionend` (as the input
 // rules do): restyling the text an IME is still composing tears the composition
 // apart. Pure: no host policy.
-import { parserCtx } from '@milkdown/kit/core'
 import { linkSchema } from '@milkdown/kit/preset/commonmark'
 import { closeHistory } from '@milkdown/kit/prose/history'
 import type { MarkType, Node as ProseNode } from '@milkdown/kit/prose/model'
@@ -33,6 +39,14 @@ import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
 import type { EditorState, Transaction } from '@milkdown/kit/prose/state'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import { $prose } from '@milkdown/kit/utils'
+
+import type { EntityRef } from '../../types'
+import {
+  convertToEntity,
+  entityDeclined,
+  entityResolverOf
+} from '../entity'
+import { linkAtEndOf, linkHrefOf, wordBefore } from './detect'
 
 /** Inserted text waiting for its composition to end before it is linked. */
 interface PendingLink {
@@ -43,21 +57,17 @@ interface PendingLink {
   /** The input's `composition` meta. Linking under the same id is what makes
    * history fold the mark into the input's own undo event. */
   composition?: number
+  /** Set when the URL is an entity: it becomes one once the composition ends. */
+  entity?: EntityRef
 }
 
 /** A typed word that a space / Enter is about to end. */
-type BoundaryWord = Omit<PendingLink, 'composition'>
+type BoundaryWord = Omit<PendingLink, 'composition' | 'entity'> & {
+  /** Ended by Enter (a card is possible) rather than a space. */
+  enter: boolean
+}
 
 const autolinkKey = new PluginKey<PendingLink | null>('KUN_AUTOLINK_INPUT')
-
-/** The word before the caret: a run of anything but whitespace and the caret
- * anchor the spoiler plugin parks after a spoiler (U+200B, which `\s` misses). */
-const WORD_END = /[^\s\u200b]+$/
-
-/** Could `text` be a GFM autolink at all? `handleTextInput` runs on every
- * keystroke, so this gate keeps the markdown parser off ordinary typing. */
-const MAYBE_LINK = /^\S{4,}$/
-const LINK_HINT = /:\/\/|www\.|@/i
 
 /** Whether `from`–`to` in `doc` may take a link: not literal text, not linked. */
 const linkable = (
@@ -89,28 +99,6 @@ const addLink = (
 ): Transaction =>
   tr.addMark(from, to, link.create({ href })).removeStoredMark(link)
 
-/** The whitespace-free word ending at `pos`, if it lies in one text node — a
- * word whose start sits in a differently-marked text node before it is part of
- * a longer word, and linking its tail would be wrong. */
-const wordBefore = (
-  state: EditorState,
-  pos: number
-): { from: number; to: number; text: string } | null => {
-  const $pos = state.doc.resolve(pos)
-  const before = $pos.nodeBefore
-  const match = before?.isText ? WORD_END.exec(before.text ?? '') : null
-  if (!before || !match) {
-    return null
-  }
-  if (match.index === 0) {
-    const previous = state.doc.resolve(pos - before.nodeSize).nodeBefore
-    if (previous?.isText && WORD_END.test(previous.text ?? '')) {
-      return null
-    }
-  }
-  return { from: pos - match[0].length, to: pos, text: match[0] }
-}
-
 /** Whether the word now ends at a boundary: whitespace (a hard break reads as
  * `\n`) or the end of its block (Enter split it there). */
 const endsAtBoundary = (doc: ProseNode, to: number): boolean => {
@@ -120,24 +108,7 @@ const endsAtBoundary = (doc: ProseNode, to: number): boolean => {
 
 /** The autolink-on-input ProseMirror plugin. */
 export const autolinkInputPlugin = $prose((ctx) => {
-  /** The href pasting `text` would produce, or null when the paste path would
-   * not make the whole of it one link. */
-  const hrefOf = (text: string): string | null => {
-    if (!MAYBE_LINK.test(text) || !LINK_HINT.test(text)) {
-      return null
-    }
-    const doc = ctx.get(parserCtx)(text)
-    const block = doc?.childCount === 1 ? doc.firstChild : null
-    const only =
-      block?.type.name === 'paragraph' && block.childCount === 1
-        ? block.firstChild
-        : null
-    if (!only?.isText || only.text !== text) {
-      return null
-    }
-    const mark = linkSchema.type(ctx).isInSet(only.marks)
-    return mark ? (mark.attrs.href as string) : null
-  }
+  const hrefOf = (text: string): string | null => linkHrefOf(ctx, text)
 
   /** The word a space / Enter at the (empty) selection is about to end, if it
    * is a link — set before the boundary is inserted, applied once it is. */
@@ -145,15 +116,26 @@ export const autolinkInputPlugin = $prose((ctx) => {
   /** An armed word whose boundary arrived mid-composition. */
   let afterComposition: BoundaryWord | null = null
 
-  const arm = (state: EditorState) => {
+  const arm = (state: EditorState, enter: boolean) => {
     const { empty, from } = state.selection
     const word = empty ? wordBefore(state, from) : null
-    const href = word ? hrefOf(word.text) : null
+    const found = word ? linkAtEndOf(ctx, word.text) : null
     const link = linkSchema.type(ctx)
-    armed =
-      word && href && linkable(state.doc, word.from, word.to, link)
-        ? { ...word, href }
-        : null
+    if (!word || !found) {
+      armed = null
+      return
+    }
+    // The link may start mid-word, right after CJK text (see linkAtEndOf).
+    const start = word.from + found.offset
+    armed = linkable(state.doc, start, word.to, link)
+      ? {
+          from: start,
+          to: word.to,
+          text: word.text.slice(found.offset),
+          href: found.href,
+          enter
+        }
+      : null
   }
 
   /** Link a word a boundary ended — its own undo step, so the undo right after
@@ -172,6 +154,16 @@ export const autolinkInputPlugin = $prose((ctx) => {
       !endsAtBoundary(doc, word.to) ||
       !linkable(doc, word.from, word.to, link)
     ) {
+      return
+    }
+    const ref = entityResolverOf(view.state)?.(word.href)
+    if (ref) {
+      if (!entityDeclined(view.state, word.from, word.to)) {
+        convertToEntity(view, word.from, word.to, ref, {
+          allowCard: word.enter,
+          offer: false
+        })
+      }
       return
     }
     view.dispatch(
@@ -229,7 +221,7 @@ export const autolinkInputPlugin = $prose((ctx) => {
         // A space typed after a word: arm, and let the space go in as usual.
         if (/^\s+$/.test(text)) {
           if (from === to) {
-            arm(view.state)
+            arm(view.state, false)
           }
           return false
         }
@@ -253,6 +245,21 @@ export const autolinkInputPlugin = $prose((ctx) => {
         if (!linkable(tr.doc, pending.from, pending.to, link)) {
           return false
         }
+        const entity = entityResolverOf(view.state)?.(href)
+        if (entity) {
+          // Plain text in this input (undo step 1), the entity in the next
+          // (step 2) — or, mid-composition, once the composition ends.
+          if (view.composing) {
+            view.dispatch(tr.setMeta(autolinkKey, { ...pending, entity }))
+          } else {
+            view.dispatch(closeHistory(tr))
+            convertToEntity(view, pending.from, pending.to, entity, {
+              allowCard: true,
+              offer: true
+            })
+          }
+          return true
+        }
         view.dispatch(
           view.composing
             ? tr.setMeta(autolinkKey, pending)
@@ -272,7 +279,7 @@ export const autolinkInputPlugin = $prose((ctx) => {
             !event.metaKey &&
             !event.altKey
           ) {
-            arm(view.state)
+            arm(view.state, !event.shiftKey)
           }
           return false
         },
@@ -281,7 +288,7 @@ export const autolinkInputPlugin = $prose((ctx) => {
             event.inputType === 'insertParagraph' ||
             event.inputType === 'insertLineBreak'
           ) {
-            arm(view.state)
+            arm(view.state, event.inputType === 'insertParagraph')
           }
           return false
         },
@@ -302,6 +309,16 @@ export const autolinkInputPlugin = $prose((ctx) => {
             const link = linkSchema.type(ctx)
             const tr = view.state.tr.setMeta(autolinkKey, null)
             const { doc } = view.state
+            if (pending.entity) {
+              view.dispatch(tr)
+              if (doc.textBetween(pending.from, pending.to) === pending.text) {
+                convertToEntity(view, pending.from, pending.to, pending.entity, {
+                  allowCard: true,
+                  offer: true
+                })
+              }
+              return
+            }
             // The composition may have rewritten the text since; link it only
             // if it is still exactly what was inserted.
             if (

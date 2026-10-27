@@ -15,6 +15,13 @@
         "description": "Policy: where uploads go, how mentions resolve, how toasts show."
       },
       {
+        "name": "entityView",
+        "type": "KunEntityView",
+        "required": false,
+        "default": "{}",
+        "description": "The host's entity card / chip components — `{ card, chip }`, each given `{ entity, selected }` (see `KunEntityView`). Needs the `entityFromUrl` adapter; without a component a neutral box / chip shows the URL."
+      },
+      {
         "name": "features",
         "type": "KunEditorFeatures",
         "required": false,

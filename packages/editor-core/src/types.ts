@@ -85,6 +85,72 @@ export type LinkPrompt = (
 ) => string | null | undefined | Promise<string | null | undefined>
 
 /**
+ * A reference to a host entity (a topic, a galgame, a user…) that the editor
+ * shows as a card or an inline chip. `type` / `id` are opaque to the editor —
+ * only the host knows what they mean. `url` is the CANONICAL URL, and it is
+ * the reference: the stored markdown is nothing but that URL, so it must be
+ * absolute (`https://…`) for the `<url>` form to exist.
+ */
+export interface EntityRef {
+  type: string
+  id: string
+  url: string
+}
+
+/** One result of an entity search, as the `/` menu and the picker list it. */
+export interface EntityHit {
+  ref: EntityRef
+  title: string
+  subtitle?: string
+  /** Image URL; the render layer decides how (or whether) to show it. */
+  thumbnail?: string
+}
+
+/** One entry of the `/` menu and the picker's type tabs, in host order. */
+export interface EntityTypeItem {
+  type: string
+  label: string
+  /** Icon name or URL, passed through to the render layer untouched. */
+  icon?: string
+}
+
+/** How an entity reference shows in the document. `link` is an ordinary
+ * `[title](url)` link — no longer an entity at all. */
+export type EntityDisplay = 'card' | 'chip' | 'link'
+
+/**
+ * Recognize an entity URL. Return the reference (with the CANONICAL url), or
+ * `null` for anything that is not one. Called with a link's href, so it gets
+ * whatever the author wrote — any host spelling, a trailing slash, a
+ * root-relative path. Must be pure and fast: it runs on parse and on paste.
+ *
+ * Without this adapter the entity feature is off and links stay links.
+ */
+export type EntityFromUrl = (url: string) => EntityRef | null
+
+/**
+ * Search entities of one `type` for the `/` menu and the picker. Debouncing is
+ * the render layer's job; `signal` aborts when a newer query supersedes this
+ * one (a stale result is dropped either way).
+ */
+export type SearchEntities = (
+  type: string,
+  query: string,
+  signal: AbortSignal
+) => Promise<EntityHit[]>
+
+/**
+ * The title to write when a card or chip is turned into an ordinary link
+ * (`[title](url)`). Optional: without it, or when it resolves `null`, fails or
+ * takes too long, the link text is the URL without its scheme — still an
+ * ordinary link, because it differs from the href.
+ */
+export type EntityTitle = (
+  ref: EntityRef,
+  signal: AbortSignal
+) => Promise<string | null>
+
+/**
  * The full policy bundle a host passes when constructing the editor. Every
  * field is optional: omit `uploadImage` for an image-free editor (the galgame
  * 简介 case), omit `searchMentionUsers` to drop @mentions, etc. What is present
@@ -115,6 +181,18 @@ export interface KunEditorAdapters {
    * when the link text starts with `@`. Default: the `kungal-user:` scheme.
    */
   mentionFromUrl?: (url: string, text: string) => number | null
+  /**
+   * Recognize entity URLs (topic / galgame / user…) so a BARE link to one
+   * becomes a card (alone in its paragraph) or an inline chip. Absent → the
+   * entity feature is off. See {@link EntityFromUrl}.
+   */
+  entityFromUrl?: EntityFromUrl
+  /** Entity search for the `/` menu and the picker. See {@link SearchEntities}. */
+  searchEntities?: SearchEntities
+  /** The `/` menu's entries, in order. The menu needs these AND `searchEntities`. */
+  entityTypes?: EntityTypeItem[]
+  /** Link text for "turn into a link". See {@link EntityTitle}. */
+  entityTitle?: EntityTitle
 }
 
 /** BCP-47-ish UI language for the editor chrome (toolbar labels, placeholders). */
@@ -146,4 +224,10 @@ export interface KunEditorFeatures {
    * Set false to drop the picker entirely. Default: true.
    */
   sticker?: boolean
+  /**
+   * Entity references: cards and chips for bare links the `entityFromUrl`
+   * adapter recognizes, plus the `/` menu when `searchEntities` + `entityTypes`
+   * are present. Default: true — but off without `entityFromUrl`.
+   */
+  entity?: boolean
 }

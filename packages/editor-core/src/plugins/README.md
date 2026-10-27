@@ -15,6 +15,7 @@ plugins/
   code/         CodeMirror code-block config + icons            (peers: codemirror, @codemirror/*)
   upload/       paste/drop/toolbar image upload                 (adapter: uploadImage)
   link/         insertLinkCommand + autolink on input             (no adapter — pure)
+  entity/       entity card (block) + chip (inline) for bare links (adapter: entityFromUrl)
   stop-link/    Space keymap + orphan stored-link cleanup
   inline-atom/  Backspace / Delete beside ANY inline atom → one transaction  (no adapter — pure)
 ```

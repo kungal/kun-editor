@@ -1,9 +1,41 @@
 import type { CmdKey } from '@milkdown/kit/core'
+import type { Component } from 'vue'
 import type {
+  EntityRef,
   KunEditorAdapters,
   KunEditorFeatures,
   KunEditorLocale
 } from '@kungal/editor-core'
+
+/**
+ * The props KunEditor passes to a host's entity component (see
+ * {@link KunEntityView}). The component fetches its own preview from
+ * `entity.type` / `entity.id` (batch and cache on the host side) and must
+ * reserve its final size up front — KunEditor adds no wrapper that changes
+ * size, so a preview resolving late must not move the text around it.
+ */
+export interface KunEntityViewProps {
+  entity: EntityRef
+  /** The node is selected (clicked / arrowed onto). KunEditor also draws a
+   * focus ring on its own wrapper; this is for a component that wants more. */
+  selected: boolean
+}
+
+/**
+ * How entity cards and chips look in the editor — the host's components (the
+ * visuals need the host's data layer). Each gets {@link KunEntityViewProps}.
+ * Either may be omitted: that display falls back to a neutral box / chip
+ * showing the URL. Rendered non-navigating, like the mention chip: a click
+ * selects the node, it never follows a link inside the component.
+ */
+export interface KunEntityView {
+  card?: Component
+  chip?: Component
+}
+
+/** How `insertEntity` shows the entity: `auto` (default) is a card in an empty
+ * paragraph and a chip anywhere else — the rule paste and the `/` menu use. */
+export type KunEntityInsertDisplay = 'card' | 'chip' | 'auto'
 
 // A toolbar button id for `<KunEditorToolbar :items>` — pass an ordered list to
 // reorder / subset the built-in buttons (`'|'` is a group divider). Keeps every
@@ -23,6 +55,7 @@ export type KunToolbarItem =
   | 'link'
   | 'image'
   | 'picker'
+  | 'entityPicker'
   | '|'
 
 // A button id for the selection bubble toolbar (`<KunEditor :selection-toolbar>`),
@@ -85,6 +118,12 @@ export interface KunEditorToolbarApi {
   insertQuote: (payload: { refId: string; label: string }) => void
   /** Insert an @mention atom at the cursor. */
   insertMention: (payload: { userId: number; name: string }) => void
+  /**
+   * Insert an entity reference at the cursor as a card or a chip (default
+   * `auto`: a card in an empty paragraph, a chip anywhere else). Needs the
+   * `entityFromUrl` adapter.
+   */
+  insertEntity: (ref: EntityRef, display?: KunEntityInsertDisplay) => void
   /** Focus the WYSIWYG editor. */
   focus: () => void
   /** The host policy bundle (uploadImage / stickerSource / notify / …). */
@@ -142,6 +181,11 @@ export interface KunEditorExpose {
    * focus. Requires the `mention` feature (on by default).
    */
   insertMention(payload: { userId: number; name: string }): void
+  /**
+   * Insert an entity reference at the cursor (card / chip / `auto`), then
+   * focus. Needs the `entityFromUrl` adapter.
+   */
+  insertEntity(ref: EntityRef, display?: KunEntityInsertDisplay): void
   /** Insert an image at the cursor from a ready URL (a host-built image dialog). */
   insertImage(payload: { src: string; alt?: string; title?: string }): void
   /**

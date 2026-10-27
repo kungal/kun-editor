@@ -48,6 +48,7 @@ export const nav: NavSection[] = [
       item('/plugins/katex'),
       item('/plugins/code-block'),
       item('/plugins/mention'),
+      item('/plugins/entity'),
       item('/plugins/upload'),
       item('/plugins/quote'),
       item('/plugins/sticker')

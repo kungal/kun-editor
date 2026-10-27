@@ -38,6 +38,7 @@ import { createQuotePlugin } from '../plugins/quote'
 import { createUploadPlugin, imageUploadPlaceholder } from '../plugins/upload'
 import { createPlaceholderPlugin } from '../plugins/placeholder'
 import { createInlineAtomPlugin } from '../plugins/inline-atom'
+import { createEntityPlugin } from '../plugins/entity'
 
 // Re-export the individual plugin factories + building blocks so advanced hosts
 // can compose their own bundle instead of using the preset.
@@ -52,6 +53,7 @@ export * from '../plugins/quote'
 export * from '../plugins/upload'
 export * from '../plugins/placeholder'
 export * from '../plugins/inline-atom'
+export * from '../plugins/entity'
 
 /** Extra, non-adapter options for the composed bundle. */
 export interface KunEditorPluginOptions {
@@ -88,7 +90,8 @@ export const createKunEditorPlugins = (
     katex = true,
     codeBlock = true,
     mention = true,
-    quote = false
+    quote = false,
+    entity = true
   } = features
 
   const plugins: (MilkdownPlugin | MilkdownPlugin[])[] = [
@@ -129,6 +132,12 @@ export const createKunEditorPlugins = (
   // Quote is opt-in — the host inserts references via insertQuoteCommand.
   if (quote) {
     plugins.push(createQuotePlugin())
+  }
+  // Entity cards / chips are gated on the adapter that recognizes their URLs:
+  // no `entityFromUrl` → links stay links. After commonmark + gfm (it widens
+  // their list item) and after spoiler (whose remark pass must run first).
+  if (entity && adapters.entityFromUrl) {
+    plugins.push(createEntityPlugin(adapters.entityFromUrl))
   }
   // Image upload is gated purely on the adapter: no `uploadImage` → no upload,
   // paste and drop paths (the image-free galgame 简介 editor).

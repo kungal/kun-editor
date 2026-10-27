@@ -120,6 +120,10 @@ absent adapter always wins (you can't enable `mention` without
 />
 ```
 
+Entity cards / chips need `entityFromUrl` (absent → links stay links); the `/`
+menu and the toolbar picker additionally need `searchEntities` + `entityTypes`.
+The host renders them: `<KunEditor :entity-view="{ card: TopicCard, chip: TopicChip }">`.
+
 The **image-free** editor (e.g. a short intro field) is just an omitted
 `uploadImage` — no flag needed; upload, paste/drop and sticker paths all drop
 out together.

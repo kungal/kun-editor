@@ -5,8 +5,23 @@
 // mirroring @kungal/ui-vue's `KunUI` shape.
 import type { App, Plugin } from 'vue'
 import KunEditor from './components/KunEditor.vue'
+import KunEntityPicker from './components/EntityPicker.vue'
 
 export { KunEditor }
+
+// The entity picker panel (type tabs + search + results) — for a custom or
+// KunUI toolbar's entity button. Props `{ adapters, locale }`; emits `pick`
+// (an EntityHit — insert it with the toolbar API's `insertEntity(hit.ref)`)
+// and `close`.
+export { KunEntityPicker }
+
+// The props a host's entity card / chip component receives, and the
+// `entityView` prop shape.
+export type {
+  KunEntityView,
+  KunEntityViewProps,
+  KunEntityInsertDisplay
+} from './types'
 
 // The imperative handle from a <KunEditor> template ref (insertQuote / …).
 export type { KunEditorExpose } from './types'
@@ -46,7 +61,14 @@ export type {
   NotifyLevel,
   MentionUser,
   StickerItem,
-  StickerPack
+  StickerPack,
+  EntityRef,
+  EntityHit,
+  EntityTypeItem,
+  EntityDisplay,
+  EntityFromUrl,
+  SearchEntities,
+  EntityTitle
 } from '@kungal/editor-core'
 
 /** Vue plugin: `app.use(KunEditorPlugin)` to register <KunEditor> globally. */

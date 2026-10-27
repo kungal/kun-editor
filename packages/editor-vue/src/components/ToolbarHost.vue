@@ -11,6 +11,7 @@ import { insertImageCommand } from '@milkdown/kit/preset/commonmark'
 import { useInstance } from '@milkdown/vue'
 import { inject } from 'vue'
 import {
+  insertEntityCommand,
   insertLinkCommand,
   insertMentionCommand,
   insertQuoteCommand,
@@ -56,6 +57,10 @@ const insertMention: KunEditorToolbarApi['insertMention'] = (payload) => {
   run(insertMentionCommand.key, payload)
   focus()
 }
+const insertEntity: KunEditorToolbarApi['insertEntity'] = (ref, display) => {
+  run(insertEntityCommand.key, { ref, display })
+  focus()
+}
 const uploadImage: KunEditorToolbarApi['uploadImage'] = (file) => {
   const adapter = ctx?.adapters.uploadImage
   const editor = getEditor()
@@ -82,6 +87,7 @@ const api: KunEditorToolbarApi = {
   insertImage,
   insertQuote,
   insertMention,
+  insertEntity,
   focus,
   get adapters() {
     return ctx?.adapters ?? {}

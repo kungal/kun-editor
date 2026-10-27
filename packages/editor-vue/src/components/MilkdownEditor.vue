@@ -19,13 +19,20 @@ import {
 import { listenerCtx } from '@milkdown/kit/plugin/listener'
 import { slashFactory } from '@milkdown/kit/plugin/slash'
 import { tooltipFactory } from '@milkdown/kit/plugin/tooltip'
-import { callCommand, replaceAll } from '@milkdown/kit/utils'
-import { TextSelection } from '@milkdown/kit/prose/state'
+import { $prose, callCommand, replaceAll } from '@milkdown/kit/utils'
+import { Plugin, PluginKey, TextSelection } from '@milkdown/kit/prose/state'
+import type { Node as ProseNode } from '@milkdown/kit/prose/model'
 import { Milkdown, useEditor } from '@milkdown/vue'
-import { usePluginViewFactory } from '@prosemirror-adapter/vue'
+import {
+  useNodeViewFactory,
+  usePluginViewFactory
+} from '@prosemirror-adapter/vue'
 import { insertImageCommand } from '@milkdown/kit/preset/commonmark'
 import {
   createKunEditorPlugins,
+  entityCardId,
+  entityLinkId,
+  insertEntityCommand,
   insertMentionCommand,
   insertQuoteCommand,
   startImageUpload
@@ -40,6 +47,9 @@ import { createActiveMarksPlugin } from '../active-marks'
 import { KUN_EDITOR_CONTEXT } from '../context'
 import MentionDropdown from './MentionDropdown.vue'
 import SelectionTooltip from './SelectionTooltip.vue'
+import EntityNodeView from './EntityNodeView.vue'
+import EntityMenu from './EntityMenu.vue'
+import EntitySlashMenu from './EntitySlashMenu.vue'
 import type { KunEditorExpose } from '../types'
 
 const props = defineProps<{
@@ -97,6 +107,74 @@ const mentionEnabled =
 const selectionTooltip = tooltipFactory('kunSelectionTooltip')
 const tooltipEnabled = props.selectionToolbar && !!pluginViewFactory
 
+// Entity cards / chips: wired when the host recognizes entity URLs. The nodes
+// render the host's components through a node view; the popover (paste offer +
+// selected-entity bubble) and the `/` menu are plugin views. The `/` menu also
+// needs something to search with.
+const nodeViewFactory = useNodeViewFactory()
+const entityEnabled =
+  props.features.entity !== false &&
+  !!props.adapters.entityFromUrl &&
+  !!pluginViewFactory &&
+  !!nodeViewFactory
+const entitySlashEnabled =
+  entityEnabled &&
+  !!props.adapters.searchEntities &&
+  !!props.adapters.entityTypes?.length
+
+/** The element a card / chip renders into: the class hooks, the data-* the
+ * copy path also writes, and contenteditable=false (the caret never enters). */
+const entityElement = (node: ProseNode) => {
+  const card = node.type.name === entityCardId
+  const el = document.createElement(card ? 'div' : 'span')
+  el.className = `kun-entity ${card ? 'kun-entity-card' : 'kun-entity-chip'}`
+  el.contentEditable = 'false'
+  el.dataset.kunEntity = card ? 'card' : 'chip'
+  el.dataset.entityType = String(node.attrs.type)
+  el.dataset.entityId = String(node.attrs.id)
+  return el
+}
+const entityPlugins = entityEnabled
+  ? [
+      $prose(
+        () =>
+          new Plugin({
+            key: new PluginKey('KUN_ENTITY_VIEWS'),
+            props: {
+              nodeViews: {
+                [entityCardId]: nodeViewFactory!({
+                  component: EntityNodeView,
+                  as: entityElement
+                }),
+                [entityLinkId]: nodeViewFactory!({
+                  component: EntityNodeView,
+                  as: entityElement
+                })
+              }
+            }
+          })
+      ),
+      $prose(
+        () =>
+          new Plugin({
+            key: new PluginKey('KUN_ENTITY_MENU'),
+            view: pluginViewFactory!({ component: EntityMenu })
+          })
+      ),
+      ...(entitySlashEnabled
+        ? [
+            $prose(
+              () =>
+                new Plugin({
+                  key: new PluginKey('KUN_ENTITY_SLASH'),
+                  view: pluginViewFactory!({ component: EntitySlashMenu })
+                })
+            )
+          ]
+        : [])
+    ]
+  : []
+
 const editorInfo = useEditor((root) => {
   const editor = Editor.make()
     .config((ctx) => {
@@ -146,6 +224,9 @@ const editorInfo = useEditor((root) => {
   }
   if (tooltipEnabled) {
     editor.use(selectionTooltip)
+  }
+  if (entityPlugins.length) {
+    editor.use(entityPlugins)
   }
   // Single writer for toggle-mark chrome. view.update fires on stored-mark
   // toggles too, so the toolbar does not need a post-command refresh.
@@ -209,6 +290,12 @@ const insertMention: KunEditorExpose['insertMention'] = (payload) => {
   editorInfo.get()?.action(callCommand(insertMentionCommand.key, payload))
   focus()
 }
+const insertEntity: KunEditorExpose['insertEntity'] = (ref, display) => {
+  editorInfo.get()?.action(
+    callCommand(insertEntityCommand.key, { ref, display })
+  )
+  focus()
+}
 const insertImage: KunEditorExpose['insertImage'] = (payload) => {
   editorInfo.get()?.action(
     callCommand(insertImageCommand.key, {
@@ -266,6 +353,7 @@ const scrollToHeading: KunEditorExpose['scrollToHeading'] = (index) => {
 defineExpose<KunEditorExpose>({
   insertQuote,
   insertMention,
+  insertEntity,
   insertImage,
   uploadImage,
   focus,

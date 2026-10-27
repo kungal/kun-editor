@@ -69,6 +69,18 @@ supplies `searchMentionUsers` — a debounced, keyboard-navigable dropdown offer
 users and inserts a mention chip (`[@name](kungal-user:id)`). Without the adapter
 the mention schema still round-trips; there's just no autocomplete.
 
+**Entity references** are wired when the host supplies `entityFromUrl`: a bare
+link to a host entity (a topic, a galgame, a user…) shows as a block card when it
+is all its paragraph holds, an inline chip anywhere else, and saves back to the
+bare `<url>`. The visuals are the host's — pass `:entity-view="{ card, chip }"`
+(each gets `{ entity, selected }`); without them a neutral box / chip shows the
+URL. Pasting an entity URL converts it as its own undo step and offers a small
+卡片 / 行内 / 链接 popover (Tab to reach it from the keyboard); a selected card or
+chip gets the same bubble plus 删除. With `searchEntities` + `entityTypes`, `/` at
+the start of a paragraph or after a space opens a type list, then a search, and
+the toolbar gets a picker button (`KunEntityPicker`, also exported for custom
+toolbars); `insertEntity(ref, display?)` is on the toolbar API and the ref handle.
+
 The **sticker / emoji picker** is a toolbar popover: a built-in emoji tab
 (unicode, inserted as text — no adapter) plus a sticker tab that appears when the
 host supplies `stickerSource`, inserting each sticker as an image node. Turn the

@@ -50,3 +50,94 @@ export const mockNotify: NonNullable<KunEditorAdapters['notify']> = (
   // eslint-disable-next-line no-console
   console.log(`[KunEditor notify:${level}] ${message}`)
 }
+
+// Entity references — the forum's rules, as a host adapter would write them:
+// www.kungal.com / kungal.com (or root-relative), /topic/{id}, /galgame/{id},
+// /galgame/resource/{id}, /user/{id}, optional trailing slash; any query or
+// fragment → not an entity. Always answers with the canonical absolute URL.
+const ENTITY_KINDS: [RegExp, string, string][] = [
+  [/^\/topic\/(\d+)\/?$/, 'topic', 'topic'],
+  [/^\/galgame\/resource\/(\d+)\/?$/, 'galgame_resource', 'galgame/resource'],
+  [/^\/galgame\/(\d+)\/?$/, 'work', 'galgame'],
+  [/^\/user\/(\d+)\/?$/, 'user', 'user']
+]
+
+export const mockEntityFromUrl: NonNullable<
+  KunEditorAdapters['entityFromUrl']
+> = (url) => {
+  let parsed: URL
+  try {
+    parsed = new URL(url, 'https://www.kungal.com')
+  } catch {
+    return null
+  }
+  if (
+    !/^https?:$/.test(parsed.protocol) ||
+    !/^(www\.)?kungal\.com$/.test(parsed.hostname) ||
+    url.includes('?') ||
+    url.includes('#')
+  ) {
+    return null
+  }
+  for (const [pattern, type, path] of ENTITY_KINDS) {
+    const match = pattern.exec(parsed.pathname)
+    if (match) {
+      return { type, id: match[1]!, url: `https://www.kungal.com/${path}/${match[1]}` }
+    }
+  }
+  return null
+}
+
+const ENTITY_TITLES: Record<string, string[]> = {
+  topic: ['新人报到帖', '本季度 Galgame 汉化进度汇总', '求推荐纯爱向作品'],
+  work: ['魔女的夜宴', '千恋＊万花', '星光咏叹调'],
+  user: ['Alice', 'Kun', 'Bob']
+}
+
+export const mockEntityTypes: NonNullable<KunEditorAdapters['entityTypes']> = [
+  { type: 'topic', label: '话题' },
+  { type: 'work', label: 'Galgame' },
+  { type: 'user', label: '用户' }
+]
+
+export const mockSearchEntities: NonNullable<
+  KunEditorAdapters['searchEntities']
+> = async (type, query, signal) => {
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  if (signal.aborted) {
+    throw new DOMException('aborted', 'AbortError')
+  }
+  const path = type === 'work' ? 'galgame' : type
+  return (ENTITY_TITLES[type] ?? [])
+    .map((title, index) => ({ title, id: String(index + 1) }))
+    .filter(({ title }) => title.toLowerCase().includes(query.toLowerCase()))
+    .map(({ title, id }) => ({
+      ref: mockEntityFromUrl(`https://www.kungal.com/${path}/${id}`)!,
+      title,
+      subtitle: `${type} #${id}`
+    }))
+}
+
+export const mockEntityTitle: NonNullable<KunEditorAdapters['entityTitle']> =
+  async (ref) => ENTITY_TITLES[ref.type]?.[Number(ref.id) - 1] ?? null
+
+export const mockEntityAdapters: KunEditorAdapters = {
+  entityFromUrl: mockEntityFromUrl,
+  searchEntities: mockSearchEntities,
+  entityTypes: mockEntityTypes,
+  entityTitle: mockEntityTitle
+}
+
+/** A fake preview lookup for the demo card / chip (a real host batches and
+ * caches these against its API). */
+export const mockEntityPreview = (type: string, id: string) =>
+  new Promise<{ title: string; subtitle: string }>((resolve) =>
+    setTimeout(
+      () =>
+        resolve({
+          title: ENTITY_TITLES[type]?.[Number(id) - 1] ?? `${type} #${id}`,
+          subtitle: `${type} #${id}`
+        }),
+      400
+    )
+  )

@@ -40,6 +40,7 @@ import type { KunToggleMark } from '../types'
 import { TOOLBAR_ICONS as I } from '../toolbar-icons'
 import LinkInput from './LinkInput.vue'
 import StickerPicker from './StickerPicker.vue'
+import EntityPickerButton from './EntityPickerButton.vue'
 
 const [, getEditor] = useInstance()
 const ctx = inject(KUN_EDITOR_CONTEXT)
@@ -48,6 +49,14 @@ const uploadImage = computed(() => ctx?.adapters.uploadImage)
 // The emoji/sticker picker (emoji is built-in; the sticker tab needs the
 // adapter). Shown unless the host turns the feature off.
 const showPicker = computed(() => ctx?.features.sticker !== false)
+// The entity picker — the `/` menu's toolbar twin (phones have no `/` habit).
+const showEntityPicker = computed(
+  () =>
+    ctx?.features.entity !== false &&
+    !!ctx?.adapters.entityFromUrl &&
+    !!ctx?.adapters.searchEntities &&
+    !!ctx?.adapters.entityTypes?.length
+)
 const isEnglish = computed(() =>
   (ctx?.locale ?? 'zh-cn').toLowerCase().startsWith('en')
 )
@@ -195,6 +204,11 @@ const onFileChange = (e: Event) => {
         hidden
         @change="onFileChange"
       />
+    </template>
+
+    <template v-if="showEntityPicker">
+      <span class="kun-editor__toolbar-divider" aria-hidden="true" />
+      <EntityPickerButton />
     </template>
 
     <template v-if="showPicker">

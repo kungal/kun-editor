@@ -78,6 +78,7 @@ host:
 | --- | --- | --- |
 | `createUploadPlugin(uploadImage, opts)` | paste / drop / toolbar image upload | `uploadImage(file) → url` (+ optional `notify`) |
 | `createMentionPlugin()` | `[@name](kungal-user:id)` mention atom | schema is pure; the `@` dropdown (P3) uses `searchMentionUsers` |
+| `createEntityPlugin(entityFromUrl)` | entity references: a bare link (`<url>` / `url` / `[url](url)`) the host recognizes is a block **card** when it is all its paragraph holds, else an inline **chip**; both save back to `<url>`. Paste / autolink / `/` menu / picker share that one rule; paste and a committed clip convert as their own undo step (undo → plain URL text) | `entityFromUrl(url) → { type, id, url }` (canonical, absolute); `searchEntities` / `entityTypes` / `entityTitle` for the render layer |
 | `createQuotePlugin()` | `[label](kungal-reply:refId)` inline reference atom | host inserts via `insertQuoteCommand({ refId, label })` |
 
 Stickers have **no core plugin** — a sticker is a plain image node, so the picker

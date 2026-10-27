@@ -34,7 +34,11 @@ import ToolbarHost from './ToolbarHost.vue'
 import MarkdownSource from './MarkdownSource.vue'
 import { createEmptyActiveMarks } from '../active-marks'
 import { DEFAULT_SELECTION_ITEMS, KUN_EDITOR_CONTEXT } from '../context'
-import type { KunEditorExpose, KunSelectionItem } from '../types'
+import type {
+  KunEditorExpose,
+  KunEntityView,
+  KunSelectionItem
+} from '../types'
 
 type ViewMode = 'wysiwyg' | 'source' | 'split'
 
@@ -75,6 +79,12 @@ const props = withDefaults(
      * `.kun-editor__bubble` / `.kun-editor__bubble-btn` class hooks.
      */
     selectionToolbar?: boolean | KunSelectionItem[]
+    /**
+     * The host's entity card / chip components — `{ card, chip }`, each given
+     * `{ entity, selected }` (see `KunEntityView`). Needs the `entityFromUrl`
+     * adapter; without a component a neutral box / chip shows the URL.
+     */
+    entityView?: KunEntityView
   }>(),
   {
     adapters: () => ({}),
@@ -85,7 +95,8 @@ const props = withDefaults(
     placeholderMode: 'doc',
     views: () => ['wysiwyg', 'source', 'split'],
     scrollSync: true,
-    selectionToolbar: true
+    selectionToolbar: true,
+    entityView: () => ({})
   }
 )
 
@@ -149,6 +160,9 @@ provide(KUN_EDITOR_CONTEXT, {
   },
   get activeMarks() {
     return activeMarks
+  },
+  get entityView() {
+    return props.entityView
   }
 })
 
@@ -279,6 +293,7 @@ const source = ref<InstanceType<typeof MarkdownSource> | null>(null)
 defineExpose<KunEditorExpose>({
   insertQuote: (payload) => inner.value?.insertQuote(payload),
   insertMention: (payload) => inner.value?.insertMention(payload),
+  insertEntity: (ref, display) => inner.value?.insertEntity(ref, display),
   insertImage: (payload) => inner.value?.insertImage(payload),
   uploadImage: (file) => inner.value?.uploadImage(file),
   focus: () => inner.value?.focus(),
