@@ -17,7 +17,7 @@ const hooks = [
   { name: '.kun-editor__bubble[data-show]', type: 'bubble', description: '选区浮动菜单(定位 + 显隐必需)' },
   { name: '.kun-editor__link', type: 'link', description: '工具栏链接按钮 + 其 URL 面板的容器(定位必需)' },
   { name: '.kun-editor__link-panel', type: 'link', description: '工具栏链接按钮下的 URL 面板(定位必需)' },
-  { name: '.kun-editor__link-input', type: 'link', description: '链接 URL 输入框 —— 工具栏面板与选区气泡共用同一个钩子' },
+  { name: '.kun-link-editor / __input[data-field=text|href] / __actions / __action[data-action=unlink|open|cancel|apply]', type: 'link', description: '链接编辑器(文本 + 链接):选区气泡、手搓工具栏面板、KunUI 工具栏 popover 共用' },
   { name: '.kun-editor__source .cm-editor', type: 'source', description: 'CodeMirror 源码视图' },
   { name: '.kun-mention-dropdown[data-show]', type: 'mention', description: '@提及下拉(定位 + 显隐必需)' },
   { name: '.kun-editor__picker-panel', type: 'picker', description: '贴纸 / 表情弹层(定位必需)' },

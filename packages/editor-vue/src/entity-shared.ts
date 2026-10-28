@@ -10,7 +10,7 @@ import {
   shift,
   size
 } from '@floating-ui/dom'
-import type { Placement, ReferenceElement } from '@floating-ui/dom'
+import type { Middleware, Placement, ReferenceElement } from '@floating-ui/dom'
 import type {
   EntityHit,
   EntityTypeItem,
@@ -62,6 +62,42 @@ export const entityLabels = (locale: KunEditorLocale | undefined) => {
 }
 
 /**
+ * Keep a floating panel inside the VISUAL viewport — the part of the page left
+ * visible when a phone's on-screen keyboard is up (the layout viewport floating-
+ * ui measures by default still includes what the keyboard covers). Works in
+ * `position: absolute` coordinates, through the offset parent. Runs last.
+ */
+export const visualViewportClamp = (): Middleware => ({
+  name: 'kunVisualViewport',
+  fn: ({ y, rects, elements }) => {
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null
+    if (!vv) return {}
+    const parent = (elements.floating as HTMLElement).offsetParent ?? document.documentElement
+    const parentTop = parent.getBoundingClientRect().top
+    const top = parentTop + y
+    const minTop = vv.offsetTop + 8
+    const maxBottom = vv.offsetTop + vv.height - 8
+    let shift = 0
+    if (top + rects.floating.height > maxBottom) shift = maxBottom - (top + rects.floating.height)
+    if (top + shift < minTop) shift = minTop - top
+    return shift ? { y: y + shift } : {}
+  }
+})
+
+/** Re-run `place` when the visual viewport changes (the keyboard opens or
+ * closes, the page zooms). Returns the cleanup. */
+export const onVisualViewportChange = (place: () => void): (() => void) => {
+  const vv = typeof window !== 'undefined' ? window.visualViewport : null
+  if (!vv) return () => {}
+  vv.addEventListener('resize', place)
+  vv.addEventListener('scroll', place)
+  return () => {
+    vv.removeEventListener('resize', place)
+    vv.removeEventListener('scroll', place)
+  }
+}
+
+/**
  * Keep `floating` next to `reference` — below it by default, flipped above
  * when there is no room, and shifted to stay 8px inside the viewport (a phone
  * screen is narrow). Follows scrolling and resizing until the returned cleanup
@@ -92,13 +128,19 @@ export const floatNear = (
               `${Math.max(120, Math.floor(availableHeight))}px`
             )
           }
-        })
+        }),
+        visualViewportClamp()
       ]
     }).then(({ x, y }) => {
       Object.assign(floating.style, { left: `${x}px`, top: `${y}px` })
     })
   }
-  return autoUpdate(reference, floating, place)
+  const stopAuto = autoUpdate(reference, floating, place)
+  const stopViewport = onVisualViewportChange(place)
+  return () => {
+    stopAuto()
+    stopViewport()
+  }
 }
 
 /** A type row as the menus show it: where the query matched, for the

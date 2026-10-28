@@ -4,7 +4,7 @@ const types = `interface KunEditorAdapters {
   searchMentionUsers?: (query: string) => Promise<MentionUser[]>
   stickerSource?: () => StickerPack[] | Promise<StickerPack[]>
   notify?: (message: string, level: NotifyLevel) => void
-  linkPrompt?: (ctx: { text: string }) => MaybePromise<string | null | undefined>
+  linkPrompt?: (ctx: { text: string }) => MaybePromise<string | { text?: string; href: string } | null | undefined>
   mentionToUrl?: (userId: number) => string
   mentionFromUrl?: (url: string, text: string) => number | null
   entityFromUrl?: (url: string) => EntityRef | null
@@ -36,7 +36,7 @@ const rows = [
   { name: 'searchMentionUsers', type: '(query) => Promise<MentionUser[]>', description: '解析 @提及 查询;防抖由渲染层负责。应尽快返回,调用方按序号丢弃过期结果。' },
   { name: 'stickerSource', type: '() => StickerPack[] | Promise', description: '提供贴纸包。省略则隐藏贴纸 UI。' },
   { name: 'notify', type: '(message, level) => void', description: '把编辑器通知路由到宿主的 toast 系统。' },
-  { name: 'linkPrompt', type: '({ text }) => MaybePromise<string | null>', description: '自定义链接 URL 输入(你自己的 KunModal / 文章选择器)。返回 URL,返回空值 = 取消。省略则用内置入口:选区气泡的内联输入框、手搓工具栏的 URL 面板、KunUI 工具栏的 popover。返回的 URL 与内置入口走同一次归一化(见 normalizeLinkHref),不必自己补 https://。' },
+  { name: 'linkPrompt', type: '({ text }) => MaybePromise<string | { text?, href } | null>', description: '自定义链接输入(你自己的 KunModal / 文章选择器),替换内置的链接编辑器(选区气泡、两种工具栏、Ctrl+K)。拿到当前链接文本;返回 URL 字符串(文本不变),或 { text, href } 同时设置文本与 URL,返回空值 = 取消。URL 与内置入口走同一次归一化(见 normalizeLinkHref),不必自己补 https://。' },
   { name: 'mentionToUrl', type: '(userId) => string', description: '@提及 的链接 URL 形态(服务端契约,故为策略)。默认 kungal-user:<id>;如 moyu 用 /user/<id>/resource。' },
   { name: 'entityFromUrl', type: '(url) => EntityRef | null', description: '识别实体 URL,返回带「规范 URL」(必须是绝对 https://…)的引用,非实体返回 null。缺席 = 实体功能关闭,链接仍是链接。解析与粘贴时都会调用,须纯且快;抛错视为非实体。' },
   { name: 'searchEntities', type: '(type, query, signal) => Promise<EntityHit[]>', description: '「/」菜单与工具栏选择器的搜索。防抖由渲染层负责;被新查询取代时 signal 中止(过期结果无论如何都会丢弃)。' },

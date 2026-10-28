@@ -50,6 +50,7 @@ import SelectionTooltip from './SelectionTooltip.vue'
 import EntityNodeView from './EntityNodeView.vue'
 import EntityMenu from './EntityMenu.vue'
 import EntitySlashMenu from './EntitySlashMenu.vue'
+import { KUN_LINK_EDITOR_EVENT } from '../link-shared'
 import type { KunEditorExpose } from '../types'
 
 const props = defineProps<{
@@ -106,6 +107,32 @@ const mentionEnabled =
 // / in the split preview).
 const selectionTooltip = tooltipFactory('kunSelectionTooltip')
 const tooltipEnabled = props.selectionToolbar && !!pluginViewFactory
+
+// Mod-K opens the link editor in the selection bubble. A ProseMirror key
+// handler, not a window listener: by the time it runs, ProseMirror has read the
+// latest DOM selection, so a Mod-K straight after moving the caret links where
+// the caret now is. It signals the bubble through the editor DOM.
+const isMac = typeof navigator !== 'undefined' && /Mac|iP(hone|ad|od)/.test(navigator.platform)
+const linkKeymap = $prose(
+  () =>
+    new Plugin({
+      key: new PluginKey('KUN_LINK_KEYMAP'),
+      props: {
+        handleKeyDown: (view, event) => {
+          const mod = isMac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
+          if (!mod || event.altKey || event.shiftKey || event.key.toLowerCase() !== 'k') {
+            return false
+          }
+          if (!view.editable) return false
+          // The editor owns Mod-K while it has focus: a host's site-wide
+          // Ctrl+K (a search palette, say) must not fire as well.
+          event.stopPropagation()
+          view.dom.dispatchEvent(new CustomEvent(KUN_LINK_EDITOR_EVENT))
+          return true
+        }
+      }
+    })
+)
 
 // Entity cards / chips: wired when the host recognizes entity URLs. The nodes
 // render the host's components through a node view; the popover (paste offer +
@@ -229,6 +256,7 @@ const editorInfo = useEditor((root) => {
   }
   if (tooltipEnabled) {
     editor.use(selectionTooltip)
+    editor.use(linkKeymap)
   }
   if (entityPlugins.length) {
     editor.use(entityPlugins)

@@ -15,8 +15,11 @@ import { $command } from '@milkdown/kit/utils'
 import { linkSchema } from '@milkdown/kit/preset/commonmark'
 import { normalizeLinkHref } from '../../href'
 import { autolinkInputPlugin } from './autolink'
+import { applyLink, removeLink } from './edit'
 
 export { autolinkInputPlugin } from './autolink'
+export { linkDraft, linkAtSelection, applyLink, removeLink } from './edit'
+export type { LinkDraft } from './edit'
 
 export interface InsertLinkPayload {
   /**
@@ -63,6 +66,40 @@ export const insertLinkCommand = $command(
     }
 )
 
-/** The link plugin bundle: the insert-link command and autolink on input. */
+/**
+ * Set `[text](href)` on the selection — what the link editor applies. The
+ * range is the existing link at the selection, else the selection, else the
+ * caret (see `linkDraft`); `text` replaces that range's text when it differs
+ * (and may: plain text in one block), falls back to the URL when empty. One
+ * transaction, so one undo; a bare entity URL becomes its chip / card.
+ */
+export const setLinkCommand = $command(
+  'SetKunLink',
+  () =>
+    (payload?: { text?: string; href: string }) =>
+    (state, dispatch) => {
+      const tr = state.tr
+      if (!payload || !applyLink(tr, state, payload)) {
+        return false
+      }
+      dispatch?.(tr.scrollIntoView())
+      return true
+    }
+)
+
+/** Remove the link at the selection — the whole link, its text kept. */
+export const removeLinkCommand = $command(
+  'RemoveKunLink',
+  () => () => (state, dispatch) => {
+    const tr = state.tr
+    if (!removeLink(tr, state)) {
+      return false
+    }
+    dispatch?.(tr)
+    return true
+  }
+)
+
+/** The link plugin bundle: the link commands and autolink on input. */
 export const createLinkPlugin = (): MilkdownPlugin[] =>
-  [insertLinkCommand, autolinkInputPlugin].flat()
+  [insertLinkCommand, setLinkCommand, removeLinkCommand, autolinkInputPlugin].flat()

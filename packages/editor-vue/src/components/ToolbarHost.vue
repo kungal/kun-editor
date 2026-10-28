@@ -14,6 +14,9 @@ import {
   promptForEntity,
   insertEntityCommand,
   insertLinkCommand,
+  linkDraft,
+  removeLinkCommand,
+  setLinkCommand,
   insertMentionCommand,
   insertQuoteCommand,
   startImageUpload
@@ -40,6 +43,22 @@ const insertText = (text: string): void => {
 }
 const insertLink: KunEditorToolbarApi['insertLink'] = (payload) => {
   run(insertLinkCommand.key, payload)
+  focus()
+}
+const getLinkDraft: KunEditorToolbarApi['getLinkDraft'] = () => {
+  let draft = { text: '', href: '', editing: false, textEditable: true }
+  getEditor()?.action((c) => {
+    const { text, href, editing, textEditable } = linkDraft(c.get(editorViewCtx).state)
+    draft = { text, href, editing, textEditable }
+  })
+  return draft
+}
+const applyLink: KunEditorToolbarApi['applyLink'] = (link) => {
+  run(setLinkCommand.key, link)
+  focus()
+}
+const unlink: KunEditorToolbarApi['unlink'] = () => {
+  run(removeLinkCommand.key)
   focus()
 }
 const insertImage: KunEditorToolbarApi['insertImage'] = (payload) => {
@@ -93,6 +112,9 @@ const api: KunEditorToolbarApi = {
   insertText,
   uploadImage,
   insertLink,
+  getLinkDraft,
+  applyLink,
+  unlink,
   insertImage,
   insertQuote,
   insertMention,

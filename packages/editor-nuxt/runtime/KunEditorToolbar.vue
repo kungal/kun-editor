@@ -38,14 +38,17 @@ import {
   setHeadingCommand
 } from '@kungal/editor-core/preset'
 import {
+  askLinkPrompt,
   KunEntityPicker,
   KunEntityTypePicker,
+  KunLinkEditor,
   KunStickerPanel
 } from '@kungal/editor-vue'
 import type {
   EntityHit,
   EntityTypeItem,
   KunEditorToolbarApi,
+  KunLinkDraft,
   KunStickerPick,
   KunToggleMark,
   KunToolbarItem
@@ -102,8 +105,6 @@ const t = computed(() => ({
   strike: en.value ? 'Strikethrough' : '删除线',
   code: en.value ? 'Inline code' : '行内代码',
   link: en.value ? 'Link' : '链接',
-  linkPlaceholder: en.value ? 'https://…' : 'https://…',
-  linkApply: en.value ? 'Apply' : '确定',
   bulletList: en.value ? 'Bullet list' : '无序列表',
   orderedList: en.value ? 'Ordered list' : '有序列表',
   quote: en.value ? 'Blockquote' : '引用块',
@@ -229,33 +230,44 @@ const setHeading = (level: number) => {
   headingPopoverEl?.close()
 }
 
-// Link — a KunPopover with a URL input. Applies to the current selection (or
-// inserts the URL as linked text when nothing is selected). The editor keeps its
-// selection while the popover input is focused, so api.insertLink wraps it.
-const linkUrl = ref('')
+// Link — a KunPopover around the one link editor (<KunLinkEditor>: 文本 +
+// 链接), the same editor the selection bubble and Mod-K open. Its draft is read
+// when the button is pressed (the selection, or the link being edited) and the
+// editor remounts each time, so it never shows a stale draft. The editor keeps
+// ProseMirror's selection while its fields have focus, so applyLink lands on
+// what was selected.
+const linkDraftNow = ref<KunLinkDraft>({ text: '', href: '', editing: false, textEditable: true })
+const linkKey = ref(0)
 let linkPopoverEl: { close: () => void } | null = null
 const setLinkPopover = (el: unknown) => {
   linkPopoverEl = el as { close: () => void } | null
 }
-const applyLink = () => {
-  const href = linkUrl.value.trim()
-  if (href) {
-    props.insertLink({ href })
-  }
-  linkUrl.value = ''
+const openLinkEditor = () => {
+  linkDraftNow.value = props.getLinkDraft()
+  linkKey.value += 1
+}
+const submitLink = (link: { text?: string; href: string }) => {
   linkPopoverEl?.close()
+  props.applyLink(link)
+}
+const unlinkLink = () => {
+  linkPopoverEl?.close()
+  props.unlink()
+}
+const cancelLink = () => {
+  linkPopoverEl?.close()
+  props.focus()
 }
 
 // When the host supplies a `linkPrompt` adapter, the link button uses THAT (its
-// own modal) instead of the inline popover — so one override covers the toolbar,
-// the default toolbar, and the selection bubble alike.
+// own modal) instead of the editor — one override covers the toolbar, the
+// default toolbar, the selection bubble and Mod-K alike.
 const useLinkAdapter = computed(() => !!props.adapters.linkPrompt)
 const applyLinkFromAdapter = async () => {
-  const raw = await props.adapters.linkPrompt?.({ text: '' })
-  const href = raw?.trim()
-  if (href) {
-    props.insertLink({ href })
-  }
+  const linkPrompt = props.adapters.linkPrompt
+  if (!linkPrompt) return
+  const answer = await askLinkPrompt(linkPrompt, props.getLinkDraft().text)
+  if (answer) props.applyLink(answer)
 }
 
 // Image upload — via api.uploadImage (shows the in-document "uploading…"
@@ -371,7 +383,7 @@ const pickEntityType = (item: EntityTypeItem) => {
         :ref="setLinkPopover"
         position="bottom-start"
         :opaque="true"
-        inner-class="w-64 p-2"
+        inner-class="w-72 max-w-[calc(100vw-1rem)] p-2"
       >
         <template #trigger>
           <KunTooltip :text="chrome.link.label" :delay-show="300">
@@ -380,36 +392,23 @@ const pickEntityType = (item: EntityTypeItem) => {
               size="sm"
               :is-icon-only="true"
               :aria-label="chrome.link.label"
+              @click="openLinkEditor"
             >
               <KunIcon :name="chrome.link.icon" />
             </KunButton>
           </KunTooltip>
         </template>
-        <!-- `type="text"` + `inputmode="url"`, never `type="url"`: this IS a
-             form, so native URL validation would block submit on a schemeless
-             `www.a.com/x` — the very input insertLinkCommand normalizes.
-
-             NO `autofocus`: KunPopover already focuses the first focusable
-             element in its panel when it opens, and does it with
-             `preventScroll`. The input's own mount-time focus ran a tick
-             EARLIER — while the panel, teleported to <body>, was still sitting
-             at the document origin because floating-ui had not measured yet —
-             so "scroll the focused element into view" yanked the whole page to
-             the top. KunUI ≥ 2.26.0 passes preventScroll there too, but this
-             prop was doing nothing the popover wasn't already doing right. -->
-        <form class="flex items-center gap-1" @submit.prevent="applyLink">
-          <KunInput
-            v-model="linkUrl"
-            type="text"
-            inputmode="url"
-            size="sm"
-            :placeholder="t.linkPlaceholder"
-            class="flex-1"
-          />
-          <KunButton type="submit" variant="flat" color="primary" size="sm">
-            {{ t.linkApply }}
-          </KunButton>
-        </form>
+        <!-- KunPopover focuses the first focusable thing in its panel, with
+             preventScroll; the editor then moves focus to its first EMPTY
+             field, also with preventScroll — so the page never jumps. -->
+        <KunLinkEditor
+          :key="linkKey"
+          :draft="linkDraftNow"
+          :locale="props.locale"
+          @submit="submitLink"
+          @unlink="unlinkLink"
+          @cancel="cancelLink"
+        />
       </KunPopover>
 
       <template v-else-if="item.kind === 'image'">

@@ -70,11 +70,11 @@ export type NotifyLevel = 'info' | 'success' | 'warn' | 'error'
 export type Notify = (message: string, level: NotifyLevel) => void
 
 /**
- * Ask the user for a link URL — provide this to show your OWN UI (a modal, an
- * article picker…) instead of the built-in entry: the selection bubble's inline
- * URL input, the headless toolbar's URL panel, or the KunUI toolbar's popover.
- * Gets the currently selected text (to prefill or search). Return the URL, or a
- * falsy value to cancel. One override covers every link entry point.
+ * Ask the user for a link — provide this to show your OWN UI (a modal, an
+ * article picker…) instead of the built-in link editor (the selection bubble,
+ * the toolbars, Mod-K). Gets the current link text (the selection's, or the
+ * link's being edited). Return the URL (the text stays), `{ text, href }` to set
+ * both, or a falsy value to cancel. One override covers every link entry point.
  *
  * The URL you return is normalized like any other (a schemeless host gets
  * `https://`), so a picker can hand back whatever it has. See
@@ -82,7 +82,15 @@ export type Notify = (message: string, level: NotifyLevel) => void
  */
 export type LinkPrompt = (
   context: { text: string }
-) => string | null | undefined | Promise<string | null | undefined>
+) => LinkPromptResult | Promise<LinkPromptResult>
+
+/** What a `linkPrompt` answers: the URL (the link keeps the text it has), or
+ * the text and the URL both, or a falsy value to cancel. */
+export type LinkPromptResult =
+  | string
+  | { text?: string; href: string }
+  | null
+  | undefined
 
 /**
  * A reference to a host entity (a topic, a galgame, a user…) that the editor

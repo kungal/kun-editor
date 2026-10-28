@@ -169,8 +169,9 @@ const adapters = { uploadImage, stickerSource, notify }
       <code>selectionToolbar</code> 传项目数组可重排/增减
       (<code>'|'</code> 分隔),传 <code>false</code> 关闭;样式改参考 CSS 的
       <code>.kun-editor__bubble</code> / <code>.kun-editor__bubble-btn</code> /
-      <code>.kun-editor__link-input</code>。点「链接」时气泡会就地换成 URL 输入框
-      (<code>[data-mode='link']</code>),Enter 确定、Esc 取消。下面这个只保留
+      <code>.kun-link-editor*</code>。点「链接」(或 Ctrl+K / ⌘K)时气泡会就地换成链接编辑器
+      (<code>[data-mode='link']</code>:「文本」+「链接」两栏,左边缘不动),Enter 确定、Esc 取消;
+      光标落在已有链接里时它直接显示出来(不抢焦点),可改、可「移除链接」、可「打开」。下面这个只保留
       加粗/斜体 —— 选中下方文字试试:
     </p>
     <ClientOnly>
@@ -184,10 +185,11 @@ const adapters = { uploadImage, stickerSource, notify }
 
     <h2 class="mt-8 mb-1 text-xl font-semibold">自定义链接输入(linkPrompt)</h2>
     <p class="text-default-600 mb-2">
-      默认「插入链接」不弹原生框:选区气泡就地换成 URL 输入框、手搓工具栏在按钮下开一个小面板
-      (两者共用 <code>.kun-editor__link-input</code>)、KunUI 工具栏用 popover。传一个
+      默认「插入链接」是同一个链接编辑器(「文本」+「链接」,<code>KunLinkEditor</code>):选区气泡里就地出现、
+      手搓工具栏在按钮下开一个小面板、KunUI 工具栏放在 popover 里,Ctrl+K / ⌘K 也打开它。传一个
       <code>linkPrompt</code> 适配器就能全部换成<strong>你自己的
-      UI</strong>(KunModal、文章选择器…),一处覆盖工具栏 + 气泡。下面这个示例把选中文字拼进
+      UI</strong>(KunModal、文章选择器…),一处覆盖工具栏 + 气泡 + 快捷键;它拿到当前链接文本,返回 URL
+      字符串(文本不变)或 <code>{ text, href }</code>(两者都改)。下面这个示例把选中文字拼进
       URL —— 选中文字点链接看看:
     </p>
     <ClientOnly>

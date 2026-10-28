@@ -114,6 +114,21 @@ export interface KunEditorToolbarApi {
    * `text` defaults to the href. Standard markdown `[text](href)`.
    */
   insertLink: (payload: { href: string; text?: string }) => void
+  /**
+   * What a link editor should open with at the current selection: the text,
+   * the existing link's href, whether a link is being edited (offer unlink),
+   * whether the text may be changed. Feed it to <KunLinkEditor :draft>.
+   */
+  getLinkDraft: () => {
+    text: string
+    href: string
+    editing: boolean
+    textEditable: boolean
+  }
+  /** Apply `[text](href)` — what <KunLinkEditor> submits — then focus. */
+  applyLink: (link: { text?: string; href: string }) => void
+  /** Remove the link at the selection (its text stays), then focus. */
+  unlink: () => void
   /** Insert a reference atom at the cursor (requires the quote feature). */
   insertQuote: (payload: { refId: string; label: string }) => void
   /** Insert an @mention atom at the cursor. */

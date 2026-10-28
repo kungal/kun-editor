@@ -8,6 +8,7 @@ import KunEditor from './components/KunEditor.vue'
 import KunEntityPicker from './components/EntityPicker.vue'
 import KunEntityTypePicker from './components/EntityTypePicker.vue'
 import KunStickerPanel from './components/StickerPanel.vue'
+import KunLinkEditor from './components/LinkEditor.vue'
 
 export { KunEditor }
 
@@ -27,6 +28,15 @@ export { KunEntityTypePicker }
 // bottom rail; keyboard grid). Props `{ adapters, locale }`; emits `pick`
 // (`{ kind: 'emoji', text }` or `{ kind: 'sticker', src, name }`).
 export { KunStickerPanel }
+
+// The one link editor (文本 + 链接) every built-in entry point uses — for a
+// custom toolbar: `<KunLinkEditor :draft="api.getLinkDraft()" @submit="api.applyLink"
+// @unlink="api.unlink" @cancel="close" />`.
+export { KunLinkEditor }
+export type { KunLinkDraft } from './components/LinkEditor.vue'
+// Ask the host's `linkPrompt` and get `{ text?, href }` back whichever shape
+// it answered in (a URL string, or `{ text, href }`) — null when cancelled.
+export { askLinkPrompt } from './link-shared'
 export type { KunStickerPick } from './sticker-recent'
 
 // Provide an icon component app-wide for editor chrome (gets `{ name }`).
@@ -86,7 +96,9 @@ export type {
   EntityFromUrl,
   SearchEntities,
   EntityTitle,
-  EntityPrompt
+  EntityPrompt,
+  LinkPrompt,
+  LinkPromptResult
 } from '@kungal/editor-core'
 
 /** Vue plugin: `app.use(KunEditorPlugin)` to register <KunEditor> globally. */
