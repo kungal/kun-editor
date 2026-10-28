@@ -11,6 +11,7 @@
 // the @mention dropdown), styled by the host stylesheet. Uses the SAME toggle
 // commands as the fixed toolbar, so behavior is consistent.
 import { TooltipProvider } from '@milkdown/kit/plugin/tooltip'
+import { editorViewCtx } from '@milkdown/kit/core'
 import { NodeSelection, TextSelection } from '@milkdown/kit/prose/state'
 import type { EditorView } from '@milkdown/kit/prose/view'
 import { selectedEntity } from '@kungal/editor-core/preset'
@@ -60,6 +61,29 @@ const t = computed(() => {
 const divRef = ref<HTMLElement | null>(null)
 let provider: TooltipProvider | undefined
 
+// ── Motion ──────────────────────────────────────────────────────────────────
+// The look lives in the stylesheet (enter: fade + 4px rise + .98 → 1; leave
+// faster; none under reduced motion). Two flags on the element steer it, set
+// synchronously so they land in the same frame as `data-show`:
+// - `data-glide`: the bubble was already showing when the selection moved, so
+//   left/top glide to the new spot — and the enter animation does not re-run
+//   for every Shift+arrow;
+// - `data-instant`: focus left for another field — gone at once, no fade, so
+//   it never lingers over whatever the user went to.
+let shown = false
+const setFlag = (name: 'glide' | 'instant', on: boolean) => {
+  divRef.value?.toggleAttribute(`data-${name}`, on)
+}
+
+/** The live view (the plugin-view `view` is a per-update snapshot). */
+const liveView = () => {
+  let live: EditorView | undefined
+  getEditor()?.action((c) => {
+    live = c.get(editorViewCtx)
+  })
+  return live ?? view.value
+}
+
 const call = <T,>(key: CmdKey<T>, payload?: T) => {
   getEditor()?.action(callCommand(key, payload))
 }
@@ -93,9 +117,10 @@ const selectedHref = () => {
 const closeLinkEditor = () => {
   editingLink.value = false
   linkUrl.value = ''
+  if (divRef.value) divRef.value.style.width = ''
   // Hand focus back so the bubble tracks the selection again (and the caret is
   // where the user left it).
-  view.value?.focus()
+  liveView()?.focus()
 }
 
 const applyLink = () => {
@@ -123,6 +148,9 @@ const openLinkEditor = async () => {
     return
   }
   linkUrl.value = selectedHref()
+  // Keep the bubble exactly as wide as the button row it replaces: a width
+  // change would make floating-ui re-centre it, and the panel would jump.
+  if (divRef.value) divRef.value.style.width = `${divRef.value.offsetWidth}px`
   editingLink.value = true
   await nextTick()
   inputRef.value?.focus()
@@ -189,19 +217,54 @@ const shouldShow = (v: EditorView): boolean => {
   return !emptyText
 }
 
+/** Focus went somewhere that is neither the editor nor this bubble. */
+const leftForElsewhere = (event: FocusEvent) => {
+  const to = event.relatedTarget as Node | null
+  const v = liveView()
+  if (to && (divRef.value?.contains(to) || v?.dom.contains(to))) {
+    return
+  }
+  if (shown) {
+    setFlag('instant', true)
+    provider?.hide()
+  }
+}
+/** Back in the editor: ProseMirror dispatches nothing on focus, so ask the
+ * provider to look again (a selection may be waiting for its bubble). */
+const backInEditor = () => {
+  const v = liveView()
+  if (v) provider?.update(v)
+}
+let editorDom: HTMLElement | null = null
+
 onMounted(() => {
   provider = new TooltipProvider({
     content: divRef.value as HTMLElement,
     offset: 8,
+    // Follow the selection closely (Milkdown's default is 200ms) — the glide
+    // smooths it; a long throttle only makes it lag, then jump.
+    debounce: 50,
     shouldShow
   })
+  provider.onShow = () => {
+    setFlag('instant', false)
+    setFlag('glide', shown)
+    shown = true
+  }
   // A hidden bubble must not come back holding a half-typed URL for a selection
   // that is long gone.
   provider.onHide = () => {
+    shown = false
+    setFlag('glide', false)
     editingLink.value = false
     linkUrl.value = ''
+    if (divRef.value) divRef.value.style.width = ''
   }
   provider.update(view.value, prevState.value)
+  editorDom = liveView()?.dom ?? null
+  editorDom?.addEventListener('blur', leftForElsewhere)
+  editorDom?.addEventListener('focus', backInEditor)
+  divRef.value?.addEventListener('focusout', leftForElsewhere)
 })
 
 watch([view, prevState], () => {
@@ -209,6 +272,9 @@ watch([view, prevState], () => {
 })
 
 onBeforeUnmount(() => {
+  editorDom?.removeEventListener('blur', leftForElsewhere)
+  editorDom?.removeEventListener('focus', backInEditor)
+  divRef.value?.removeEventListener('focusout', leftForElsewhere)
   provider?.destroy()
 })
 </script>

@@ -173,6 +173,7 @@
 /* Positioned by floating-ui (absolute left/top); visibility via data-show. */
 .kun-editor__bubble {
   position: absolute;
+  box-sizing: border-box;
   display: flex;
   gap: 0.125rem;
   padding: 0.25rem;
@@ -183,7 +184,40 @@
   z-index: 40;
 }
 .kun-editor__bubble[data-show='false'] {
-  display: none;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(4px) scale(0.98);
+  pointer-events: none;
+}
+
+/* Enter: fade, a 4px rise, .98 → 1 (~150ms); leave in ~100ms — the entity
+ * bubble's motion. Already showing when the selection moves (data-glide), it
+ * glides there instead of re-entering; focus gone to another field
+ * (data-instant), it vanishes at once. */
+@media (prefers-reduced-motion: no-preference) {
+  .kun-editor__bubble {
+    transform-origin: bottom center;
+    transition:
+      opacity 150ms ease-out,
+      transform 150ms ease-out,
+      visibility 0s;
+  }
+  .kun-editor__bubble[data-show='false'] {
+    transition:
+      opacity 100ms ease-in,
+      transform 100ms ease-in,
+      visibility 0s linear 100ms;
+  }
+  .kun-editor__bubble[data-glide] {
+    transition:
+      opacity 150ms ease-out,
+      transform 150ms ease-out,
+      left 150ms ease-out,
+      top 150ms ease-out;
+  }
+  .kun-editor__bubble[data-instant] {
+    transition: none;
+  }
 }
 .kun-editor__bubble-btn {
   display: inline-flex;
@@ -328,6 +362,13 @@
 
 .kun-editor__link-input:focus {
   border-color: var(--color-primary);
+}
+
+/* In the bubble the input takes the width the button row had (the bubble's
+ * width is held while it is open), so the bubble never resizes — or moves. */
+.kun-editor__bubble[data-mode='link'] .kun-editor__link-input {
+  flex: 1;
+  width: auto;
 }
 
 /* ── Markdown source (CodeMirror) ───────────────────────────────────────── */
