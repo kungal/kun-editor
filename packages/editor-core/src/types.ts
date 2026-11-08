@@ -190,6 +190,17 @@ export interface KunEditorAdapters {
   uploadImage?: UploadImage
   searchMentionUsers?: SearchMentionUsers
   stickerSource?: StickerSource
+  /**
+   * Is the image at `src` a sticker? A sticker is a plain markdown image, so
+   * only the host can tell (e.g. by matching the image hash against its sticker
+   * packs). Matching images get `class="kun-sticker"` in the editor, so they
+   * render like the published post (small, inline). Stickers inserted from the
+   * picker are recognized without this; it is what recognizes them in loaded
+   * markdown — which may hold a different src form than the picker hands out.
+   * Called per image on every edit: keep it pure and fast; a throw = no. If the
+   * answer changes later (the list loaded), run `refreshStickersCommand`.
+   */
+  isSticker?: (src: string) => boolean
   notify?: Notify
   /**
    * Custom link-URL entry (replaces the selection bubble's inline input, the

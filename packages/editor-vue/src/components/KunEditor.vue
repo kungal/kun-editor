@@ -321,6 +321,7 @@ defineExpose<KunEditorExpose>({
   insertImage: (payload) => inner.value?.insertImage(payload),
   uploadImage: (file) => inner.value?.uploadImage(file),
   focus: () => inner.value?.focus(),
+  refreshStickers: () => inner.value?.refreshStickers(),
   // Navigate to a heading in whichever pane the user edits: the CodeMirror source
   // in source/split (mounted only then), else the WYSIWYG.
   scrollToHeading: (index) => {

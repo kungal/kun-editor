@@ -35,7 +35,9 @@ import {
   insertEntityCommand,
   insertMentionCommand,
   insertQuoteCommand,
-  startImageUpload
+  refreshStickersCommand,
+  startImageUpload,
+  stickerPluginKey
 } from '@kungal/editor-core/preset'
 import type {
   KunEditorAdapters,
@@ -383,6 +385,16 @@ const scrollToHeading: KunEditorExpose['scrollToHeading'] = (index) => {
   })
 }
 
+// Re-run the host's `isSticker` over the document — after the data it reads
+// (the sticker packs) finished loading. A no-op with the sticker feature off.
+const refreshStickers: KunEditorExpose['refreshStickers'] = () => {
+  editorInfo.get()?.action((ctx) => {
+    if (stickerPluginKey.getState(ctx.get(editorViewCtx).state)) {
+      callCommand(refreshStickersCommand.key)(ctx)
+    }
+  })
+}
+
 defineExpose<KunEditorExpose>({
   insertQuote,
   insertMention,
@@ -390,7 +402,8 @@ defineExpose<KunEditorExpose>({
   insertImage,
   uploadImage,
   focus,
-  scrollToHeading
+  scrollToHeading,
+  refreshStickers
 })
 </script>
 

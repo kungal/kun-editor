@@ -39,6 +39,7 @@ import { createUploadPlugin, imageUploadPlaceholder } from '../plugins/upload'
 import { createPlaceholderPlugin } from '../plugins/placeholder'
 import { createInlineAtomPlugin } from '../plugins/inline-atom'
 import { createEntityPlugin } from '../plugins/entity'
+import { createStickerPlugin } from '../plugins/sticker'
 
 // Re-export the individual plugin factories + building blocks so advanced hosts
 // can compose their own bundle instead of using the preset.
@@ -54,6 +55,7 @@ export * from '../plugins/upload'
 export * from '../plugins/placeholder'
 export * from '../plugins/inline-atom'
 export * from '../plugins/entity'
+export * from '../plugins/sticker'
 
 /** Extra, non-adapter options for the composed bundle. */
 export interface KunEditorPluginOptions {
@@ -72,9 +74,10 @@ export interface KunEditorPluginOptions {
  *
  * P1 wired the pure plugins (spoiler, katex, code-block, stop-link); P2 adds the
  * adapter-driven ones — image upload (gated on the `uploadImage` adapter), the
- * mention schema, and the opt-in quote atom. Sticker has no core plugin: a
- * sticker is a plain image node, so its picker is a render-layer view (P3) that
- * consumes the `stickerSource` adapter and inserts an image.
+ * mention schema, and the opt-in quote atom. A sticker is a plain image node;
+ * its picker is a render-layer view (P3) over the `stickerSource` adapter, and
+ * the core sticker plugin only marks sticker images (`kun-sticker` class) so
+ * they render sticker-sized — see ../plugins/sticker.
  *
  * Feature flags default to on (except `quote`, host-specific → off); an absent
  * feature simply drops its plugins. The order matters — the baseline comes first
@@ -91,7 +94,8 @@ export const createKunEditorPlugins = (
     codeBlock = true,
     mention = true,
     quote = false,
-    entity = true
+    entity = true,
+    sticker = true
   } = features
 
   const plugins: (MilkdownPlugin | MilkdownPlugin[])[] = [
@@ -138,6 +142,12 @@ export const createKunEditorPlugins = (
   // their list item) and after spoiler (whose remark pass must run first).
   if (entity && adapters.entityFromUrl) {
     plugins.push(createEntityPlugin(adapters.entityFromUrl))
+  }
+  // Sticker images get a `kun-sticker` class (decoration only — the markdown is
+  // a plain image either way). Picker inserts are always recognized; markdown
+  // loaded from elsewhere needs the host's `isSticker`.
+  if (sticker) {
+    plugins.push(createStickerPlugin(adapters.isSticker))
   }
   // Image upload is gated purely on the adapter: no `uploadImage` → no upload,
   // paste and drop paths (the image-free galgame 简介 editor).

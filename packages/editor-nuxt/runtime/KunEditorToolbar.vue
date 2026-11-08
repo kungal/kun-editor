@@ -24,7 +24,6 @@ import { computed, ref } from 'vue'
 import {
   createCodeBlockCommand,
   insertHrCommand,
-  insertImageCommand,
   toggleEmphasisCommand,
   toggleInlineCodeCommand,
   toggleStrongCommand,
@@ -35,6 +34,7 @@ import {
 import { toggleStrikethroughCommand } from '@milkdown/kit/preset/gfm'
 import {
   insertKunSpoilerCommand,
+  insertStickerCommand,
   setHeadingCommand
 } from '@kungal/editor-core/preset'
 import {
@@ -295,7 +295,7 @@ const insertPick = (item: KunStickerPick) => {
   if (item.kind === 'emoji') {
     props.insertText(item.text)
   } else {
-    props.run(insertImageCommand.key, { src: item.src, title: item.name, alt: item.name })
+    props.run(insertStickerCommand.key, { src: item.src, name: item.name })
   }
 }
 

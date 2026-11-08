@@ -127,6 +127,25 @@
   border: none !important;
 }
 
+/* Stickers. A sticker is a plain markdown image; @kungal/editor-core's sticker
+ * plugin puts `kun-sticker` on the ones it recognizes (picked from the panel,
+ * or matched by the host's `isSticker`). Sized like the forum's rendered post:
+ * inline, 5rem (80px) tall, sitting on the text line — none of the host prose
+ * layer's figure styling (block, full width, my-8 margins, border). The extra
+ * `.ProseMirror` is specificity, so a host `.prose img` rule doesn't win. */
+.kun-editor__wysiwyg .ProseMirror img.kun-sticker {
+  display: inline-block;
+  width: auto;
+  max-width: 100%;
+  height: 5rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  vertical-align: middle;
+}
+
 /* The spoiler chip while you EDIT it (`||hidden||`). @kungal/editor-core paints
  * a `currentColor`-derived tint on its own — it must look hidden in a host with
  * no design tokens at all — and reads `--kun-spoiler-bg` first, which is this

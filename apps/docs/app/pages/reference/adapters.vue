@@ -3,6 +3,7 @@ const types = `interface KunEditorAdapters {
   uploadImage?: (file: File) => Promise<string>
   searchMentionUsers?: (query: string) => Promise<MentionUser[]>
   stickerSource?: () => StickerPack[] | Promise<StickerPack[]>
+  isSticker?: (src: string) => boolean
   notify?: (message: string, level: NotifyLevel) => void
   linkPrompt?: (ctx: { text: string }) => MaybePromise<string | { text?: string; href: string } | null | undefined>
   mentionToUrl?: (userId: number) => string
@@ -35,6 +36,7 @@ const rows = [
   { name: 'uploadImage', type: '(file) => Promise<string>', description: '上传一张图片,resolve 要嵌入的 URL。paste / drop / 工具栏各调一次;reject 则中止该张。' },
   { name: 'searchMentionUsers', type: '(query) => Promise<MentionUser[]>', description: '解析 @提及 查询;防抖由渲染层负责。应尽快返回,调用方按序号丢弃过期结果。' },
   { name: 'stickerSource', type: '() => StickerPack[] | Promise', description: '提供贴纸包。省略则隐藏贴纸 UI。' },
+  { name: 'isSticker', type: '(src) => boolean', description: '这张图片是不是贴纸。贴纸在 markdown 里就是普通图片,只有宿主能判断(如按图片 hash 对贴纸包)。命中的图片在编辑器里带 class kun-sticker,按贴纸尺寸显示(内联、约 80px 高)。从面板插入的贴纸无需它也能识别;它负责加载进来的 markdown(重新编辑旧帖时 src 可能是另一种形态)。每次编辑对每张图片调用:须纯且快,抛错视为否。结果因数据加载而变化时,调用 <KunEditor> 模板 ref 的 refreshStickers()。' },
   { name: 'notify', type: '(message, level) => void', description: '把编辑器通知路由到宿主的 toast 系统。' },
   { name: 'linkPrompt', type: '({ text }) => MaybePromise<string | { text?, href } | null>', description: '自定义链接输入(你自己的 KunModal / 文章选择器),替换内置的链接编辑器(选区气泡、两种工具栏、Ctrl+K)。拿到当前链接文本;返回 URL 字符串(文本不变),或 { text, href } 同时设置文本与 URL,返回空值 = 取消。URL 与内置入口走同一次归一化(见 normalizeLinkHref),不必自己补 https://。' },
   { name: 'mentionToUrl', type: '(userId) => string', description: '@提及 的链接 URL 形态(服务端契约,故为策略)。默认 kungal-user:<id>;如 moyu 用 /user/<id>/resource。' },

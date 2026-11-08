@@ -222,4 +222,10 @@ export interface KunEditorExpose {
    * host-rendered table of contents.
    */
   scrollToHeading(index: number): void
+  /**
+   * Re-evaluate which images are stickers (the `isSticker` adapter) — call it
+   * once the data `isSticker` reads has loaded, so images already in the doc
+   * pick up the sticker size. No-op with the sticker feature off.
+   */
+  refreshStickers(): void
 }

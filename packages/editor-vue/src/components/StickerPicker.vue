@@ -14,7 +14,7 @@
 // Lives inside <MilkdownProvider> (rendered by EditorToolbar) so useInstance()
 // reaches the editor.
 import { callCommand } from '@milkdown/kit/utils'
-import { insertImageCommand } from '@milkdown/kit/preset/commonmark'
+import { insertStickerCommand } from '@kungal/editor-core/preset'
 import { editorViewCtx } from '@milkdown/kit/core'
 import { useInstance } from '@milkdown/vue'
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -74,7 +74,7 @@ const insert = (item: KunStickerPick) => {
       const view = c.get(editorViewCtx)
       view.dispatch(view.state.tr.insertText(item.text))
     } else {
-      callCommand(insertImageCommand.key, { src: item.src, title: item.name, alt: item.name })(c)
+      callCommand(insertStickerCommand.key, { src: item.src, name: item.name })(c)
     }
   })
 }

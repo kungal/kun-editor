@@ -3,7 +3,9 @@ const src = `const adapters = {
   // 返回贴纸包;每张贴纸插入为一个 image 节点
   stickerSource: () => [
     { name: '默认', stickers: [{ src: '/s/1.webp', name: 'smile' }] }
-  ]
+  ],
+  // 可选:识别加载进来的 markdown 里的贴纸(src 形态可能与面板给的不同)
+  isSticker: (src) => stickerHashes.has(hashOf(src))
 }`
 </script>
 
@@ -21,6 +23,7 @@ const src = `const adapters = {
       <li><strong>表情</strong>内置一套 unicode emoji,插入为纯文本 —— 无需 adapter。<strong>贴纸</strong>仅在提供 <code>stickerSource</code> 时出现,插入为 image 节点(所以无图编辑器只有 emoji)。贴纸图片 <code>loading="lazy"</code>,格子尺寸固定,加载时不跳动。</li>
       <li><strong>最近使用</strong>两个标签各有一份,各记最近 16 个,按浏览者分别存在 localStorage(<code>kun-editor:recent-emoji</code> / <code>kun-editor:recent-stickers</code>),读写全部容错 —— 存储不可用时面板照常工作,只是没有这一节。打开面板时读取,打开期间不重排;已不在当前贴纸包里的贴纸不会再出现。</li>
       <li><strong>键盘</strong>:网格是一个 Tab 停靠点,方向键按格子实际位置移动,Home / End 跳首尾,回车插入;标签与贴纸包行是 tablist,←/→ 切换。Esc 关闭。</li>
+      <li><strong>编辑区里的贴纸</strong>:markdown 仍是普通图片 <code>![名称](src "名称")</code>,但编辑器给贴纸图片加上 class <code>kun-sticker</code>(装饰,不进 markdown),参考样式表按贴纸尺寸显示:内联、5rem(80px)高、垂直居中,不吃宿主 prose 层的图片样式。从面板插入的(本次编辑会话内,同一 src 的复制粘贴也算)总会被识别;加载进来的 markdown 由 <code>isSticker(src)</code> adapter 判断。宿主的判断依赖异步数据时,数据到达后调用 <code>&lt;KunEditor&gt;</code> 模板 ref 的 <code>refreshStickers()</code>(或在自定义集成里运行 <code>refreshStickersCommand</code>)重新判断。</li>
       <li>两套工具栏(手搓的与 KunUI 的)用的是同一个面板,也以 <code>KunStickerPanel</code> 导出给自定义工具栏。</li>
     </ul>
 
